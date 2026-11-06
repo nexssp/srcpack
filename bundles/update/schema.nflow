@@ -1,0 +1,7 @@
+@description "Input contract and CLI flags for the update command"
+@schema UpdateInput struct {
+  profile      string  `cli:"profile,p" usage:"Profile to use for every configured target (default when omitted)"`
+  profile_arg  string  `cli:"positional" usage:"Profile shorthand, for example: update arch"`
+  check        bool  `cli:"check,diff,dry-run" usage:"Preview target outputs without writing files"`
+  quiet        bool  `cli:"quiet,q" usage:"Suppress per-target completion lines"`
+}

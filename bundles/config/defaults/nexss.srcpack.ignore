@@ -1,0 +1,61 @@
+# nexss.srcpack.ignore — patterns excluded from srcpack packs.
+# Uses gitignore syntax. One pattern per line.
+
+# Dependencies
+node_modules/
+vendor/
+.pnpm/
+venv/
+.venv/
+
+# Build output
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+.output/
+.turbo/
+.cache/
+.parcel-cache/
+__pycache__/
+
+# Generated code
+*.pb.go
+*.pb.ts
+*.gen.go
+*_generated.go
+*_generated.ts
+
+# Binaries and archives
+*.exe
+*.dll
+*.so
+*.dylib
+*.wasm
+*.zip
+*.tar
+*.gz
+
+# Lock files
+Cargo.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+composer.lock
+poetry.lock
+Gemfile.lock
+go.sum
+
+# Secrets and local configuration
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials/
+
+# srcpack output
+_srcpack/
+.nexss.srcpack.state

@@ -1,0 +1,88 @@
+@description "Shared Flow-owned pack resolution, execution, rendering and saved-view workflows"
+@require srcpack_source
+@require srcpack_analysis
+@require srcpack_render
+@require srcpack_io
+@require srcpack_pack
+@require srcpack_cli
+
+@include "selectors.nflow"
+@include "../../nflows/render.nflow"
+@include "../../nflows/output.nflow"
+@include "../../bundles/config_views/config_views.nflow"
+
+@pipeline pack_resolve
+  selectors.pipeline.pack_resolve
+@end
+
+@pipeline pack_save_view
+  match {
+    len(.selectors) == 0 -> { message: "--save-view requires at least one selector" } -> fail,
+    _ -> noop
+  }
+  -> { report: { name: .save_view, count: len(.selectors) }, result: match { _ -> packcmd.view_request -> config_views.pipeline.config_views } }
+  -> { content: "✓ Saved view " + toJSON(.report.name) + " (" + string(.report.count) + " selector(s))\n" }
+  -> cli.print
+  -> cli.finish
+@end
+
+@macro pack_collect(save_state) {
+  srcpack.source
+    -> ast.parse
+    -> workspace.save_state:enabled=$save_state
+    -> pack.stats_input
+    -> pack.batch
+    -> stream.fold @{
+      initial: {fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0},
+      expression: `let totals = reduce(item,
+        let included = !#.omitted && (len(#.content) > 0 || len(#.snippets) > 0);
+        let packed = len(#.content) > 0 ? len(#.content) : sum(map(#.snippets, len(#)));
+        {
+          fileCount: #acc.fileCount + (included ? 1 : 0),
+          funcCount: #acc.funcCount + (included ? #.funcCount : 0),
+          packedBytes: #acc.packedBytes + (included ? packed : 0),
+          rawBytes: #acc.rawBytes + (included ? #.size : 0)
+        },
+        {fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0}
+      );
+      {
+        files: map(item, #.file),
+        fileCount: totals.fileCount,
+        funcCount: totals.funcCount,
+        packedBytes: totals.packedBytes,
+        rawBytes: totals.rawBytes
+      }`
+    }
+    -> collect
+}
+
+@pipeline pack_scan
+  @pack_collect(true)
+@end
+
+@pipeline pack_preview
+  @pack_collect(false)
+@end
+
+@pipeline pack_execute
+  { ..., policy: match { _ -> output.pipeline.output_policy } }
+  -> packcmd.materialize
+  -> {
+    ...,
+    records: match(.policy.save_state) {
+      true -> pick @{ field: "pack" } -> pipeline.pack_scan,
+      _ -> pick @{ field: "pack" } -> pipeline.pack_preview
+    }
+  }
+  -> { ..., stats_result: match { _ -> { records, config: .stats } -> packcmd.statistics } }
+  -> { ..., rendered: match { _ -> { records: .stats_result.records, config: .render } -> render.pipeline.render_document_input_pipeline } }
+  -> { policy, content: .policy.json ? toJSON({
+      schema_version: 1,
+      command: .stats.command_line ?? "",
+      operation: .command ?? "pack",
+      output_path: .policy.path,
+      content: .rendered.content
+    }) + "\n" : .rendered.content, rendered_items: .rendered.items }
+  -> output.pipeline.emit_output
+  -> packcmd.done
+@end

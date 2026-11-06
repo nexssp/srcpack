@@ -1,0 +1,15 @@
+@description "One target's Flow-driven pack update"
+@require srcpack_update
+@require srcpack_cli
+@require srcpack_pack
+@include "../pack/pack_workflow.nflow"
+
+@pipeline update_item
+  match {
+    "request" in keys(.) -> pick @{ field: "request" },
+    _ -> { kind: "update", message: "update: item is missing its pack request" } -> fail
+  }
+  -> cli.restore
+  -> pack_workflow.pipeline.pack_resolve
+  -> pack_workflow.pipeline.pack_execute
+@end

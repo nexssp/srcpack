@@ -1,0 +1,25 @@
+@description "Shared production pack statistics fold stage"
+
+@macro pack_stats_fold() {
+  stream.fold @{
+    initial: {fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0},
+    expression: `let totals = reduce(item,
+      let included = !#.omitted && (len(#.content) > 0 || len(#.snippets) > 0);
+      let packed = len(#.content) > 0 ? len(#.content) : sum(map(#.snippets, len(#)));
+      {
+        fileCount: #acc.fileCount + (included ? 1 : 0),
+        funcCount: #acc.funcCount + (included ? #.funcCount : 0),
+        packedBytes: #acc.packedBytes + (included ? packed : 0),
+        rawBytes: #acc.rawBytes + (included ? #.size : 0)
+      },
+      {fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0}
+    );
+    {
+      files: map(item, #.file),
+      fileCount: totals.fileCount,
+      funcCount: totals.funcCount,
+      packedBytes: totals.packedBytes,
+      rawBytes: totals.rawBytes
+    }`
+  }
+}

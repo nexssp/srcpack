@@ -1,0 +1,42 @@
+version: 2
+project_name: srcpack
+
+builds:
+  - id: srcpack
+    main: ./cmd/srcpack
+    binary: srcpack
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+    flags:
+      - -trimpath
+      - -mod=readonly
+    ldflags:
+      - >-
+        -s -w
+        -X main.version=v{{ .Version }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: 'srcpack_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - README.md
+      - LICENSE
+      - SECURITY.md
+
+checksum:
+  name_template: 'srcpack_{{ .Version }}_checksums.txt'
+  algorithm: sha256
+
+changelog:
+  use: git
+
+release:
+  github:
+    owner: nexssp
+    name: srcpack
+  prerelease: auto
+  mode: keep-existing

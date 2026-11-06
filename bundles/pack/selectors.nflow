@@ -1,0 +1,133 @@
+@description "Selector decisions: explicit targets, path/view precedence and profile selection"
+@require srcpack_pack
+@include "resolution.nflow"
+
+@symbols route {
+  pack: "pack"
+  tree: "tree"
+}
+@symbols profile_name {
+  arch: "arch"
+  api: "api"
+  impl: "impl"
+  source: "source"
+  compact: "compact"
+  dense: "dense"
+  with_tests: "with-tests"
+  default: "default"
+}
+
+@macro pack_expand_selector_views() {
+  {
+    ...,
+    selected: flatten(map(.ordered,
+      !#.forced && !#.path_exists && #.has_view ? #.view : [{raw: #.raw, forced: #.forced}]))
+  }
+}
+
+@macro pack_select_candidate_facts() {
+  {
+    ...,
+    selection: let initial = .profile; reduce(.candidates,
+      let item = #;
+      let take_profile = !item.forced && item.bare_profile && !item.path_exists && #acc.profile == "";
+      {
+        profile: take_profile ? item.canonical : (#acc.profile == "" && item.profile != "" ? item.profile : #acc.profile),
+        selectors: take_profile ? #acc.selectors : concat(#acc.selectors, [item])
+      },
+      {profile: initial, selectors: []})
+  }
+}
+
+@macro pack_choose_selectors() {
+  @pack_expand_selector_views()
+  -> packcmd.selector_facts
+  -> @pack_select_candidate_facts()
+}
+
+@macro pack_target_metadata() {
+  {
+    ..., bindings: flatten(map(.selection.selectors, #.bindings))
+  }
+  -> {
+    ...,
+    target_profiles: (.input.profile ?? "") != "" ? {} : fromPairs(map(filter(.bindings, #.profile != ""), [#.key, #.profile])),
+    target_prompts: fromPairs(map(filter(.bindings, #.has_prompt), [#.key, #.prompt])),
+    target_excludes: fromPairs(map(toPairs(groupBy(filter(.bindings, len(#.excludes) > 0), #.key)),
+      [#[0], join(flatten(map(#[1], #.excludes)), ",")]))
+  }
+}
+
+@macro pack_flag_policy() {
+  {
+    ...,
+    command: match((.input._command ?? "pack") != "" ? (.input._command ?? "pack") : (.context_command != "" ? .context_command : "pack")) {
+      route.pack -> const @{ value: route.pack },
+      route.tree -> const @{ value: route.tree },
+      _ -> const @{ value: route.pack }
+    }
+  }
+  -> {
+    ...,
+    normalized: {
+      command,
+      explicit_pack: .input._explicit_pack ?? .context_explicit,
+      output: (.input.output ?? "") != "" ? .input.output :
+        match(command) {
+          route.tree -> const @{ value: .tree_output },
+          _ -> const @{ value: "" }
+        },
+      comments: .cli_bool_flags.comments ?? .input.comments ?? true,
+      depth: (.input.depth ?? 0) == 0 ? .default_depth : .input.depth
+    },
+    overrides: fromPairs(concat(toPairs(.input), toPairs({
+      strip_comments: (.cli_bool_flags.comments ?? .input.comments) == nil ? nil : !(.cli_bool_flags.comments ?? .input.comments),
+      no_tests: (.input.tests ?? false) ? false : .input.no_tests,
+      no_examples: .cli_bool_flags.examples != nil ? !.cli_bool_flags.examples :
+        (.input.examples == nil ? .input.no_examples : !.input.examples),
+      tree_only: .input.tree_only ?? match(command) {
+        route.tree -> const @{ value: true },
+        _ -> const @{ value: nil }
+      },
+      tree_depth: .input.tree_depth ?? .input.depth
+    })))
+  }
+}
+
+@pipeline pack_selector_plan
+  packcmd.input_facts
+  -> @pack_choose_selectors()
+  -> match {
+    .selection.profile != "" && !(.selection.profile in [profile_name.arch, profile_name.api, profile_name.impl, profile_name.source, profile_name.compact, profile_name.dense, profile_name.with_tests]) ->
+      { message: "unknown profile " + toJSON(.selection.profile) + "; valid profiles: arch, api, impl, source, compact, dense, with-tests" } -> fail,
+    _ -> noop
+  }
+  -> @pack_target_metadata()
+  -> @pack_flag_policy()
+  -> { ..., profile_ref: .selection.profile != "" ? .selection.profile : "default" }
+@end
+
+@pipeline pack_resolve
+  pipeline.pack_selector_plan
+  -> packcmd.typed_input
+  -> {
+    host,
+    requested_output,
+    policy: match { _ -> pick @{field: "facts"} -> resolution.pipeline.pack_resolution_policy }
+  }
+  -> match {
+    .policy.need_diff -> packcmd.git_diff,
+    _ -> { ..., diff_content: "" }
+  }
+  -> packcmd.build_request
+  -> {
+    pack,
+    stats: fromPairs(concat(toPairs(.stats), [["output", .requested_output != "" ? .requested_output : (.stats.output != "" ? .stats.output : .io.output_path)]])),
+    render: fromPairs(concat(toPairs(.render), [["output_file", .requested_output != "" ? .requested_output : .render.output_file]])),
+    io: fromPairs(concat(toPairs(.io), [["output_path", .requested_output != "" ? .requested_output : .io.output_path]])),
+    save_view,
+    selectors,
+    command
+  }
+  -> packcmd.request_maps
+@end

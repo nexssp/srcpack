@@ -1,0 +1,19 @@
+@include "../../../bundles/init/init_policy.nflow"
+
+parallel {
+  default_mode: const @{ dirs: ["src"] } -> init_policy.pipeline.init_normalize_request,
+  legacy_targets: const @{ dirs: ["targets", "src", "internal/api"] } -> init_policy.pipeline.init_normalize_request,
+  explicit_mode: const @{ mode: init_policy.init_mode.targets, dirs: ["src"] } -> init_policy.pipeline.init_normalize_request,
+  invalid_mode: const @{ mode: "unexpected", dirs: ["src"] } -> init_policy.pipeline.init_validate_request,
+  missing_target_dirs: const @{ mode: init_policy.init_mode.targets, dirs: [] } -> init_policy.pipeline.init_validate_request,
+  existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: false, reset: false } -> init_policy.pipeline.init_validate_request,
+  forced_existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: true, reset: false } -> init_policy.pipeline.init_validate_request
+}
+
+@test: result.default_mode.mode == init_policy.init_mode.default && result.default_mode.dirs == ["src"]
+@test: result.legacy_targets.mode == init_policy.init_mode.targets && result.legacy_targets.dirs == ["src", "internal/api"]
+@test: result.explicit_mode.mode == init_policy.init_mode.targets && result.explicit_mode.dirs == ["src"]
+@test: result.invalid_mode.ok == false && result.invalid_mode.kind == init_policy.error_kind.conflict && result.invalid_mode.message == "unknown init mode \"unexpected\" (valid: default, targets)"
+@test: result.missing_target_dirs.ok == false && result.missing_target_dirs.kind == init_policy.error_kind.conflict && result.missing_target_dirs.message == "targets mode requires at least one directory"
+@test: result.existing_config.ok == false && result.existing_config.message == "nexss.srcpack.yml already exists (use --force to overwrite)"
+@test: result.forced_existing_config.ok == true

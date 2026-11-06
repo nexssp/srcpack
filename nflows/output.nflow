@@ -1,0 +1,59 @@
+@description "Output policy: Go supplies candidates and performs effects; Flow chooses them"
+
+@symbols output_mode {
+  clipboard: "clipboard"
+  stdout: "stdout"
+  check: "check"
+  file: "file"
+}
+
+@pipeline output_policy
+  {
+    path: .io.output_path,
+    save_state: !.io.check,
+    copy: .io.copy,
+    quiet: .io.quiet || .io.json,
+    json: .io.json,
+    started_at: .io.started_at,
+    trailing_newline: .io.explicit_pack && !.io.check,
+    mode: match {
+      .io.copy && .io.explicit_output == "" -> const @{ value: output_mode.clipboard },
+      .io.explicit_pack && !.io.check && .io.explicit_output == "" && .io.config_path == "" -> const @{ value: output_mode.stdout },
+      .io.output_path == "" || .io.output_path == "-" -> const @{ value: output_mode.stdout },
+      .io.check -> const @{ value: output_mode.check },
+      _ -> const @{ value: output_mode.file }
+    }
+  }
+@end
+
+@macro output_report_policy() {
+  match {
+    .policy.quiet -> { ..., report_prefix: "", report_suffix: "" },
+    _ -> match(.policy.mode) {
+      output_mode.check -> { ..., report_prefix: "✓ Checked in ", report_suffix: " (no changes written)\n" },
+      output_mode.clipboard -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: clipboard only (no file written)\n" },
+      output_mode.stdout -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: rendered context written to stdout\n" },
+      _ -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: wrote context to " + .policy.path + "\n" }
+    }
+  }
+}
+
+@pipeline output_report_policy
+  @output_report_policy()
+@end
+
+@pipeline emit_output
+  match(.policy.mode) {
+    output_mode.file -> srcpack.write_output,
+    output_mode.check -> srcpack.check_output,
+    output_mode.stdout -> srcpack.print_output,
+    output_mode.clipboard -> runtime.noop,
+    _ -> runtime.fail @{ kind: "validation", message: "unknown output policy" }
+  }
+  -> match {
+    .policy.copy -> srcpack.copy_output,
+    _ -> runtime.noop
+  }
+  -> @output_report_policy()
+  -> srcpack.report_output
+@end

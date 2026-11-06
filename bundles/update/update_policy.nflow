@@ -1,0 +1,75 @@
+@description "Pure update target planning, outcome, and report policy"
+
+@symbols update_status {
+  checked: "CHECKED"
+  wrote: "WROTE"
+}
+
+@macro update_target_plan() {
+  { ..., profile: .profile != "" ? .profile : .profile_arg }
+  -> { ..., output_profile: .profile != "" ? .profile : "default" }
+  -> {
+    ...,
+    items: let root = .; map(len(root.target_names) > 0 ? sortBy(root.target_names, #, "asc") : [""],
+      let target = #;
+      let output_name = target == "" ? root.output_profile + ".md" : target + "_" + root.output_profile + ".md";
+      {
+        request: {
+          selectors: target == "" ? ["."] : [target],
+          profile: root.profile,
+          check: root.check,
+          quiet: root.quiet,
+          _output_path: root.output_prefix + output_name,
+          _command: "pack",
+          _explicit_pack: false,
+          _derived_request: true
+        },
+        target: target == "" ? "(default)" : target,
+        file: root.output_prefix + output_name,
+        status: root.check ? update_policy.update_status.checked : update_policy.update_status.wrote
+      })
+  }
+}
+
+@macro update_outcomes() {
+  {
+    ...,
+    outcomes: map(.joined_rows,
+      let row = #;
+      let failed = !row.result_present || !row.ok;
+      let detail = !row.result_present ? "target did not produce a result" :
+        (!row.ok ? ((row.error ?? "") != "" ? row.error : "target failed without an error message") : row.file);
+      {
+        failed: failed,
+        written: !failed && row.status != update_policy.update_status.checked,
+        checked: !failed && row.status == update_policy.update_status.checked,
+        icon: failed ? "✗" : "✓",
+        label: row.target,
+        detail: detail
+      })
+  }
+}
+
+@macro update_report() {
+  {
+    ...,
+    written: len(filter(.outcomes, #.written)),
+    checked: len(filter(.outcomes, #.checked)),
+    failed: len(filter(.outcomes, #.failed))
+  }
+  -> match {
+    .plan.check -> { ..., message: "Summary: " + string(.checked) + " checked" },
+    _ -> { ..., message: "Summary: " + string(.written) + " written" }
+  }
+  -> match {
+    .failed > 0 -> { ..., message: .message + ", " + string(.failed) + " failed" },
+    _ -> noop
+  }
+  -> { summary: {
+    outcomes: .plan.quiet ? [] : .outcomes,
+    written,
+    checked,
+    failed,
+    message
+  } }
+}

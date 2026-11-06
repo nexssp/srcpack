@@ -1,0 +1,55 @@
+@include "../../../bundles/pack/selectors.nflow"
+
+parallel {
+  saved_view: const @{ ordered: [{ raw: "saved", forced: false, path_exists: false, has_view: true, view: [{ raw: "src#arch", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  real_path: const @{ ordered: [{ raw: "existing", forced: false, path_exists: true, has_view: true, view: [{ raw: "elsewhere", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  forced_target: const @{ ordered: [{ raw: "dense", forced: true, path_exists: false, has_view: true, view: [{ raw: "expanded", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  config_view: const @{ selectors: ["saved"] } -> selectors.pipeline.pack_selector_plan,
+  path_wins: const @{ selectors: ["existing"] } -> selectors.pipeline.pack_selector_plan,
+  literal_target: const @{ targets: ["saved"] } -> selectors.pipeline.pack_selector_plan,
+  forced_profile_target: const @{ targets: ["dense"] } -> selectors.pipeline.pack_selector_plan,
+  first_profile: const @{ selectors: ["architecture", "src"] } -> selectors.pipeline.pack_selector_plan,
+  first_selector_profile: const @{ selectors: ["src#source", "dense"] } -> selectors.pipeline.pack_selector_plan,
+  first_bare_profile: const @{ selectors: ["api", "compact"] } -> selectors.pipeline.pack_selector_plan,
+  existing_profile_path: const @{ selectors: ["dense"] } -> selectors.pipeline.pack_selector_plan,
+  metadata: const @{ selectors: ["src~one#source@first", "src~two#arch@prompt.txt", "github:nexssp/flow#source@remote"] } -> selectors.pipeline.pack_selector_plan,
+  explicit_metadata_profile: const @{ profile: selectors.profile_name.impl, selectors: ["src#arch"] } -> selectors.pipeline.pack_selector_plan,
+  flag_policy: const @{ _command: selectors.route.tree, comments: false, examples: false, tests: true, no_tests: true, dense: false, depth: 3, tree_depth: 7, tree_only: false } -> selectors.pipeline.pack_selector_plan,
+  omitted_flags: const @{ value: {} } -> selectors.pipeline.pack_selector_plan,
+  explicit_output: const @{ output: "out.md", _explicit_pack: true } -> selectors.pipeline.pack_selector_plan,
+  unknown_profile: const @{ profile: "unknown" } -> selectors.pipeline.pack_selector_plan ? on_error {
+    else -> { error: .error.message }
+  },
+}
+-> {
+  expanded_view: .saved_view.selected[0].raw,
+  path_selected: .real_path.selected[0].raw,
+  forced_selected: .forced_target.selected[0].raw,
+  config_view: .config_view.selection.selectors[0].raw,
+  path_wins: .path_wins.selection.selectors[0].raw,
+  literal_target: .literal_target.selection.selectors[0].raw,
+  forced_profile_target: .forced_profile_target.selection.selectors[0].raw,
+  first_profile: {profile: .first_profile.selection.profile, selectors: map(.first_profile.selection.selectors, #.raw)},
+  first_selector_profile: {profile: .first_selector_profile.selection.profile, selectors: map(.first_selector_profile.selection.selectors, #.raw)},
+  first_bare_profile: {profile: .first_bare_profile.selection.profile, selectors: map(.first_bare_profile.selection.selectors, #.raw)},
+  existing_profile_path: {profile: .existing_profile_path.selection.profile, selectors: map(.existing_profile_path.selection.selectors, #.raw)},
+  metadata: {profiles: .metadata.target_profiles, excludes: .metadata.target_excludes, prompts: .metadata.target_prompts},
+  explicit_metadata_profile: .explicit_metadata_profile.target_profiles,
+  flag_policy: {normalized: .flag_policy.normalized, overrides: .flag_policy.overrides},
+  omitted_flags: .omitted_flags.overrides,
+  explicit_output: .explicit_output.normalized,
+  unknown_profile: .unknown_profile.error
+}
+
+@test: result.expanded_view == "src#arch" && result.path_selected == "existing" && result.forced_selected == "dense"
+@test: result.config_view contains "src#arch" && result.path_wins == "existing" && result.literal_target == "saved" && result.forced_profile_target == "dense"
+@test: result.first_profile.profile == selectors.profile_name.arch && result.first_profile.selectors == ["src"]
+@test: result.first_selector_profile.profile == selectors.profile_name.source && result.first_selector_profile.selectors == ["src#source", "dense"]
+@test: result.first_bare_profile.profile == selectors.profile_name.api && result.first_bare_profile.selectors == [selectors.profile_name.compact]
+@test: result.existing_profile_path.profile == "" && result.existing_profile_path.selectors == ["dense"]
+@test: result.metadata.profiles[keys(result.metadata.excludes)[0]] == selectors.profile_name.arch && result.metadata.excludes[keys(result.metadata.excludes)[0]] == "one,two" && result.metadata.prompts[keys(result.metadata.excludes)[0]] == "file prompt"
+@test: result.metadata.profiles["github:nexssp/flow"] == selectors.profile_name.source && len(result.explicit_metadata_profile) == 0
+@test: result.flag_policy.normalized.output == "_srcpack/" + selectors.route.tree + ".md" && result.flag_policy.normalized.comments == false && result.flag_policy.overrides.strip_comments == true && result.flag_policy.overrides.no_tests == false && result.flag_policy.overrides.no_examples == true && result.flag_policy.overrides.tree_only == false && result.flag_policy.overrides.tree_depth == 7
+@test: result.omitted_flags.strip_comments == nil && result.omitted_flags.no_tests == nil && result.omitted_flags.tree_depth == nil
+@test: result.explicit_output.output == "out.md" && result.explicit_output.explicit_pack == true
+@test: result.unknown_profile contains "unknown profile"

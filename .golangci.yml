@@ -1,0 +1,181 @@
+version: "2"
+run:
+  tests: true
+  timeout: 5m
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - forcetypeassert
+    - nilerr
+    - noctx
+    - errname
+
+    - gosec
+    - asciicheck
+    - bidichk
+
+    - gocritic
+    - dupl
+    - prealloc
+    - perfsprint
+    - modernize
+    - usestdlibvars
+    - usetesting
+    - copyloopvar
+    - intrange
+    - durationcheck
+    - makezero
+    - exptostd
+
+    - revive
+    - unconvert
+    - unparam
+    - goconst
+    - misspell
+    - nakedret
+    - predeclared
+    - whitespace
+    - gocyclo
+    - wastedassign
+    - nolintlint
+
+    - rowserrcheck
+    - sqlclosecheck
+
+    - tparallel
+    - loggercheck
+    - sloglint
+
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - unnamedResult
+        - paramTypeCombine
+        - hugeParam
+
+    govet:
+      enable:
+        - shadow
+        - nilness
+      disable:
+        - fieldalignment
+
+    errcheck:
+      check-type-assertions: false
+      check-blank: true
+
+    revive:
+      enable-all-rules: false
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        - name: exported
+          disabled: true
+
+    gocyclo:
+      min-complexity: 20
+
+    goconst:
+      min-len: 5
+      min-occurrences: 4
+      ignore-tests: true
+
+    misspell:
+      locale: US
+
+    nakedret:
+      max-func-lines: 30
+
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
+
+    dupl:
+      threshold: 120
+
+    perfsprint:
+      int-conversion: true
+      err-error: true
+      errorf: true
+      sprintf1: true
+      strconcat: true
+
+    loggercheck:
+      kitlog: false
+      klog: false
+      logr: false
+      slog: true
+      zap: true
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+          - prealloc
+          - nilnil
+          - goconst
+          - gocyclo
+          - errcheck
+          - unparam
+          - gocritic
+          - revive
+
+      - path: _test\.go
+        text: '^shadow: declaration of "err"'
+        linters:
+          - govet
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra:
+        group-params: true
+    goimports:
+      local-prefixes:
+        - github.com/nexssp/srcpack

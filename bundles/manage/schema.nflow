@@ -1,0 +1,6 @@
+@description "Positional CLI contracts for srcpack administrative commands"
+
+@schema ManageInput struct {
+  sub   string  `cli:"positional" usage:"Operation: list, show, add, or delete"`
+  args  []string  `cli:"positional" usage:"Names and operation values"`
+}

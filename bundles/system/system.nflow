@@ -1,0 +1,217 @@
+@description "srcpack built-in commands and system status"
+@require srcpack_system
+@require srcpack_cli
+@require srcpack_source
+@require srcpack_analysis
+@require srcpack_render
+@require srcpack_io
+@require terminal
+@symbols output_stream {
+  stdout
+}
+@symbols health_status {
+  degraded
+  ok
+  missing
+  loaded
+  invalid
+}
+@symbols profile_name {
+  arch: "arch"
+  impl: "impl"
+  source: "source"
+  with_tests: "with-tests"
+}
+@symbols file_extension {
+  go: "go"
+  ts: "ts"
+  tsx: "tsx"
+  js: "js"
+  jsx: "jsx"
+  mjs: "mjs"
+  cjs: "cjs"
+  py: "py"
+  pyi: "pyi"
+  rs: "rs"
+  php: "php"
+  zig: "zig"
+  vue: "vue"
+  svelte: "svelte"
+  md: "md"
+  mdx: "mdx"
+  markdown: "markdown"
+}
+@include "doctor.nflow"
+
+@schema EmptyInput struct {
+  args  []string  `cli:"positional" usage:""`
+}
+@schema InfoInput struct {
+  name  string  `cli:"positional" usage:"Built-in profile name"`
+}
+@schema CleanInput struct {
+  path     string  `cli:"positional" usage:"Generated output directory (default: _srcpack)"`
+  output   string  `cli:"output,o" usage:"Generated output directory"`
+  dry_run  bool  `cli:"dry-run,check" usage:"Preview files without removing them"`
+}
+
+@pipeline dashboard:cli="dashboard:Show the current srcpack workspace dashboard":request-schema=EmptyInput
+  cli.restore
+  -> system.dashboard.facts
+  -> pipeline.dashboard_report
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline dashboard_report
+  {
+    content: "\n⚡ srcpack — package source code as AI context\n\n" +
+      terminal.printf("  Working in:  %s\n", .cwd) +
+      (.project_root != .cwd ? terminal.printf("  Project:     %s\n", .project_root) : "") +
+      (.config_name != "" ? terminal.printf("  Config:      %s\n", .config_name) : "  Config:      (none) — run 'srcpack init' to create one\n") +
+      (len(.target_names) > 0 ? terminal.printf("  Targets:     %s\n", join(sort(.target_names), ", ")) : "") +
+      (len(.view_names) > 0 ? terminal.printf("  Views:       %s\n", join(sort(.view_names), ", ")) : "") +
+      "\n  Selector syntax:  <path[,path...]>[~exclude][#profile][@prompt]\n\n" +
+      "  Everyday commands:\n" +
+      "    srcpack arch                              Architecture map to clipboard\n" +
+      "    srcpack impl -t <target>                  Full source for one subsystem\n" +
+      "    srcpack \"src#arch\" \"pkg#source\"            Mixed: signatures + full source\n" +
+      "    srcpack \"auth~tests#impl@find bugs\"       Exclude tests, attach prompt\n" +
+      "    srcpack with-tests -t <target>            Include tests (for writing new ones)\n" +
+      "    srcpack tree --tree-only                   Folder tree with token bars\n" +
+      "    srcpack \"a#arch\" \"b#source\" --save-view=x  Save a selector set as a view\n" +
+      "    srcpack x                                 Re-run the saved view\n" +
+      "    srcpack view list                          Show all saved views\n" +
+      "    srcpack update                             Regenerate every configured target\n" +
+      "    srcpack update --check                     Preview changes without writing\n" +
+      "    srcpack arch --check                       Single-target preview\n" +
+      "    srcpack impl --modified                   Only changed + untracked files\n" +
+      "    srcpack doctor                             Validate config\n" +
+      "    srcpack clean --dry-run                    Preview what would be removed\n\n" +
+      "  Full reference: srcpack help\n\n",
+    stream: output_stream.stdout
+  }
+@end
+
+@pipeline usage:cli="usage:Show the complete srcpack command reference":request-schema=EmptyInput
+  cli.restore
+  -> system.help
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline version:cli="version:Show the srcpack version":request-schema=EmptyInput
+  cli.restore
+  -> system.version
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline list:cli="list:List built-in srcpack profiles":request-schema=EmptyInput
+  cli.restore
+  -> system.profiles
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline info:cli="info:Describe a built-in profile":request-schema=InfoInput
+  cli.restore
+  -> match {
+    (.name ?? "") == "" -> system.profiles,
+    _ -> {
+      ...,
+      canonical_name: (lower(trim(.name)) == "architecture" || lower(trim(.name)) == "architecture-map" || lower(trim(.name)) == "signatures") ? profile_name.arch :
+        ((lower(trim(.name)) == "implementation" || lower(trim(.name)) == "full") ? profile_name.impl :
+        ((lower(trim(.name)) == "sources" || lower(trim(.name)) == "src") ? profile_name.source :
+        ((lower(trim(.name)) == "withtests" || lower(trim(.name)) == "tests") ? profile_name.with_tests : lower(trim(.name)))))
+    } -> system.profile_info
+  }
+  -> match {
+    (.error ?? "") != "" -> { kind: "usage", message: .error } -> fail,
+    _ -> cli.print -> cli.finish
+  }
+@end
+
+@pipeline clean:cli="clean:Remove generated .md, .tmp, and .xml files":request-schema=CleanInput
+  cli.restore
+  -> {
+    ...,
+    path: (.output ?? "") != "" ? .output : ((.path ?? "") != "" ? .path : "_srcpack")
+  }
+  -> system.clean.inspect
+  -> match(.error) {
+    "" -> match(.dry_run) {
+      true -> system.clean.report_dry_run -> cli.print -> cli.finish,
+      _ -> system.clean.remove -> cli.print -> cli.finish
+    },
+    _ -> { kind: "filesystem", message: .error } -> fail
+  }
+@end
+
+@pipeline doctor:cli="doctor:Validate the current srcpack configuration":request-schema=EmptyInput
+  cli.restore
+  -> doctor.pipeline.doctor_audit
+  -> { content: .report, stream: output_stream.stdout, passed, error }
+  -> cli.print
+  -> match(.passed) {
+    true -> cli.finish,
+    _ -> { kind: "validation", message: .error } -> fail
+  }
+@end
+
+@pipeline types:cli="types:List file-type aliases":request-schema=EmptyInput
+  cli.restore
+  -> {
+    aliases: {
+      "go": ["go"], "ts": ["ts", "tsx"], "typescript": ["ts", "tsx"],
+      "js": ["js", "jsx", "mjs", "cjs"], "javascript": ["js", "jsx", "mjs", "cjs"],
+      "py": ["py", "pyi"], "python": ["py", "pyi"], "rust": ["rs"], "rs": ["rs"],
+      "php": ["php"], "zig": ["zig"], "vue": ["vue"], "svelte": ["svelte"],
+      "web": ["html", "htm", "css", "scss", "js", "jsx", "ts", "tsx", "svelte", "vue"],
+      "config": ["json", "yaml", "yml", "toml", "ini"], "md": ["md", "mdx", "markdown"],
+      "markdown": ["md", "mdx", "markdown"]
+    }
+  }
+  -> {
+    content: "Available file types:\n" + join(map(sortBy(keys(.aliases), #, "asc"), let name = #;
+      terminal.printf("  %-12s %s\n", name + ":", join(map(.aliases[name], "*." + #), ", ")
+      )), ""),
+    stream: output_stream.stdout
+  }
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline health:cli="health:Show structured srcpack health status":request-schema=EmptyInput
+  cli.restore
+  -> system.health.inspect
+  -> {
+    value: {
+      status: .config_present && !.config_valid ? health_status.degraded : health_status.ok,
+      service: "srcpack",
+      version,
+      config_present,
+      config_status: !.config_present ? health_status.missing : (.config_valid ? health_status.loaded : health_status.invalid),
+      working_dir
+    },
+    stream: output_stream.stdout
+  }
+  -> cli.yaml
+  -> cli.print
+  -> cli.finish
+@end
+
+# `ast.parse` is the single shared parser action; it dispatches from each file's Lang.
+@pipeline demo_scan
+  system.demo.sample
+  -> ast.parse:only_sig=true:exported_only=true:trim_blank_lines=true
+  -> collect
+@end
+
+@pipeline demo:cli="demo:Show language-aware AST parsing":request-schema=EmptyInput
+  cli.restore
+  -> pipeline.demo_scan
+  -> system.demo.report
+  -> cli.print
+  -> cli.finish
+@end

@@ -1,0 +1,25 @@
+@description "srcpack — package source code as AI context"
+
+@include "render.nflow"
+@include "pack.nflow"
+@include "tree.nflow"
+@include "output.nflow"
+@include "cli_invocation.nflow" AS cli_invocation
+
+{ ..., policy: match { _ -> output.pipeline.output_policy } }
+-> {
+  policy,
+  rendered: match(.command) {
+    cli_invocation.cmd.pack -> match {
+      .policy.save_state -> pack.pipeline.pack,
+      _ -> pack.pipeline.pack_preview
+    },
+    cli_invocation.cmd.tree -> match {
+      .policy.save_state -> tree.pipeline.tree,
+      _ -> tree.pipeline.tree_preview
+    },
+    _ -> runtime.fail @{ kind: "validation", message: "unknown srcpack pipeline command" }
+  }
+}
+-> { policy, .rendered.content, rendered_items: .rendered.items }
+-> output.pipeline.emit_output

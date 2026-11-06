@@ -1,0 +1,32 @@
+@description "CLI invocation normalization symbols"
+@include "../../../nflows/cli_invocation.nflow"
+
+parallel {
+  short_pack: { args: ["p", "src"] } -> cli_invocation.pipeline.normalize,
+  update_alias: { args: ["run-all", "arch"] } -> cli_invocation.pipeline.normalize,
+  profiles_alias: { args: ["profiles"] } -> cli_invocation.pipeline.normalize,
+  types_alias: { args: ["type-list"] } -> cli_invocation.pipeline.normalize,
+  pack_help: { args: ["help", "p", "--verbose"] } -> cli_invocation.pipeline.normalize,
+  explicit_pack: { args: ["pack", "src"] } -> cli_invocation.pipeline.normalize,
+  selector_first: { args: ["src"] } -> cli_invocation.pipeline.normalize,
+  help_flag: { args: ["--help"] } -> cli_invocation.pipeline.normalize
+}
+-> {
+  short_pack: { args: .short_pack.args, command: .short_pack.command, explicit_pack: .short_pack.explicit_pack },
+  update_alias: { args: .update_alias.args, command: .update_alias.command },
+  profiles_alias: { args: .profiles_alias.args, command: .profiles_alias.command },
+  types_alias: { args: .types_alias.args, command: .types_alias.command },
+  pack_help: { args: .pack_help.args, command: .pack_help.command },
+  explicit_pack: { args: .explicit_pack.args, command: .explicit_pack.command, explicit_pack: .explicit_pack.explicit_pack },
+  selector_first: { args: .selector_first.args, command: .selector_first.command, explicit_pack: .selector_first.explicit_pack },
+  help_flag: { args: .help_flag.args, command: .help_flag.command }
+}
+
+@test: result.short_pack.command == cli_invocation.cmd.pack && result.short_pack.args == [cli_invocation.cmd.pack, "src"] && result.short_pack.explicit_pack == false
+@test: result.update_alias.command == cli_invocation.cmd.update && result.update_alias.args == [cli_invocation.cmd.update, "arch"]
+@test: result.profiles_alias.command == cli_invocation.cmd.list && result.profiles_alias.args == [cli_invocation.cmd.list]
+@test: result.types_alias.command == cli_invocation.cmd.types && result.types_alias.args == [cli_invocation.cmd.types]
+@test: result.pack_help.command == cli_invocation.cmd.help && result.pack_help.args == [cli_invocation.cmd.help, cli_invocation.cmd.pack, "--verbose"]
+@test: result.explicit_pack.command == cli_invocation.cmd.pack && result.explicit_pack.explicit_pack == true
+@test: result.selector_first.command == cli_invocation.cmd.pack && result.selector_first.args == [cli_invocation.cmd.pack, "src"] && result.selector_first.explicit_pack == false
+@test: result.help_flag.command == cli_invocation.cmd.usage && result.help_flag.args == [cli_invocation.cmd.usage]

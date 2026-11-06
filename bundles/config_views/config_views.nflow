@@ -1,0 +1,58 @@
+@description "Configuration identity and legacy views adapter over generic CRUD"
+@require config_views
+@include "../crud/crud.nflow"
+
+@macro config_views_invalid() {
+  { code: "validation", message: .issue }
+  -> config_views.reject
+}
+
+@macro config_views_route() {
+  { ..., exists: .name in keys(.entries), current: .entries[.name] }
+  -> match {
+    !.legacy && .exists && (.operation == "get" || .operation == "delete") && ((.app != "" && .current.app != .app) || (.schema != "" && .current.schema != .schema)) -> { code: "compatibility", message: "view " + .name + " has a different app or schema" } -> config_views.reject,
+    .operation == "list" -> crud.pipeline.crud_route -> { names, views: .records },
+    .operation == "get" && !.legacy -> crud.pipeline.crud_route -> { value: .value.value },
+    .operation == "save" && !.legacy -> { ..., value: { app, schema, value } } -> crud.pipeline.crud_route,
+    _ -> crud.pipeline.crud_route
+  }
+}
+
+@macro config_views_read() {
+  { ..., section: .legacy ? "views" : "config_views" }
+  -> crud.read
+  -> { ..., issue: match {
+    !.legacy && !all(values(.entries), type(#) == "map" && type(#.app) == "string" && trim(#.app) != "" && type(#.schema) == "string" && trim(#.schema) != "" && "value" in keys(#)) -> "stored config_views entries require app, schema and value",
+    .legacy && !all(values(.entries), #==nil || (type(#) == "array" && all(#, type(#) == "string"))) -> "legacy views must contain arrays of strings",
+    _ -> ""
+  } }
+  -> match {
+    .issue != "" -> @config_views_invalid(),
+    _ -> @config_views_route()
+  }
+}
+
+@macro config_views_operation() {
+  { ..., operation: .operation ?? "", path: .path ?? "", name: .name ?? "", legacy: .legacy ?? false,
+    replace: .replace ?? false, app: .app ?? "", schema: .schema ?? "", value: .value ?? nil }
+  -> { ..., issue: match {
+    type(.operation) != "string" -> "operation must be a string",
+    !(.operation in ["list", "get", "save", "delete"]) -> "operation must be list, get, save or delete",
+    type(.path) != "string" || trim(.path) == "" -> "path must be a nonempty string",
+    type(.legacy) != "bool" || type(.replace) != "bool" -> "legacy and replace must be booleans",
+    type(.name) != "string" -> "name must be a string",
+    !.legacy && .operation != "list" && trim(.name) == "" -> "name must be nonempty",
+    type(.app) != "string" || type(.schema) != "string" -> "app and schema must be strings",
+    !.legacy && .operation == "save" && (trim(.app) == "" || trim(.schema) == "") -> "generic save requires app and schema",
+    .legacy && .operation == "save" && .value != nil && !(type(.value) == "array" && all(.value, type(#) == "string")) -> "legacy value must be an array of strings",
+    _ -> ""
+  } }
+  -> match {
+    .issue != "" -> @config_views_invalid(),
+    _ -> @config_views_read()
+  }
+}
+
+@pipeline config_views
+  @config_views_operation()
+@end

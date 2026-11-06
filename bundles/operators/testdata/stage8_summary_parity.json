@@ -1,0 +1,122 @@
+[
+  {
+    "name": "defaults",
+    "config": {
+      "tree_only": false,
+      "full_tree": false,
+      "tree_files": false,
+      "depth": "",
+      "quiet": false,
+      "color": "",
+      "profile": "",
+      "targets": "",
+      "prompt": "",
+      "editor": "",
+      "directory": "",
+      "output": "",
+      "clipboard": "",
+      "started_at": "",
+      "cost": false
+    },
+    "stats": {
+      "FileCount": 3,
+      "FuncCount": 8,
+      "PackedBytes": 420,
+      "RawBytes": 1000,
+      "EstimatedTokens": 120
+    },
+    "color": false,
+    "tree": "tree\n",
+    "output": "\nSRCPACK  Elapsed: \u003celapsed\u003e\n──────────────────────────────────────────────────────────────\nProfile:           default\nTarget(s):         .\nPrompt:            none\nEditor Format:     Markdown\nDirectory:         \nFiles Processed:   3\nFunctions Found:   8\nRaw Size:          1000 B\nPacked Size:       420 B (saved 58.0%)\nEstimated Tokens:  ~120\nOutput:            (not set)\nClipboard:         not requested\ntree\n"
+  },
+  {
+    "name": "full-unicode-multiline-cost-positive",
+    "config": {
+      "tree_only": false,
+      "full_tree": false,
+      "tree_files": false,
+      "depth": "",
+      "quiet": false,
+      "color": "",
+      "profile": "balanced",
+      "targets": "src,docs",
+      "prompt": "界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n界🙂 long prompt\n",
+      "editor": "markdown",
+      "directory": "/tmp/项目\nsource",
+      "output": "bundle.txt",
+      "clipboard": "true",
+      "started_at": "",
+      "cost": true
+    },
+    "stats": {
+      "FileCount": 125,
+      "FuncCount": 42,
+      "PackedBytes": 345678,
+      "RawBytes": 1234567,
+      "EstimatedTokens": 98765
+    },
+    "color": true,
+    "tree": "📦 tree\nline two\n",
+    "output": "\n\u001b[1;36mSRCPACK\u001b[0m  Elapsed: \u003celapsed\u003e\n──────────────────────────────────────────────────────────────\nProfile:           balanced\nTarget(s):         src,docs\nPrompt:            界🙂 long prompt 界🙂 long prompt 界🙂 long prompt 界🙂 long prompt 界🙂 long prompt 界🙂 long prom…\nEditor Format:     Markdown\nDirectory:         /tmp/项目 source\nFiles Processed:   125\nFunctions Found:   42\nRaw Size:          1.2 MB\nPacked Size:       337.6 KB (saved 72.0%)\nEstimated Tokens:  ~98765\nOutput:            bundle.txt\nClipboard:         requested\nEst. Saved:        ~253968 tokens\n📦 tree\nline two\n"
+  },
+  {
+    "name": "negative-savings-clipboard-false",
+    "config": {
+      "tree_only": false,
+      "full_tree": false,
+      "tree_files": false,
+      "depth": "",
+      "quiet": false,
+      "color": "",
+      "profile": "fast",
+      "targets": ".",
+      "prompt": "brief",
+      "editor": "json",
+      "directory": ".",
+      "output": "(none)",
+      "clipboard": "false",
+      "started_at": "",
+      "cost": true
+    },
+    "stats": {
+      "FileCount": 1,
+      "FuncCount": 0,
+      "PackedBytes": 100,
+      "RawBytes": 10,
+      "EstimatedTokens": 28
+    },
+    "color": false,
+    "tree": "",
+    "output": "\nSRCPACK  Elapsed: \u003celapsed\u003e\n──────────────────────────────────────────────────────────────\nProfile:           fast\nTarget(s):         .\nPrompt:            brief\nEditor Format:     Json\nDirectory:         .\nFiles Processed:   1\nFunctions Found:   0\nRaw Size:          10 B\nPacked Size:       100 B (saved -900.0%)\nEstimated Tokens:  ~28\nOutput:            (none)\nClipboard:         not requested\n"
+  },
+  {
+    "name": "unicode-color-off",
+    "config": {
+      "tree_only": false,
+      "full_tree": false,
+      "tree_files": false,
+      "depth": "",
+      "quiet": false,
+      "color": "",
+      "profile": "",
+      "targets": "",
+      "prompt": "éclair 👨‍👩‍👧‍👦",
+      "editor": "",
+      "directory": "",
+      "output": "",
+      "clipboard": "1",
+      "started_at": "",
+      "cost": false
+    },
+    "stats": {
+      "FileCount": 0,
+      "FuncCount": 0,
+      "PackedBytes": 0,
+      "RawBytes": 0,
+      "EstimatedTokens": 0
+    },
+    "color": false,
+    "tree": "tree",
+    "output": "\nSRCPACK  Elapsed: \u003celapsed\u003e\n──────────────────────────────────────────────────────────────\nProfile:           default\nTarget(s):         .\nPrompt:            éclair 👨‍👩‍👧‍👦\nEditor Format:     Markdown\nDirectory:         \nFiles Processed:   0\nFunctions Found:   0\nRaw Size:          0 B\nPacked Size:       0 B (saved 0.0%)\nEstimated Tokens:  ~0\nOutput:            (not set)\nClipboard:         requested\ntree"
+  }
+]

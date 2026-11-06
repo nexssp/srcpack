@@ -1,0 +1,58 @@
+@description "Typed CLI contract for pack and tree"
+@schema CommonFlags struct {
+  json     bool  `cli:"json" config:"true" usage:"emit machine-readable JSON envelope"`
+  quiet    bool  `cli:"quiet,q" config:"true" usage:"suppress progress output"`
+  verbose  bool  `cli:"verbose,v" config:"true" usage:"verbose diagnostic output"`
+}
+@schema PackInput struct {
+  CommonFlags
+  targets           []string  `cli:"target,t" usage:"local paths or github:owner/repo//path?ref=REF (repeatable)"`
+  selectors         []string  `cli:"positional" usage:"local or GitHub selectors; #profile, ~excludes, @prompt"`
+  files             []string  `cli:"file,f" usage:"explicit files to include (repeatable)"`
+  ext               string  `cli:"ext" usage:"comma-separated file extensions"`
+  profile           string  `cli:"profile,p" config:"true" usage:"select a built-in or configured profile"`
+  prompt            string  `cli:"prompt" config:"true" usage:"prompt text or path to a prompt file"`
+  editor            string  `cli:"editor,e,format" config:"true" usage:"output format (markdown, raw, zed, claude, fold)"`
+  output            string  `cli:"output,o" config:"true" usage:"write to a file instead of clipboard (- for stdout)"`
+  color             string  `cli:"color" config:"true" usage:"terminal colors (auto, always, never)"`
+  copy              bool  `cli:"copy,c" config:"true" usage:"copy rendered output to clipboard"`
+  no_copy           bool  `cli:"no-copy" config:"true" usage:"disable clipboard output"`
+  cwd               string  `cli:"cwd,C" config:"true" usage:"change working directory before resolving paths"`
+  config_path       string  `cli:"config" config:"true" usage:"use a specific config file"`
+  dir_prefix        bool  `cli:"dir-prefix,pfx" config:"true" usage:"prefix output filename with workspace name"`
+  check             bool  `cli:"check,diff,dry-run" config:"true" usage:"preview output changes without writing"`
+  plan              bool  `cli:"plan,explain" usage:"explain resolved targets and options without scanning or writing"`
+  save_view         string  `cli:"save-view,as" config:"true" usage:"save selectors as a reusable view"`
+  tests             bool  `cli:"tests" usage:"include test files"`
+  no_tests          bool  `cli:"no-tests" usage:"exclude test files"`
+  no_generated      bool  `cli:"no-generated" usage:"exclude generated files"`
+  no_deps           bool  `cli:"no-deps" usage:"exclude vendor and node_modules"`
+  no_examples       bool  `cli:"no-examples" usage:"exclude example directories"`
+  examples          bool  `cli:"examples" usage:"include example directories"`
+  comments          bool  `cli:"comments" usage:"preserve comments in parsed output"`
+  no_comments       bool  `cli:"no-comments" usage:"strip comments in parsed output"`
+  only_sig          bool  `cli:"only-sig,signatures" usage:"emit declarations and signatures only"`
+  dense             bool  `cli:"dense" usage:"use compact source formatting"`
+  mask              bool  `cli:"mask,mask-secrets" usage:"mask secret-like values"`
+  max_lines         int  `cli:"max-lines" usage:"maximum source lines per file"`
+  max_lines_head    int  `cli:"max-lines-head" usage:"head lines to retain when truncating"`
+  max_lines_tail    int  `cli:"max-lines-tail" usage:"tail lines to retain when truncating"`
+  exported_only     bool  `cli:"exported-only" usage:"keep only exported declarations"`
+  trim_indent       bool  `cli:"trim-indent" usage:"strip leading indentation"`
+  trim_blank_lines  bool  `cli:"trim-blank-lines" usage:"collapse repeated blank lines"`
+  exclude           string  `cli:"exclude,x" usage:"comma-separated ignore patterns"`
+  tree_only         bool  `cli:"tree,tree-only" config:"true" usage:"emit only the context tree"`
+  full_tree         bool  `cli:"full-tree" config:"true" usage:"show the complete project tree"`
+  tree_files        bool  `cli:"tree-files" config:"true" usage:"show files in the tree"`
+  depth             int  `cli:"depth,tree-depth,l,L" config:"true" usage:"tree depth"`
+  changed           bool  `cli:"changed,incremental" usage:"use the saved state cache"`
+  since             string  `cli:"since" usage:"include files changed since a Git ref"`
+  modified          bool  `cli:"modified,m" usage:"include modified and untracked files"`
+  staged            bool  `cli:"staged" usage:"include staged files"`
+  diff_only         bool  `cli:"diff-only" usage:"prepend the Git unified diff"`
+  cost              bool  `cli:"cost,roi" config:"true" usage:"report saved tokens and caller-supplied pricing estimates"`
+  no_header         bool  `cli:"no-header" config:"true" usage:"suppress the document header"`
+  no_prompt         bool  `cli:"no-prompt" config:"true" usage:"suppress the prompt block"`
+  no_start          bool  `cli:"no-start" config:"true" usage:"suppress the document start section"`
+  no_end            bool  `cli:"no-end" config:"true" usage:"suppress the document end section"`
+}

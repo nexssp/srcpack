@@ -1,0 +1,55 @@
+@description "Srcpack Tree Structure Pipeline"
+@require srcpack_source
+@require srcpack_analysis
+@require srcpack_render
+@require srcpack_io
+@include "models.nflow"
+@include "render.nflow"
+
+@schema TreeInput struct {
+  targets     []string  `cli:"target,t" usage:"workspace paths to include (repeatable)"`
+  files       []string  `cli:"file,f" usage:"explicit files to include (repeatable)"`
+  ext         string  `cli:"ext" usage:"comma-separated file extensions"`
+  no_tests    bool  `cli:"no-tests" usage:"exclude test files"`
+  no_deps     bool  `cli:"no-deps" usage:"exclude dependency directories"`
+  depth       int  `cli:"depth,L" config:"true" usage:"folder depth"`
+  full_tree   bool  `cli:"full-tree" config:"true" usage:"walk whole project"`
+  tree_files  bool  `cli:"tree-files" config:"true" usage:"show files in tree"`
+  color       string  `cli:"color" config:"true" usage:"terminal colors (auto, always, never)"`
+  output      string  `cli:"output,o" config:"true" usage:"write to file (- for stdout)"`
+  copy        bool  `cli:"copy,c" config:"true" usage:"copy to clipboard"`
+  quiet       bool  `cli:"quiet,q" config:"true" usage:"suppress progress"`
+}
+
+@macro tree_body(save_state) {
+  srcpack.source
+    -> ast.parse
+    -> workspace.save_state:enabled=$save_state
+    -> stats.collect @{
+      tree_only: @config.stats_tree_only,
+      full_tree: @config.stats_full_tree,
+      tree_files: @config.stats_tree_files,
+      depth: @config.stats_depth,
+      quiet: @config.stats_quiet,
+      color: @config.stats_color,
+      profile: @config.stats_profile,
+      targets: @config.stats_targets,
+      prompt: @config.stats_prompt,
+      editor: @config.stats_editor,
+      directory: @config.stats_directory,
+      output: @config.stats_output,
+      clipboard: @config.stats_clipboard,
+      started_at: @config.stats_started_at,
+      cost: @config.stats_cost
+    }
+    -> collect
+    -> render.pipeline.render_configured_document_pipeline
+}
+
+@pipeline tree:cli="tree:Srcpack Tree Structure":request-schema=TreeInput
+  @tree_body(true)
+@end
+
+@pipeline tree_preview
+  @tree_body(false)
+@end

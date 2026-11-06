@@ -1,0 +1,58 @@
+@description "Pack plan validation and report assembly"
+@include "../../../bundles/pack/plan_report.nflow"
+
+const @{
+  pack: {
+    targets: ["src"], files: [], target_profiles: { src: "arch", lib: "api" },
+    target_excludes: { src: "vendor" }, ext: ".go", exclude: "vendor",
+    no_tests: true, no_generated: false, no_deps: true, no_examples: false,
+    examples: [], only_sig: false, dense: false, comments: true, mask: false,
+    max_lines: 0, max_lines_head: 0, max_lines_tail: 0, exported_only: false,
+    trim_indent: false, trim_blank_lines: false, tree_only: false, full_tree: false,
+    tree_files: false, depth: 4, changed: false, since: "", modified: false,
+    staged: false, diff_only: false
+  },
+  stats: { directory: "/tmp/project", profile: "arch" },
+  render: { editor: "markdown", prompt_name: "(none)" },
+  command: plan_report.cli_invocation.cmd.pack, save_view: "",
+  io: {
+    json: true, check: false, explicit_copy: false, explicit_output: "",
+    output_path: "", copy: true, explicit_pack: true, config_path: "", quiet: false
+  }
+}
+-> parallel {
+  json: plan_report.pipeline.pack_plan_report,
+  human: { ..., io: fromPairs(concat(toPairs(.io), [["json", false]])) } -> plan_report.pipeline.pack_plan_report,
+  stdout_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false]])) } -> plan_report.pipeline.pack_plan_report,
+  file_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false], ["output_path", "/tmp/context.md"], ["config_path", "nexss.srcpack.yml"]])) } -> plan_report.pipeline.pack_plan_report,
+  check_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["check", true]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
+    else -> { message: .error.message }
+  },
+  copy_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_copy", true]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
+    else -> { message: .error.message }
+  },
+  output_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_output", "context.md"]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
+    else -> { message: .error.message }
+  },
+  save_view_conflict: { ..., save_view: "daily" } -> plan_report.pipeline.pack_plan_report ? on_error {
+    else -> { message: .error.message }
+  }
+}
+-> {
+  json: .json.content,
+  human: .human.content,
+  stdout_output: .stdout_output.content,
+  file_output: .file_output.content,
+  check_conflict: .check_conflict.message,
+  copy_conflict: .copy_conflict.message,
+  output_conflict: .output_conflict.message,
+  save_view_conflict: .save_view_conflict.message
+}
+@test: result.json contains "\"schema_version\": 1" && result.json contains "\"normal_output_mode\": \"clipboard\"" && result.json contains "\"candidate_files_enumerated\": false"
+@test: result.human contains "Profile: arch" && result.human contains "no-tests=true" && result.human contains "  - lib: api\n  - src: arch"
+@test: result.stdout_output contains "\"normal_output_mode\": \"stdout\""
+@test: result.file_output contains "\"normal_output_mode\": \"file\"" && result.file_output contains "\"output_path\": \"/tmp/context.md\""
+@test: result.check_conflict contains "--plan cannot be combined with --check"
+@test: result.copy_conflict contains "--plan cannot be combined with --copy"
+@test: result.output_conflict contains "--plan cannot be combined with --output"
+@test: result.save_view_conflict contains "--plan cannot be combined with --save-view"

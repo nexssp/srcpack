@@ -1,0 +1,108 @@
+@include "../bundles/document/document.nflow"
+@require srcpack_render
+@require terminal
+
+# The Go adapter supplies domain facts; this macro owns document-specific names,
+# aliases, defaults and numeric presentation. Content is only passed through.
+@macro shape_document() {
+  {
+    config,
+    tree,
+    values: {
+      PROFILE_NAME: .config.profile_name,
+      PROFILE: .config.profile_name,
+      TARGET: .config.targets != "" ? .config.targets : "all",
+      TARGETS: .config.targets != "" ? .config.targets : "all",
+      PROMPT_NAME: .config.prompt_name,
+      EDITOR_NAME: .config.editor,
+      EDITOR: .config.editor,
+      DIR: .config.dirs,
+      DIRS: .config.dirs,
+      OUTPUT_FILE: .config.output_file != "" ? .config.output_file : "stdout",
+      CURRENT_DATE: .config.current_date,
+      GIT_COMMIT: .config.git_commit,
+      GIT_TAG: .config.git_tag,
+      GIT_BRANCH: .config.git_branch,
+      TREE: .tree,
+      FILE_COUNT: string(.stats.file_count),
+      FUNC_COUNT: string(.stats.func_count),
+      TOTAL_SIZE_BYTES: string(.stats.packed_bytes),
+      TOTAL_SIZE_KBYTES: terminal.printf("%.1f", float(.stats.packed_bytes) / 1024),
+      RAW_SIZE_BYTES: string(.stats.raw_bytes),
+      RAW_SIZE_KBYTES: terminal.printf("%.1f", float(.stats.raw_bytes) / 1024),
+      SAVED_PERCENT: terminal.printf("%.1f", .stats.raw_bytes > 0 ? float(.stats.raw_bytes - .stats.packed_bytes) / float(.stats.raw_bytes) * 100 : 0.0),
+      TOTAL_SIZE_TOKENS: string(.stats.estimated_tokens)
+    },
+    files: map(.files,
+      let file = #;
+      {
+        content: file.content,
+        snippets: file.snippets ?? [],
+        omitted: file.omitted,
+        values: {
+          REL_PATH: file.rel_path,
+          ABS_PATH: file.abs_path,
+          LANG: file.lang,
+          LINES: string(file.lines),
+          SIZE_KB: terminal.printf("%.1f", float(file.size) / 1024)
+        }
+      })
+  }
+}
+
+@macro render_config_field(field) {
+  $field: @config.render_$field
+}
+
+@macro render_document() {
+  { records: . }
+  -> srcpack.document_input @{ config: {
+    # The destination key and @config suffix intentionally stay in sync.
+    @render_config_field(editor),
+    @render_config_field(prompt),
+    @render_config_field(start),
+    @render_config_field(end),
+    @render_config_field(file_start),
+    @render_config_field(file_end),
+    @render_config_field(profile_name),
+    @render_config_field(targets),
+    @render_config_field(dirs),
+    @render_config_field(output_file),
+    @render_config_field(prompt_name),
+    @render_config_field(git_commit),
+    @render_config_field(git_tag),
+    @render_config_field(git_branch),
+    @render_config_field(current_date),
+    @render_config_field(directory),
+    @render_config_field(diff_content),
+    @render_config_field(no_header),
+    @render_config_field(no_prompt),
+    @render_config_field(no_start),
+    @render_config_field(no_end),
+    @render_config_field(tree),
+    @render_config_field(full_tree),
+    @render_config_field(tree_files),
+    @render_config_field(tree_depth),
+  } }
+  -> @shape_document()
+  -> document.pipeline.document_render
+}
+
+@pipeline render_configured_document_pipeline
+  @render_document()
+@end
+
+@pipeline render_document_pipeline
+  @shape_document()
+  -> document.pipeline.document_render
+@end
+
+@pipeline render_document_input_pipeline
+  srcpack.document_input
+  -> @shape_document()
+  -> document.pipeline.document_render
+@end
+
+@pipeline render_shaped_document_pipeline
+  document.pipeline.document_render
+@end

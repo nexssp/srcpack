@@ -1,0 +1,9 @@
+@description "Input contract and CLI flags for srcpack init"
+
+@schema InitInput struct {
+  force    bool  `cli:"force,f" usage:"Overwrite existing configuration if present"`
+  reset    bool  `cli:"reset" usage:"Remove generated _srcpack files before initializing"`
+  dry_run  bool  `cli:"dry-run,check" usage:"Preview changes without writing files"`
+  mode     string  `cli:"mode" usage:"Scaffolding mode (default or targets)"`
+  dirs     []string  `cli:"positional" usage:"Directories to turn into targets"`
+}

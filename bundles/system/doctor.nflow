@@ -1,0 +1,86 @@
+@description "Doctor audit policy: schemas, filesystem facts, findings and status"
+@require srcpack_system
+@include "doctor_schema.nflow"
+
+@symbols audit_severity {
+  error: "ERROR"
+  ok: "OK"
+  warn: "WARN"
+}
+@symbols finding_category {
+  target: "target"
+  config: "config"
+  profile: "profile"
+}
+@symbols audit_error {
+  problems: audit_error.problems
+}
+
+@pipeline doctor_path
+  match {
+    .remote -> { issues: .remote_error != "" ? [{severity: audit_severity.error, category: finding_category.target, message: .name + " has invalid remote source " + .source_text + ": " + .remote_error}] : [{severity: audit_severity.ok, category: finding_category.target, message: .name + ": remote syntax valid (availability not checked): " + .source_text}] },
+    (.slash_path contains "_srcpack") -> { issues: [{severity: audit_severity.error, category: finding_category.target, message: .name + " references output directory: " + .source_text}] },
+    _ -> parallel {
+      item: noop,
+      stat: ({path} -> system.doctor.path_stat ? on_error {
+        xerr.KindTimeout -> error.reraise,
+        else -> {exists: false}
+      })
+    }
+    -> { issues: .stat.exists ? [] : [{severity: audit_severity.error, category: finding_category.target, message: .item.name + " references missing path: " + .item.source_text}] }
+  }
+@end
+
+@pipeline doctor_path_step
+  {state: ., item: .paths[.i]}
+  -> parallel {
+    state: pick @{field: "state"},
+    result: (pick @{field: "item"} -> pipeline.doctor_path)
+  }
+  -> {name: .state.name, paths: .state.paths, refs: .state.refs, cycle: .state.cycle, i: .state.i + 1, issues: concat(.state.issues, .result.issues)}
+@end
+
+@pipeline doctor_target
+  {..., i: 0, issues: []}
+  -> match {
+    len(.paths) > 0 -> loop(pipeline.doctor_path_step) until(.i >= len(.paths)),
+    _ -> noop
+  }
+  -> {..., issues: let target = .; concat(target.issues,
+    map(filter(target.refs, !#.defined), let ref = #; {severity: audit_severity.error, category: finding_category.target, message: target.name + " references undefined sub-target: " + ref.name}),
+    .cycle ? [{severity: audit_severity.error, category: finding_category.target, message: .name + " has a circular sub-target dependency"}] : [])}
+  -> {issues: len(filter(.issues, #.severity == audit_severity.error)) == 0 ? concat(.issues, [{severity: audit_severity.ok, category: finding_category.target, message: .name + ": valid"}]) : .issues}
+@end
+
+@pipeline doctor_target_step
+  {state: ., item: .targets[.i]}
+  -> parallel {
+    state: pick @{field: "state"},
+    result: (pick @{field: "item"} -> pipeline.doctor_target)
+  }
+  -> {path: .state.path, config_file: .state.config_file, targets: .state.targets, profiles: .state.profiles, i: .state.i + 1, issues: concat(.state.issues, .result.issues)}
+@end
+
+@pipeline doctor_audit
+  system.doctor.context
+  -> match {
+    .path == "" -> {passed: false, error: "no config file found; run 'srcpack init' to create one", report: ""},
+    _ -> doctor_schema.@doctor_shape()
+      -> match {
+        (.shape_error ?? "") != "" -> {path, issues: [{severity: audit_severity.error, category: finding_category.config, message: "failed to load: " + .shape_error}], passed: false, error: audit_error.problems} -> system.doctor.format,
+        _ -> system.doctor.facts
+          -> match {
+            .load_error != "" -> {path, issues: [{severity: audit_severity.error, category: finding_category.config, message: "failed to load: " + .load_error}], passed: false, error: audit_error.problems} -> system.doctor.format,
+            _ -> {..., targets: map(sort(keys(.targets)), let targetName = #; .targets[targetName]), i: 0, issues: [{severity: audit_severity.ok, category: finding_category.config, message: "loaded " + .config_file}]}
+              -> match {
+                len(.targets) > 0 -> loop(pipeline.doctor_target_step) until(.i >= len(.targets)),
+                _ -> noop
+              }
+              -> {..., issues: concat(.issues, map(filter(.profiles, #.prompt_set && !#.prompt_disabled && #.prompt != "" && !#.prompt_defined), let profile = #; {severity: audit_severity.warn, category: finding_category.profile, message: profile.name + " references undefined prompt " + profile.prompt_quoted}))}
+              -> {..., passed: len(filter(.issues, #.severity == audit_severity.error)) == 0}
+              -> {..., error: .passed ? "" : audit_error.problems}
+              -> system.doctor.format
+          }
+      }
+  }
+@end

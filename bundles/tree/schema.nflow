@@ -1,0 +1,3 @@
+@description "Tree uses PackInput declared by the shared pack command schema"
+# Keep this file as the command's schema entry-point without mounting a second copy:
+# the root includes pack.nflow before tree.nflow and shares its PackInput type.

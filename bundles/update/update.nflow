@@ -1,0 +1,58 @@
+@description "Regenerate each configured srcpack target through the pack pipeline"
+@require srcpack_update
+@require srcpack_pack
+@require srcpack_cli
+@require srcpack_source
+@require srcpack_analysis
+@require srcpack_render
+@require srcpack_io
+@require nodes_distribute
+@require terminal
+@include "update_item.nflow"
+@include "update_policy.nflow"
+
+@schema UpdateInput struct {
+  profile      string  `cli:"profile,p" usage:"Profile to use for every configured target (default when omitted)"`
+  profile_arg  string  `cli:"positional" usage:"Profile shorthand, for example: update arch"`
+  check        bool  `cli:"check,diff,dry-run" usage:"Preview target outputs without writing files"`
+  quiet        bool  `cli:"quiet,q" usage:"Suppress per-target completion lines"`
+}
+
+@pipeline update:cli="update:Regenerate every configured target":request-schema=UpdateInput
+  cli.restore
+  -> updatecmd.targets
+  -> update_policy.@update_target_plan()
+  -> parallel {
+    results: (distribute.map @{ action: update_item.pipeline.update_item, items, concurrency: 1, fail_fast: false }),
+    plan: { items, check, quiet, profile }
+  }
+  -> {
+    ...,
+    joined_rows: map(.plan.items,
+      let row = #;
+      let result_present = #index < len(.results.Items);
+      let result = result_present ? .results.Items[#index] : nil;
+      {
+        target: row.target,
+        file: row.file,
+        status: row.status,
+        result_present: result_present,
+        ok: result_present ? result.OK : false,
+        error: result_present ? (result.Error ?? "") : ""
+      })
+  }
+  -> update_policy.@update_outcomes()
+  -> update_policy.@update_report()
+  -> {
+    ...,
+    content: join(map(.summary.outcomes,
+      terminal.printf("  %s %-20s %s\n", #.icon, #.label, #.detail)
+    ), "") + (len(.summary.outcomes) > 0 ? "\n" : "") + .summary.message + "\n",
+    stream: "stdout"
+  }
+  -> cli.print
+  -> match {
+    .summary.failed > 0 -> { kind: "update", message: string(.summary.failed) + " target(s) failed" } -> fail,
+    _ -> cli.finish
+  }
+@end

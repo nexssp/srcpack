@@ -1,0 +1,11 @@
+@description "Build review context inside a larger Flow pipeline"
+
+@pipeline review_context
+  srcpack.source
+    -> ast.parse
+    -> stats.collect:quiet:color=never
+    -> srcpack.render:editor="markdown"
+    -> collect
+@end
+
+{} -> review_context

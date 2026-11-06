@@ -1,0 +1,51 @@
+@description "Inspect, display, and validate srcpack workspace configuration"
+@require srcpack_config
+@require srcpack_cli
+
+@schema ConfigInput struct {
+  sub  string  `cli:"positional" default:"show" usage:"Configuration operation: path, show, or validate"`
+}
+@symbols config_subcommand {
+  path: "path"
+  show: "show"
+  validate: "validate"
+}
+@symbols failure {
+  error: "error"
+  validation: "validation"
+}
+
+@pipeline config_path_policy
+  { text: .path == "" ? "(no config file present)" : .path }
+@end
+
+@pipeline config_validation_policy
+  match {
+    .path == "" -> { action: failure.error, kind: failure.validation, message: "no config file found; run 'srcpack init' to create one" },
+    _ -> { action: config_subcommand.validate }
+  }
+@end
+
+@pipeline config:cli="config:Inspect or validate workspace configuration":request-schema=ConfigInput
+  cli.restore
+  -> { ..., sub: match(.sub ?? "") {
+    "" -> const @{ value: config_subcommand.show },
+    config_subcommand.path -> const @{ value: config_subcommand.path },
+    config_subcommand.show -> const @{ value: config_subcommand.show },
+    config_subcommand.validate -> const @{ value: config_subcommand.validate },
+    _ -> pick @{ field: "sub" }
+  } }
+  -> configcmd.inspect
+  -> match(.sub) {
+    config_subcommand.path -> pipeline.config_path_policy -> configcmd.path,
+    config_subcommand.show -> configcmd.show,
+    config_subcommand.validate -> pipeline.config_validation_policy -> match(.action) {
+      failure.error -> { kind, message } -> fail,
+      _ -> configcmd.validate -> match(.passed) {
+        true -> cli.finish,
+        _ -> fail @{ kind: failure.validation, message: "validation failed" }
+      }
+    },
+    _ -> { kind: failure.validation, message: "unknown config subcommand \"" + .sub + "\" (valid: path, show, validate)\n" } -> fail
+  }
+@end

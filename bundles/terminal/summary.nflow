@@ -1,0 +1,57 @@
+@description "Prepare terminal summary facts in NFlow and render the adjacent Go text template"
+@require terminal
+@require template
+@macro terminal_summary_format() {
+  { ..., config: .config ?? {}, stats: .stats ?? {}, elapsed: .elapsed ?? "0s", tree: .tree ?? "", color: .color ?? false, command: .command ?? "" }
+  -> { ..., profile: trim(.config.profile ?? "") == "" ? "default" : .config.profile,
+    targets: trim(.config.targets ?? "") == "" ? "." : .config.targets,
+    prompt: terminal.clean(.config.prompt ?? "", 88),
+    editor: (.config.editor ?? "") == "" ? "markdown" : .config.editor,
+    output: (.config.output ?? "") == "" ? "(not set)" : .config.output,
+    clipboard: .clipboard_requested ?? false,
+    saved_tokens: int((.stats.raw_bytes - .stats.packed_bytes) / 3.5),
+    pricing: .config.pricing ?? []
+  }
+  -> { ..., rows: [
+    ["Profile:", terminal.clean(.profile, 88)],
+    ["Target(s):", terminal.clean(.targets, 88)],
+    ["Prompt:", .prompt == "" ? "none" : .prompt],
+    ["Editor Format:", terminal.clean(upper(.editor[0:1]) + .editor[1:], 88)],
+    ["Directory:", terminal.clean(.config.directory ?? "", 88)],
+    ["Files Processed:", string(.stats.file_count)],
+    ["Functions Found:", string(.stats.func_count)],
+    ["Raw Size:", terminal.size(int(.stats.raw_bytes))],
+    ["Packed Size:", terminal.printf("%s (saved %.1f%%)", terminal.size(int(.stats.packed_bytes)), .stats.saved_percent)],
+    ["Estimated Tokens:", "~" + string(.stats.estimated_tokens)],
+    ["Output:", terminal.clean(.output, 88)],
+    ["Clipboard:", .clipboard ? "requested" : "not requested"]
+  ], estimates: map(.pricing,
+    let rate = #;
+    { label: terminal.clean(rate.label, 48),
+      currency: terminal.clean(rate.currency, 8),
+      amount: float(.saved_tokens) / 1000000 * float(rate.per_million_tokens)
+    }) }
+  -> { ...,
+    template_source: terminal.template("summary.tmpl"),
+    template_variables: {
+	      color,
+	      command,
+	      header: terminal.paint("SRCPACK", "1;36", .color),
+      elapsed: terminal.paint(.elapsed, "2", .color),
+      rule: repeat("─", 62),
+      rows,
+      tree,
+      show_cost: (.config.cost ?? false) && .saved_tokens > 0,
+      saved_tokens,
+      estimates
+    }
+  }
+  -> template.render @{
+    template: .template_source,
+    variables: .template_variables
+  }
+  -> { content: . }
+}
+@pipeline terminal_summary
+  @terminal_summary_format()
+@end

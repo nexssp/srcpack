@@ -1,0 +1,61 @@
+@description "Reusable report-formatting policies for manage commands"
+@require terminal
+
+@pipeline target_list_report
+  { content: len(keys(.config.targets)) == 0 ? "No targets defined.\n" : join(map(sort(keys(.config.targets)), terminal.printf("  %-20s %s\n", #, "[" + join(concat(concat(.config.targets[#].paths ?? [], map(.config.targets[#].dir ?? [], #.path)), concat(.config.targets[#].files ?? [], .config.targets[#].targets ?? [])), ", ") + "]")), "") }
+@end
+
+@pipeline target_show_report
+  { content: "target: " + .args[0] + "\n" +
+    ((.config.targets[.args[0]].description ?? "") != "" ? "  description: " + .config.targets[.args[0]].description + "\n" : "") +
+    join(map(.config.targets[.args[0]].paths ?? [], terminal.printf("  path: %s\n", #)), "") +
+    join(map(.config.targets[.args[0]].dir ?? [], terminal.printf("  dir:  %s\n", #.path)), "") +
+    join(map(.config.targets[.args[0]].files ?? [], terminal.printf("  file: %s\n", #)), "") +
+    join(map(.config.targets[.args[0]].targets ?? [], terminal.printf("  include: %s\n", #)), "") }
+@end
+
+@pipeline prompt_list_report
+  { content: join(map(sort(keys(.config.prompts)), terminal.printf("  %-20s %s\n", #, .prompt_snippets[#])), "") }
+@end
+
+@pipeline prompt_show_report
+  { content: (.config.prompts[.args[0]] ?? "") + "\n" }
+@end
+
+@pipeline profile_list_report
+  { content: join(map(sort(keys(.config.profiles)), terminal.printf("  %-14s %s\n", #, .config.profiles[#].description)), "") }
+@end
+
+@pipeline profile_show_report
+  { profile: .config.profiles[.args[0]], prompt: .config.profiles[.args[0]].prompt ?? {} }
+  -> { content: "profile: " + (.profile.name ?? "") + "\n" +
+    ((.profile.description ?? "") != "" ? "  description: " + .profile.description + "\n" : "") +
+    ((.prompt.Set ?? false) && !(.prompt.Disabled ?? false) ? "  prompt: " + .prompt.Value + "\n" : "") +
+    "  (edit profiles in nexss.srcpack.yml to change)\n" }
+@end
+
+@pipeline editor_list_report
+  { content: join(map(sort(keys(.config.editors)), terminal.printf("  %-14s %s\n", #, .config.editors[#].description)), "") }
+@end
+
+@pipeline editor_show_report
+  { content: "editor: " + .args[0] + "\n" +
+    ((.config.editors[.args[0]].description ?? "") != "" ? "  description: " + .config.editors[.args[0]].description + "\n" : "") +
+    ((.config.editors[.args[0]].file_start ?? "") != "" ? "  file_start: " + .config.editors[.args[0]].file_start + "\n" : "") +
+    ((.config.editors[.args[0]].file_end ?? "") != "" ? "  file_end: " + .config.editors[.args[0]].file_end + "\n" : "") }
+@end
+
+@pipeline view_list_report
+  match {
+    len(keys(.views)) == 0 -> { content: "No views saved.\nCreate one with: srcpack \"path#profile\" --save-view=name\n" },
+    _ -> { content: join(map(sort(keys(.views)), terminal.printf("  %-20s %s\n", #, join(.views[#], "  "))), "") }
+  }
+@end
+
+@pipeline view_show_report
+  { content: "view: " + .report_name + "\n" + join(map(.result.value, terminal.printf("  %s\n", #)), "") }
+@end
+
+@pipeline view_delete_report
+  { content: terminal.printf("✓ Removed view %q\n", .name) }
+@end

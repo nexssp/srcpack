@@ -1,0 +1,6 @@
+{{if .command}}Command: {{.command}}{{printf "\n"}}{{else}}{{printf "\n"}}{{end}}{{.header}}  Elapsed: {{.elapsed}}{{printf "\n"}}
+{{- .rule -}}
+{{printf "\n"}}
+{{- range .rows}}{{printf "%-18s %s\n" (index . 0) (index . 1)}}{{end}}
+{{- if .show_cost}}{{printf "%-18s ~%d tokens" "Est. Saved:" .saved_tokens}}{{if .estimates}} · rate estimates: {{range $index, $estimate := .estimates}}{{if $index}} · {{end}}{{printf "%s: %s %.4f" $estimate.label $estimate.currency $estimate.amount}}{{end}}{{end}}{{printf "\n"}}{{end}}
+{{- .tree -}}

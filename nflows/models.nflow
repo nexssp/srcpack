@@ -1,0 +1,23 @@
+@description "Srcpack Domain Schemas"
+
+@schema PackConfig struct {
+    targets    []string  `cli:"target,targets,t"`
+    files      []string  `cli:"file,f"`
+    ext        string  `cli:"ext"`
+    tests      bool  `cli:"tests"`
+    comments   bool  `cli:"comments"`
+    only_sig   bool  `cli:"only-sig"`
+    dense      bool  `cli:"dense"`
+    mask       bool  `cli:"mask"`
+    max_lines  int  `cli:"max-lines"`
+    exclude    string  `cli:"exclude,x"`
+    prompt     string  `cli:"prompt"`
+    editor     string  `cli:"editor,e"`
+    output     string  `cli:"o,output"`
+    copy       bool  `cli:"copy,c"`
+    no_copy    bool  `cli:"no-copy"`
+    tree_only  bool  `cli:"tree-only"`
+    depth      int  `cli:"depth,L"`
+    changed    bool  `cli:"changed,m"`
+    since      string  `cli:"since"`
+}

@@ -1,0 +1,23 @@
+@include "../../../bundles/system/doctor_schema.nflow"
+
+parallel {
+  valid_shape: const @{
+    cwd: "/workspace", path: "nexss.srcpack.yml", _doctor_yaml: {},
+    targets: {}, profiles: {}, prompts: {}, editors: {}, options: {}, views: {},
+    dir: [], files: [], includes: [], include_profiles: [], prompt: "", start: "", end: "", summary: ""
+  } -> doctor_schema.pipeline.doctor_validate_shape,
+  wrong_targets: const @{
+    cwd: "/workspace", path: "bad-targets.yml", _doctor_yaml: {targets: "wrong"},
+    targets: "wrong", profiles: {}, prompts: {}, editors: {}, options: {}, views: {},
+    dir: [], files: [], includes: [], include_profiles: [], prompt: "", start: "", end: "", summary: ""
+  } -> doctor_schema.pipeline.doctor_validate_shape,
+  scalar_root: const @{
+    cwd: "/workspace", path: "scalar.yml", _doctor_yaml: "false",
+    targets: {}, profiles: {}, prompts: {}, editors: {}, options: {}, views: {},
+    dir: [], files: [], includes: [], include_profiles: [], prompt: "", start: "", end: "", summary: ""
+  } -> doctor_schema.pipeline.doctor_validate_shape
+}
+
+@test: result.valid_shape._doctor_yaml == {} && result.valid_shape.targets == {}
+@test: result.wrong_targets.shape_error contains "targets" && result.wrong_targets.cwd == "/workspace" && result.wrong_targets.path == "bad-targets.yml"
+@test: result.scalar_root.shape_error != "" && result.scalar_root.cwd == "/workspace" && result.scalar_root.path == "scalar.yml"

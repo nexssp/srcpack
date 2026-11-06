@@ -1,0 +1,65 @@
+@include "../../../bundles/pack/resolution.nflow"
+
+const @{
+  base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false },
+  cli_options: {}, profiles: [],
+  global_prompt: { Value: "global", Set: true, Disabled: false },
+  prompts: { global: "global text", parent: "parent text", child: "child text" },
+  cli_prompt: "", cli_output: "", cli_output_prefixed: "", global_output: "", global_output_prefixed: "",
+  global_start: { Value: "global start", Set: true, Disabled: false }, global_end: { Value: "global end", Set: true, Disabled: false },
+  editor_file_start: "editor start", editor_file_end: "editor end", dir_prefix: false, default_tree_depth: 4,
+  paths: [], files: [], cli_files: [], target_names: [], copy: false, copy_explicit: false, explicit_output: "", requested_output: "", has_remote: false
+}
+-> parallel {
+  overlays: { ..., base_options: { NoTests: true, MaxLines: 100, TreeDepth: 0, MaskSecrets: true, Examples: ["base-example", "base-sample"], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, profiles: [
+    { options: { NoTests: false, MaxLines: 40, TreeDepth: 6, Examples: [] }, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" },
+    { options: { MaxLines: 0, TreeDepth: 0, Examples: [] }, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }
+  ], cli_options: { NoTests: false, MaxLines: 0, Examples: [] } } -> resolution.pipeline.pack_resolution_policy,
+  cli_prompt: { ..., cli_prompt: "explicit CLI prompt" } -> resolution.pipeline.pack_resolution_policy,
+  disabled_profile_prompt: { ..., profiles: [
+    { options: {}, prompt: { Value: "parent", Set: true, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" },
+    { options: {}, prompt: { Value: "child", Set: true, Disabled: true }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }
+  ] } -> resolution.pipeline.pack_resolution_policy,
+  disabled_sections: { ..., profiles: [
+    { options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "parent start", Set: true, Disabled: false }, end: { Value: "parent end", Set: true, Disabled: false }, file_start: "", file_end: "" },
+    { options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: true, Disabled: true }, end: { Value: "", Set: true, Disabled: true }, file_start: "", file_end: "" }
+  ] } -> resolution.pipeline.pack_resolution_policy,
+  cli_output: { ..., cli_output: "reports/cli.md", cli_output_prefixed: "reports/project_cli.md", dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] } -> resolution.pipeline.pack_resolution_policy,
+  profile_output: { ..., dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] } -> resolution.pipeline.pack_resolution_policy,
+  global_output: { ..., global_output: "reports/global.md" } -> resolution.pipeline.pack_resolution_policy,
+  implicit_clipboard: { ... } -> resolution.pipeline.pack_resolution_policy,
+  no_copy: { ..., copy_explicit: true } -> resolution.pipeline.pack_resolution_policy,
+  explicit_stdout_copy: { ..., cli_output: "-", cli_output_prefixed: "-", dir_prefix: true, copy: true, explicit_output: "-" } -> resolution.pipeline.pack_resolution_policy,
+  requested_output: { ..., requested_output: "/work/project/_srcpack/application_arch.md" } -> resolution.pipeline.pack_resolution_policy,
+  empty_targets: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: [], files: [], cli_files: [] } -> resolution.pipeline.pack_resolution_policy,
+  explicit_depth: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 9, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: ["src"] } -> resolution.pipeline.pack_resolution_policy,
+  remote_full_tree: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], FullTree: true, DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false } } -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
+  remote_changed: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], Modified: true, FullTree: false, DiffOnly: false, Since: "", Changed: false, Staged: false } } -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
+}
+-> {
+  overlays: {options: .overlays.options},
+  cli_prompt: {prompt: .cli_prompt.prompt, prompt_name: .cli_prompt.prompt_name},
+  disabled_profile_prompt: {prompt: .disabled_profile_prompt.prompt, prompt_name: .disabled_profile_prompt.prompt_name},
+  disabled_sections: {start: .disabled_sections.start, end: .disabled_sections.end},
+  cli_output: {output: .cli_output.output},
+  profile_output: {output: .profile_output.output},
+  global_output: {output: .global_output.output},
+  implicit_clipboard: {copy: .implicit_clipboard.copy, display_output: .implicit_clipboard.display_output},
+  no_copy: {copy: .no_copy.copy, display_output: .no_copy.display_output},
+  explicit_stdout_copy: {output: .explicit_stdout_copy.output, display_output: .explicit_stdout_copy.display_output, copy: .explicit_stdout_copy.copy},
+  requested_output: {copy: .requested_output.copy},
+  empty_targets: {paths: .empty_targets.paths, files: .empty_targets.files, options: .empty_targets.options},
+  explicit_depth: {options: .explicit_depth.options},
+  remote_full_tree: .remote_full_tree.error,
+  remote_changed: .remote_changed.error
+}
+
+@test: result.overlays.options.NoTests == false && result.overlays.options.MaxLines == 0 && result.overlays.options.TreeDepth == 4 && result.overlays.options.MaskSecrets == true && result.overlays.options.Examples[0] == "base-example"
+@test: result.cli_prompt.prompt == "explicit CLI prompt" && result.cli_prompt.prompt_name == "cli"
+@test: result.disabled_profile_prompt.prompt == "parent text" && result.disabled_profile_prompt.prompt_name == "parent"
+@test: result.disabled_sections.start == "" && result.disabled_sections.end == ""
+@test: result.cli_output.output == "reports/project_cli.md" && result.profile_output.output == "reports/project_profile.md" && result.global_output.output == "reports/global.md"
+@test: result.implicit_clipboard.copy == true && result.implicit_clipboard.display_output == "(clipboard only)" && result.no_copy.copy == false && result.no_copy.display_output == ""
+@test: result.explicit_stdout_copy.output == "-" && result.explicit_stdout_copy.display_output == "-" && result.explicit_stdout_copy.copy == true && result.requested_output.copy == false
+@test: result.empty_targets.paths[0] == resolution.path_fallback.current_directory && len(result.empty_targets.files) == 0 && result.empty_targets.options.TreeDepth == 4 && result.explicit_depth.options.TreeDepth == 9
+@test: result.remote_full_tree contains "remote sources do not support --full-tree" && result.remote_changed contains "remote sources cannot be combined"

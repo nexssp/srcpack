@@ -1,0 +1,26 @@
+@schema PackDemoInput struct {
+    targets    []string  `cli:"target,targets,t" usage:"workspace paths to include (repeatable)"`
+    files      []string  `cli:"file,f" usage:"explicit files to include (repeatable)"`
+    ext        string  `cli:"ext" usage:"comma-separated file extensions"`
+    tests      bool  `cli:"tests" usage:"include test files"`
+    no_tests   bool  `cli:"no-tests" usage:"exclude test files"`
+    no_deps    bool  `cli:"no-deps" usage:"exclude dependency directories"`
+    comments   bool  `cli:"comments" usage:"preserve comments in parsed output"`
+    only_sig   bool  `cli:"only-sig" usage:"keep declarations and signatures"`
+    dense      bool  `cli:"dense" usage:"use compact source formatting"`
+    mask       bool  `cli:"mask" usage:"mask secret-like values"`
+    max_lines  int  `cli:"max-lines" usage:"maximum source lines per file"`
+    exclude    string  `cli:"exclude,x" usage:"comma-separated ignore patterns"`
+    editor     string  `cli:"editor,e" config:"true" usage:"output format (markdown, zed, claude, fold)"`
+}
+
+@pipeline pack:cli="pack:Package workspace source through srcpack operators":request-schema=PackDemoInput
+  srcpack.source
+    -> ast.parse
+    -> stats.collect:quiet
+    -> srcpack.render
+    -> collect
+    -> srcpack.join
+@end
+
+tcli.listen

@@ -1,0 +1,13 @@
+@description "Input contracts for srcpack's built-in system commands"
+
+@schema EmptyInput struct {
+  args  []string  `cli:"positional" usage:""`
+}
+@schema InfoInput struct {
+  name  string  `cli:"positional" usage:"Built-in profile name"`
+}
+@schema CleanInput struct {
+  path     string  `cli:"positional" usage:"Generated output directory (default: _srcpack)"`
+  output   string  `cli:"output,o" usage:"Generated output directory"`
+  dry_run  bool  `cli:"dry-run,check" usage:"Preview files without removing them"`
+}

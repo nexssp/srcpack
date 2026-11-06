@@ -1,0 +1,106 @@
+# =============================================================================
+# srcpack Configuration Defaults (Embedded)
+# =============================================================================
+
+prompts:
+  default: |-
+    You are an expert software engineer reviewing the provided source code.
+    Omissions are intentional context reductions; do not treat missing bodies as errors.
+  arch: |-
+    Analyze the following system architecture and public signatures.
+    Identify interface boundaries, coupling risks, and domain design issues.
+  security: |-
+    Perform a thorough security audit of the provided source code.
+    Highlight potential vulnerabilities, authentication bypasses, state corruption, and unhandled errors.
+    Cite specific file paths and function signatures for every observation.
+  test: |-
+    Review the implementation and write idiomatic unit tests consistent with the project style.
+    Cover happy paths, boundary conditions, and failure scenarios.
+  dense: |-
+    The following codebase context uses unified compact IDL: `Type{field:type;method(arg:type):return}`.
+    Declarations represent exported system signatures. Interpret type aliases: str=string, bool=boolean, i64=int64, u64=uint64, err=error.
+
+start: |-
+  <!-- Source Reference [Git: ${GIT_BRANCH}@${GIT_COMMIT}] [Tag: ${GIT_TAG}] [Profile: ${PROFILE_NAME}] [Target: ${TARGETS}] [Editor: ${EDITOR_NAME}]: ${CURRENT_DATE} -->
+  Files: ${FILE_COUNT} | Functions: ${FUNC_COUNT} | Size: ${TOTAL_SIZE_KBYTES} KB | TOKENS: ~${TOTAL_SIZE_TOKENS}
+
+  ${TREE}
+
+end: |-
+  <!-- END OF SOURCE REFERENCE [Profile: ${PROFILE_NAME}] -->
+
+summary: |-
+  ✅ Srcpack completed in ${DURATION}
+  ─────────────────────────────────────────────
+  Profile         : ${PROFILE_NAME}
+  Target(s)       : ${TARGETS}
+  Prompt          : ${PROMPT_NAME}
+  Editor Format   : ${EDITOR_NAME}
+  Directory       : ${DIRS}
+  Files Processed : ${FILE_COUNT}
+  Functions Found : ${FUNC_COUNT}
+  Raw Size        : ${RAW_SIZE_KBYTES} KB
+  Packed Size     : ${TOTAL_SIZE_KBYTES} KB (Saved ${SAVED_PERCENT}%)
+  Est. Tokens     : ~${TOTAL_SIZE_TOKENS}
+  Output          : ${OUTPUT_FILE}
+  Clipboard       : ${COPIED_STATUS}
+
+options:
+  strip_comments: true
+  remove_body_func: true
+  max_lines: 0
+  no_tests: true
+  no_generated: true
+  no_deps: true
+  examples:
+    - examples
+    - example
+    - samples
+    - sample
+    - demo
+    - demos
+  no_examples: true
+  ext_filter: ""
+  trim_blank_lines: true
+  exported_only: true
+  trim_indent: false
+
+editor: "markdown"
+
+editors:
+  markdown:
+    description: "Standard Markdown code blocks"
+    file_start: |-
+      ## ${REL_PATH}
+      ```${LANG}
+    file_end: |-
+      ```
+
+  zed:
+    description: "Zed info-string fold"
+    file_start: |-
+      ```${LANG} ${REL_PATH}
+    file_end: |-
+      ```
+
+  claude:
+    description: "Claude XML tags"
+    file_start: |-
+      <file path="${REL_PATH}" language="${LANG}">
+      ```${LANG}
+    file_end: |-
+      ```
+      </file>
+
+  fold:
+    description: "Collapsible <details> block"
+    start: |-
+      <details>
+      <summary>📦 Packed Context [${PROFILE_NAME}] — Click to Expand</summary>
+    end: |-
+      </details>
+    file_start: |-
+      ## ${REL_PATH}
+      ```${LANG}
+    file_end: |-
+      ```

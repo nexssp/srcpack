@@ -1,0 +1,88 @@
+srcpack — package source code as project context
+
+Usage:
+  srcpack                                        Show dashboard and examples
+  srcpack [pack] [selector ...] [options]        Package codebase
+  srcpack tree [selector ...] [options]          Tree-only output
+  srcpack update [profile] [--check]             Regenerate every configured target
+
+Selectors:
+  <path[,path...]>[~exclude[,exclude...]][#profile][@prompt]
+  github:owner/repo[//subpath][?ref=REF][#profile]
+
+Examples:
+  srcpack arch
+  srcpack impl -t backend
+  srcpack "src#arch" "pkg#source"
+  srcpack "auth~tests#impl@find auth bypasses"
+  srcpack "github:nexssp/flow,nexssp/kernel#sources" "folder#arch"
+  srcpack "github:nexssp/flow//compiler#arch" -o flow-compiler.md
+  srcpack update arch
+
+Options:
+  -t, --target PATH        Add a target path (repeatable; positional selectors also work)
+  -f, --file PATH          Add one explicit file (repeatable)
+  -c, --copy[=BOOL]        Copy rendered output to clipboard (default without a destination)
+      --no-copy[=BOOL]     Disable clipboard output; use stdout if no destination is set
+  -p, --profile NAME       Select a built-in profile
+      --dense              Keep signatures, omit bodies, strip comments
+      --only-sig           Keep declarations and signatures without bodies
+      --comments           Preserve comments; --no-comments strips them
+      --exported-only      Keep only exported declarations
+      --mask-secrets       Mask recognized secret-like values
+      --max-lines N        Target size for a full-source head/tail excerpt
+      --max-lines-head N   Explicit head budget
+      --max-lines-tail N   Explicit tail budget
+      --trim-blank-lines   Collapse consecutive blank lines
+      --trim-indent        Strip leading indentation
+      --ext LIST           Include only comma-separated extensions
+      --exclude LIST       Exclude comma-separated file/directory patterns
+      --no-tests           Exclude test files
+      --no-generated       Exclude generated files
+      --no-deps            Exclude vendor/ and node_modules/
+      --no-examples        Exclude example directories
+      --prompt TEXT        Add inline prompt text or load it from a file
+      --save-view NAME     Save the current selectors as a reusable view
+  -e, --editor NAME        Format: markdown, raw, none, text, zed, claude, fold
+  -o, --output PATH        Save to a file instead of clipboard; use - for standard output
+      --dir-prefix         Prefix output filename with the workspace directory name
+      --tree               Emit the folder tree with token bars
+      --tree-only          Tree only, no file content
+      --tree-files         Show individual files in the tree (default: folders only)
+      --full-tree          Walk the whole project, tag [context] vs excluded
+      --tree-depth N       Folder tree depth (default: {{TREE_DEPTH}})
+  -L, --depth N            Alias for --tree-depth
+      --color MODE         Color mode: auto, always, never (default: auto)
+      --since REF          Include files changed since a Git ref
+      --modified, -m       Include changed and untracked files
+      --staged             Include staged files
+      --diff-only          Prepend a Git unified diff section
+      --check              Preview changes without writing files
+      --plan, --explain    Show resolved targets/options; do not scan or write
+      --no-header          Suppress the document header
+      --no-prompt          Suppress the prompt block
+      --no-start           Suppress the start banner
+      --no-end             Suppress the end footer
+      --cost, --roi        Report saved tokens and caller-supplied pricing estimates
+      --config PATH        Use a specific config file
+  -C, --cwd DIR            Change working directory before resolving paths
+  -q, --quiet              Suppress terminal statistics
+  -h, --help               Show this help
+  -v, --version            Show version
+
+Management:
+  srcpack init             Create starter nexss.srcpack.yml
+  srcpack update           Regenerate every configured target
+  srcpack list             List built-in profiles
+  srcpack info NAME        Show profile details
+  srcpack config <show|path|validate>
+  srcpack view <list|show|delete>
+  srcpack target <list|show|add|delete>
+  srcpack prompt <list|show|add|delete>
+  srcpack profile <list|show>
+  srcpack editor <list|show>
+  srcpack types            List file-type aliases
+  srcpack health           Service health check
+  srcpack demo             Run a small AST demo
+  srcpack doctor           Validate configuration
+  srcpack clean            Remove generated files in _srcpack/

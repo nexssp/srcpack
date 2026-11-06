@@ -1,0 +1,131 @@
+@description "Pure pack-plan validation and report assembly"
+@include "../../nflows/cli_invocation.nflow" AS cli_invocation
+@symbols plan_command {
+  pack: "pack"
+}
+@symbols output_mode {
+  clipboard
+  stdout
+  check
+  file
+}
+@symbols phase_status {
+  complete
+  not_run
+}
+@symbols plan_mode {
+  plan
+}
+@symbols plan_output_stream {
+  stdout
+}
+
+@pipeline pack_plan_report
+  { ... }
+  -> match {
+    .io.check -> { message: "--plan cannot be combined with --check; --check compares rendered output" } -> fail,
+    .io.explicit_copy -> { message: "--plan cannot be combined with --copy" } -> fail,
+    (.io.explicit_output ?? "") != "" -> { message: "--plan cannot be combined with --output; plan output is always printed to stdout" } -> fail,
+    (.save_view ?? "") != "" -> { message: "--plan cannot be combined with --save-view" } -> fail,
+    _ -> noop
+  }
+  -> {
+    report: {
+      schema_version: 1,
+      mode: plan_mode.plan,
+      command: .command ?? plan_command.pack,
+      workspace: .stats.directory ?? "",
+      profile: .stats.profile ?? "default",
+      targets: .pack.targets ?? [],
+      explicit_files: .pack.files ?? [],
+      target_profiles: .pack.target_profiles ?? {},
+      target_excludes: .pack.target_excludes ?? {},
+      editor: .render.editor ?? "markdown",
+      prompt_source: .render.prompt_name ?? "(none)",
+      normal_output_mode: match {
+        (.io.copy ?? false) && (.io.explicit_output ?? "") == "" -> const @{ value: output_mode.clipboard },
+        (.io.explicit_pack ?? false) && !(.io.check ?? false) && (.io.explicit_output ?? "") == "" && (.io.config_path ?? "") == "" -> const @{ value: output_mode.stdout },
+        (.io.output_path ?? "") == "" || .io.output_path == "-" -> const @{ value: output_mode.stdout },
+        (.io.check ?? false) -> const @{ value: output_mode.check },
+        _ -> const @{ value: output_mode.file }
+      },
+      output_path: .io.output_path ?? "",
+      plan_output: plan_output_stream.stdout,
+      candidate_files_enumerated: false,
+      filters: {
+        extensions: .pack.ext ?? "",
+        exclude: .pack.exclude ?? "",
+        no_tests: .pack.no_tests ?? false,
+        no_generated: .pack.no_generated ?? false,
+        no_dependencies: .pack.no_deps ?? false,
+        no_examples: .pack.no_examples ?? false,
+        examples: .pack.examples ?? [],
+        only_signatures: .pack.only_sig ?? false,
+        dense: .pack.dense ?? false,
+        comments: .pack.comments ?? false,
+        mask_secrets: .pack.mask ?? false,
+        max_lines: .pack.max_lines ?? 0,
+        max_lines_head: .pack.max_lines_head ?? 0,
+        max_lines_tail: .pack.max_lines_tail ?? 0,
+        exported_only: .pack.exported_only ?? false,
+        trim_indent: .pack.trim_indent ?? false,
+        trim_blank_lines: .pack.trim_blank_lines ?? false,
+        tree_only: .pack.tree_only ?? false,
+        full_tree: .pack.full_tree ?? false,
+        tree_files: .pack.tree_files ?? false,
+        tree_depth: .pack.depth ?? 0,
+        changed: .pack.changed ?? false,
+        since: .pack.since ?? "",
+        modified: .pack.modified ?? false,
+        staged: .pack.staged ?? false,
+        diff_only: .pack.diff_only ?? false
+      },
+      phases: [
+        { name: "resolve", status: phase_status.complete, detail: "Selectors, config, profiles, options and output path resolved." },
+        { name: "scan", status: phase_status.not_run, detail: "File-level candidates are not enumerated; only targets and explicit files are listed." },
+        { name: "parse", status: phase_status.not_run, detail: "Source parsing and extraction are skipped." },
+        { name: "render", status: phase_status.not_run, detail: "No context document is rendered." },
+        { name: "effects", status: phase_status.not_run, detail: "No output, state-cache, clipboard or remote-fetch effects are performed." }
+      ],
+      side_effects: {
+        remote_fetch: false,
+        source_parse: false,
+        document_render: false,
+        output_write: false,
+        state_write: false,
+        clipboard_write: false
+      }
+    },
+    json: .io.json ?? false
+  }
+  -> {
+    content: .json ? toJSON(.report) + "\n" :
+      "srcpack plan (schema v" + string(.report.schema_version) + ")\n" +
+      "Command: " + .report.command + "\n" +
+      "Workspace: " + .report.workspace + "\n" +
+      "Profile: " + .report.profile + "\n" +
+      "Editor: " + .report.editor + "\n" +
+      "Prompt source: " + .report.prompt_source + "\n" +
+      "Normal pack output (not written): mode=" + .report.normal_output_mode + ", path=" + .report.output_path + "\n" +
+      "Plan report: " + .report.plan_output + "\n" +
+      "Targets:\n" + (len(.report.targets) == 0 ? "  (none)\n" : join(map(.report.targets, "  - " + string(#) + "\n"), "")) +
+      "Explicit files:\n" + (len(.report.explicit_files) == 0 ? "  (none)\n" : join(map(.report.explicit_files, "  - " + string(#) + "\n"), "")) +
+      "Filters: extensions=" + toJSON(.report.filters.extensions) + ", exclude=" + toJSON(.report.filters.exclude) +
+      ", no-tests=" + string(.report.filters.no_tests) + ", no-generated=" + string(.report.filters.no_generated) +
+      ", no-deps=" + string(.report.filters.no_dependencies) + ", no-examples=" + string(.report.filters.no_examples) +
+      ", only-signatures=" + string(.report.filters.only_signatures) + ", dense=" + string(.report.filters.dense) +
+      ", comments=" + string(.report.filters.comments) + ", mask=" + string(.report.filters.mask_secrets) +
+      ", max-lines=" + string(.report.filters.max_lines) + "\n" +
+      "Per-target profiles:\n" + (len(toPairs(.report.target_profiles)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_profiles), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+      "Per-target excludes:\n" + (len(toPairs(.report.target_excludes)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_excludes), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+      "Phases:\n" + join(map(.report.phases, "  - " + #.name + ": " + #.status + " — " + #.detail + "\n"), "") +
+      "No candidate-file list is produced by plan mode.\n",
+    stream: plan_output_stream.stdout
+  }
+@end
+
+@pipeline pack_plan
+  pipeline.pack_plan_report
+  -> cli.print
+  -> cli.finish
+@end

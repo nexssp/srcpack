@@ -1,0 +1,5 @@
+@description "Input contract for the srcpack config command"
+
+@schema ConfigInput struct {
+  sub  string  `cli:"positional" default:"show" usage:"Configuration operation: path, show, or validate"`
+}

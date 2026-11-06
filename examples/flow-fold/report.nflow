@@ -1,0 +1,12 @@
+    -> stream.map @{
+      expression: `{
+        files: item.files,
+        fileCount: item.fileCount,
+        funcCount: item.funcCount,
+        packedBytes: item.packedBytes,
+        rawBytes: item.rawBytes,
+        retainedRecords: len(item.files),
+        nonContributingRecords: len(item.files) - item.fileCount,
+        packedBytesPerFile: item.fileCount > 0 ? float(item.packedBytes) / item.fileCount : 0.0
+      }`
+    }

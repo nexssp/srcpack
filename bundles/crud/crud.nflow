@@ -1,0 +1,66 @@
+@description "Generic mapping CRUD; operation policy in NFlow and storage effects in Go"
+@require crud
+
+@symbols crud_operation {
+  list: "list"
+  get: "get"
+  save: "save"
+  delete: "delete"
+}
+
+@schema CrudOperationInput struct {
+  operation  string  `default:"" validate:"required,oneof=list get save delete"`
+  path       string  `default:"" validate:"required"`
+  section    string  `default:"records" validate:"required"`
+  name       string  `default:""`
+  value      any  `default:"null"`
+  replace    bool  `default:"false"`
+}
+@schema CrudNamedOperationInput struct {
+  name  string  `validate:"required"`
+}
+
+@pipeline crud_route
+  { ..., exists: .name in keys(.entries), current: .entries[.name] }
+  -> match(.operation) {
+    crud_operation.list -> { names: sort(keys(.entries)), records: .entries },
+    crud_operation.get -> match(.exists) {
+      false -> { code: "not_found", message: .name + " not found" } -> crud.reject,
+      _ -> { value: .current }
+    },
+    crud_operation.save -> match(.exists && !.replace) {
+      true -> { code: "conflict", message: .name + " already exists; set replace: true to replace it" } -> crud.reject,
+      _ -> { path, section, source, entries, patch: { key: .name, remove: false, value } } -> crud.patch
+    },
+    crud_operation.delete -> match(.exists) {
+      false -> { code: "not_found", message: .name + " not found" } -> crud.reject,
+      _ -> { path, section, source, entries, patch: { key: .name, remove: true } } -> crud.patch
+    },
+    _ -> { code: "validation", message: "unknown CRUD operation " + .operation } -> crud.reject
+  }
+@end
+
+@macro crud_operation() {
+  CrudOperationInput.validate ? on_error {
+    else -> { ..., code: "validation", message: .error.message } -> crud.reject
+  }
+  -> match {
+    trim(.path) == "" -> { ..., message: "path must be a nonempty string" } -> crud.reject,
+    trim(.section) == "" -> { ..., message: "section must be a nonempty string" } -> crud.reject,
+    _ -> { ... }
+  }
+  -> match(.operation) {
+    crud_operation.list -> { ..., section } -> crud.read -> pipeline.crud_route,
+    _ -> CrudNamedOperationInput.validate ? on_error {
+      else -> { ..., code: "validation", message: .error.message } -> crud.reject
+    }
+    -> match {
+      trim(.name) == "" -> { ..., message: "name must be nonempty" } -> crud.reject,
+      _ -> { ..., section } -> crud.read -> pipeline.crud_route
+    }
+  }
+}
+
+@pipeline crud
+  @crud_operation()
+@end

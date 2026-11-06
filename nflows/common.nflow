@@ -1,0 +1,5 @@
+@schema CommonFlags struct {
+  json     bool  `cli:"json" config:"true" usage:"emit machine-readable JSON envelope"`
+  quiet    bool  `cli:"quiet,q" config:"true" usage:"suppress progress output"`
+  verbose  bool  `cli:"verbose,v" config:"true" usage:"verbose diagnostic output"`
+}

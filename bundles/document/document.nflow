@@ -1,0 +1,87 @@
+@description "Copyable document formatting policy; no SRCPACK or I/O dependency"
+@require document
+@symbols editor_format {
+  zed: "zed"
+  claude: "claude"
+  fold: "fold"
+  details: "details"
+  raw: "raw"
+  none: "none"
+  text: "text"
+  markdown: "markdown"
+}
+
+@macro document_format() {
+  { ..., config: .config ?? {}, values: .values ?? {}, tree: .tree ?? "", files: .files ?? [] }
+  -> { ..., config: {
+    editor: .config.editor ?? "",
+    prompt: .config.prompt ?? "",
+    start: .config.start ?? "",
+    end: .config.end ?? "",
+    file_start: .config.file_start ?? "",
+    file_end: .config.file_end ?? "",
+    diff_content: .config.diff_content ?? "",
+    no_header: .config.no_header ?? false,
+    no_prompt: .config.no_prompt ?? false,
+    no_start: .config.no_start ?? false,
+    no_end: .config.no_end ?? false
+  } }
+  -> { ..., editor: lower(trim(.config.editor)) }
+  -> { ..., preset: match(.editor) {
+    editor_format.zed -> { start: "", end: "", file_start: "```${LANG} ${REL_PATH}\n", file_end: "```\n\n" },
+    editor_format.claude -> { start: "", end: "", file_start: "<file path=\"${REL_PATH}\" language=\"${LANG}\">\n```${LANG}\n", file_end: "```\n</file>\n\n" },
+    editor_format.fold -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
+    editor_format.details -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
+    editor_format.raw -> { start: "", end: "", file_start: "", file_end: "" },
+    editor_format.none -> { start: "", end: "", file_start: "", file_end: "" },
+    editor_format.text -> { start: "", end: "", file_start: "", file_end: "" },
+    _ -> { start: "", end: "", file_start: "### ${REL_PATH} (${LANG})\n```${LANG}\n", file_end: "```\n\n" }
+  } }
+  -> {
+    ...,
+    start: .config.start != "" ? .config.start : .preset.start,
+    end: .config.end != "" ? .config.end : .preset.end,
+    file_start: .config.file_start != "" ? .config.file_start : .preset.file_start,
+    file_end: .config.file_end != "" ? .config.file_end : .preset.file_end,
+    included: filter(.files, !#.omitted && (len(#.content) > 0 || len(#.snippets) > 0))
+  }
+  -> {
+    ...,
+    files: map(.included,
+      let file = #;
+      {
+        values: file.values,
+        body: len(file.content) > 0 ? file.content : reduce(filter(map(file.snippets, trim(#)), # != ""),
+          let acc = #acc;
+          let snippet = #;
+          {
+            text: acc.text + (acc.written ? ((acc.previous contains "\n") || (snippet contains "\n") ? "\n\n" : "\n") : "") + snippet,
+            previous: snippet,
+            written: true
+          }, { text: "", previous: "", written: false }).text
+      })
+  }
+  -> { blocks: let root = .; concat(
+    root.config.diff_content != "" ? [{ parts: [{ text: "## Git Unified Diff\n```diff\n" + root.config.diff_content + "\n```\n\n" }] }] : [],
+    !root.config.no_header && !root.config.no_prompt && root.config.prompt != "" ? [{ parts: [{ text: "> " + replace(trim(root.config.prompt), "\n", "\n> ") + "\n\n" }] }] : [],
+    root.tree != "" && !(root.config.start contains "${TREE}") ? [{ parts: [{ text: root.tree }] }] : [],
+    !root.config.no_header && !root.config.no_start && root.start != "" ? [{ parts: [{ text: root.start, values: root.values, expand: true }] }] : [],
+    map(root.files,
+      let file = #;
+      { parts: [
+        { text: root.file_start, values: file.values, expand: true, newline: true },
+        { text: file.body, newline: true },
+        { text: root.file_end, values: file.values, expand: true }
+      ] }),
+    !root.config.no_header && !root.config.no_end && root.end != "" ? [{ parts: [{ text: root.end, values: root.values, expand: true }] }] : []
+  ) }
+  -> document.interpolate
+  -> {
+    content: reduce(.blocks, #acc + #, ""),
+    items: len(.blocks)
+  }
+}
+
+@pipeline document_render
+  @document_format()
+@end

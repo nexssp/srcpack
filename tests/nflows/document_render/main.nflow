@@ -1,0 +1,79 @@
+@include "../../../bundles/document/document.nflow"
+@include "../../../nflows/render.nflow"
+
+parallel {
+  shape_default: const @{ config: {profile_name: "", targets: "", prompt_name: "", editor: "", dirs: "", output_file: "", current_date: "", git_commit: "", git_tag: "", git_branch: ""}, tree: "", stats: {file_count: 0, func_count: 0, packed_bytes: 0, raw_bytes: 0, estimated_tokens: 0}, files: [] } -> render.@shape_document(),
+  shape_populated: const @{ config: {profile_name: "${TARGETS}", targets: "a,b", prompt_name: "review", editor: " ZED ", dirs: "src,cmd", output_file: "out.md", current_date: "2026-10-20", git_commit: "abc", git_tag: "v1", git_branch: "main"}, tree: "TREE", stats: {file_count: 2, func_count: 7, packed_bytes: 123, raw_bytes: 1024, estimated_tokens: 35}, files: [
+    {content: "source", snippets: nil, omitted: false, rel_path: "café.go", abs_path: "/abs/café.go", lang: "go", lines: 99, size: 1024},
+    {content: "", snippets: ["one"], omitted: false, rel_path: "snippets.go", abs_path: "/abs/snippets.go", lang: "go", lines: 2, size: 2048},
+    {content: "not emitted", snippets: [], omitted: true, rel_path: "omitted.go", abs_path: "/abs/omitted.go", lang: "go", lines: 1, size: 16}
+  ] } -> render.@shape_document(),
+  markdown: const @{ config: {editor: "", prompt: "Review", start: "START:${PROFILE}", end: "END", file_start: "FILE:${REL_PATH}/${LANG}", file_end: "</FILE>", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {PROFILE: "arch"}, tree: "TREE", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}, {values: {REL_PATH: "b.go", LANG: "go"}, content: "hidden", snippets: [], omitted: true}] } -> { ..., tree: .tree + "\n", config: {editor: .config.editor, prompt: .config.prompt, start: .config.start + "\n", end: .config.end, file_start: .config.file_start + "\n", file_end: "\n</FILE>", diff_content: .config.diff_content, no_header: .config.no_header, no_prompt: .config.no_prompt, no_start: .config.no_start, no_end: .config.no_end} } -> document.pipeline.document_render,
+  zed: const @{ config: {editor: " ZED ", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  raw_mode: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  snippets: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "snippets.go", LANG: "go"}, content: "", snippets: [" one ", "two", "three", "  ", "four"], omitted: false}] } -> { ..., files: map(.files, let file = #; { values: file.values, content: file.content, snippets: [file.snippets[0], file.snippets[1], "three" + "\n" + "line", file.snippets[3], file.snippets[4]], omitted: file.omitted }) } -> document.pipeline.document_render,
+  hidden_sections: const @{ config: {editor: "markdown", prompt: "hidden prompt", start: "HIDDEN START", end: "HIDDEN END", file_start: "", file_end: "", diff_content: "diff", no_header: true, no_prompt: false, no_start: true, no_end: true}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  tree_placeholder: const @{ config: {editor: "raw", prompt: "", start: "${TREE}", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] } -> document.pipeline.document_render,
+  default_preset: const @{ config: {editor: "unknown", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: ""}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  claude: const @{ config: {editor: "claude"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  fold: const @{ config: {editor: "fold"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  none: const @{ config: {editor: "none"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  no_header: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_header: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  no_prompt: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_prompt: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  no_start: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_start: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  no_end: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_end: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
+  tree_placeholder_no_start: const @{ config: {editor: "raw", start: "${TREE}", no_start: true}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] } -> document.pipeline.document_render,
+  empty_expansion: const @{ config: {editor: "raw", start: "${EMPTY}", end: "${EMPTY}"}, values: {EMPTY: ""}, tree: "", files: [] } -> document.pipeline.document_render,
+  whitespace_prompt: const @{ config: {editor: "raw", prompt: "   "}, values: {}, tree: "", files: [] } -> document.pipeline.document_render,
+  custom_interpolation: const @{ config: {editor: "raw", start: "START:${PROFILE}:${UNKNOWN}\n", file_start: "FILE:${REL_PATH}", file_end: "END:${UNKNOWN}"}, values: {PROFILE: "${TARGETS}", TARGETS: "literal"}, tree: "", files: [{values: {REL_PATH: "${LANG}", LANG: "go"}, content: "body ${PROFILE}", snippets: [], omitted: false}] } -> document.pipeline.document_render
+}
+-> {
+  defaults: .shape_default.values,
+  populated: {values: .shape_populated.values, file_values: .shape_populated.files[0].values, files: .shape_populated.files},
+  markdown: {content: .markdown.content, items: .markdown.items},
+  zed: .zed.content,
+  raw: .raw_mode.content,
+  snippets: .snippets.content,
+  hidden_sections: .hidden_sections.content,
+  tree_placeholder: .tree_placeholder.content,
+  default_preset: .default_preset.content,
+  claude: .claude.content,
+  fold: .fold.content,
+  none: .none.content,
+  no_header: .no_header.content,
+  no_prompt: .no_prompt.content,
+  no_start: .no_start.content,
+  no_end: .no_end.content,
+  tree_placeholder_no_start: .tree_placeholder_no_start.content,
+  empty_expansion: {content: .empty_expansion.content, items: .empty_expansion.items},
+  whitespace_prompt: .whitespace_prompt.content,
+  custom_interpolation: .custom_interpolation.content
+}
+
+@test: result.defaults.TARGET == "all" && result.defaults.OUTPUT_FILE == "stdout" && result.defaults.PROFILE == ""
+@test: result.populated.values.PROFILE == "${TARGETS}" && result.populated.values.PROFILE_NAME == "${TARGETS}" && result.populated.values.TARGETS == "a,b" && result.populated.values.EDITOR == " ZED " && result.populated.values.TREE == "TREE"
+@test: result.populated.values.FILE_COUNT == "2" && result.populated.values.TOTAL_SIZE_BYTES == "123" && result.populated.values.RAW_SIZE_KBYTES == "1.0" && result.populated.values.SAVED_PERCENT == "88.0"
+@test: result.populated.file_values.REL_PATH == "café.go" && result.populated.file_values.ABS_PATH == "/abs/café.go" && result.populated.file_values.SIZE_KB == "1.0"
+@test: len(result.populated.files) == 3 && result.populated.files[0].content == "source" && result.populated.files[1].snippets[0] == "one" && result.populated.files[2].omitted == true
+@test: result.markdown.content contains "> Review"
+@test: result.markdown.content contains "TREE"
+@test: result.markdown.content contains "START:arch"
+@test: result.markdown.content contains "FILE:a.go/go" && result.markdown.content contains "package a" && !(result.markdown.content contains "hidden")
+@test: result.markdown.items == 5
+@test: result.zed contains "```go a.go\npackage a\n```" && !(result.zed contains "### a.go")
+@test: result.raw == "package a\n"
+@test: result.snippets == "one\ntwo\n\nthree\nline\n\nfour\n"
+@test: result.hidden_sections contains "## Git Unified Diff" && !(result.hidden_sections contains "hidden prompt") && !(result.hidden_sections contains "HIDDEN START") && !(result.hidden_sections contains "HIDDEN END")
+@test: result.tree_placeholder == "TREE BLOCK"
+@test: result.default_preset contains "### a.go (go)" && result.default_preset contains "```go\nsource\n```"
+@test: result.claude contains "<file path=\"a.go\" language=\"go\">" && result.claude contains "</file>"
+@test: result.fold contains "<summary>📦 Packed Context</summary>" && result.fold contains "</details>"
+@test: result.none == "source\n"
+@test: result.no_header == "source\n"
+@test: !(result.no_prompt contains "Review") && result.no_prompt contains "START" && result.no_prompt contains "END"
+@test: !(result.no_start contains "START") && result.no_start contains "source" && result.no_start contains "END"
+@test: result.no_end contains "START" && result.no_end contains "source" && !(result.no_end contains "END")
+@test: result.tree_placeholder_no_start == ""
+@test: result.empty_expansion.content == "" && result.empty_expansion.items == 2
+@test: result.whitespace_prompt == "> \n\n"
+@test: result.custom_interpolation contains "START:${TARGETS}:${UNKNOWN}" && result.custom_interpolation contains "FILE:${LANG}" && result.custom_interpolation contains "body ${PROFILE}" && result.custom_interpolation contains "END:${UNKNOWN}"

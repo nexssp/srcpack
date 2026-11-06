@@ -1,0 +1,24 @@
+@description "srcpack — context engineering and code packaging for AI"
+@require tcli
+@include "cli_invocation.nflow" AS cli_invocation
+
+# Command modules own their schemas, CLI routes, and implementation pipelines.
+# Transport discovers those command contracts through the source imports.
+@include "../bundles/init/init.nflow" AS init
+@include "../bundles/pack/pack.nflow" AS pack
+@include "../bundles/tree/tree.nflow" AS tree
+@include "../bundles/update/update.nflow" AS update
+@include "../bundles/config_cli/config.nflow" AS config
+@include "../bundles/manage/manage.nflow" AS manage
+@include "../bundles/system/system.nflow" AS system
+
+# The host invokes this root once to normalize argv and once to run the CLI.
+# Routing and selector-first policy live in the included NFlow module.
+@pipeline command_entry
+  match(._srcpack_cli_normalize ?? false) {
+    true -> cli_invocation.pipeline.normalize,
+    _ -> tcli.listen
+  }
+@end
+
+pipeline.command_entry

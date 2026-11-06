@@ -1,0 +1,17 @@
+@description "Srcpack CLI spelling policy; tcli remains a generic schema-based router"
+{ args,
+  first: len(.args) == 0 ? "" : lower(.args[0]),
+  aliases: { p: "pack", up: "update", "run-all": "update", "--version": "version", "-v": "version", profiles: "list", validate: "doctor", "type-list": "types" }
+}
+-> { ..., first: .aliases[.first] ?? .first }
+-> match {
+  len(.args) == 0 -> { args: ["dashboard"], command: "dashboard", explicit_pack: false },
+  .first in ["help", "--help", "-h"] -> match {
+    len(.args) == 1 -> { args: ["usage"], command: "usage", explicit_pack: false },
+    _ -> { ..., target: lower(.args[1]) }
+      -> { args: concat(["help", .aliases[.target] ?? .target], .args[2:]), command: "help", explicit_pack: false }
+  },
+  .first in ["init", "pack", "tree", "update", "config", "version", "list", "info", "clean", "doctor", "types", "health", "demo", "target", "prompt", "profile", "editor", "view", "dashboard", "usage"]
+    -> { args: concat([.first], .args[1:]), command: .first, explicit_pack: lower(.args[0]) == "pack" },
+  _ -> { args: concat(["pack"], .args), command: "pack", explicit_pack: false }
+}

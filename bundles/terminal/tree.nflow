@@ -1,0 +1,76 @@
+@description "Copyable terminal tree formatting policy over flattened host facts"
+@require terminal
+@macro terminal_tree_format() {
+  { ..., color: .color ?? false, rows: .rows ?? [], languages: .languages ?? {} }
+  -> { ...,
+    language_items: let langs = .languages; sortBy(sortBy(map(keys(langs), let lang = #;
+    { lang: lang, n: langs[lang] }), #.lang), #.n, "desc"),
+    language_total: reduce(values(.languages), #acc + #, 0),
+    saved_bytes: max(.raw_bytes - .packed_bytes, 0),
+    occupation: .raw_bytes > 0 ? float(.packed_bytes) / float(.raw_bytes) * 100 : 0.0,
+    savings: .raw_bytes > 0 ? float(max(.raw_bytes - .packed_bytes, 0)) / float(.raw_bytes) * 100 : 0.0
+  }
+  -> { ...,
+    savings_code: .savings >= 70 ? "1;32" : .savings >= 50 ? "38;5;118" : .savings >= 30 ? "1;33" : .savings >= 15 ? "38;5;208" : "1;31",
+    language_text: let root = .; join(map(take(.language_items, 3), terminal.printf("%s %.0f%%", #.lang, float(#.n) / float(root.language_total) * 100)), " · "),
+    rows: let root = .; map(.rows,
+      let row = #;
+      let share = root.total_tokens > 0 && row.tokens > 0 ? float(row.tokens) / float(root.total_tokens) * 100 : 0.0;
+      let icon = ({ test: "🧪", config: "⚙️ ", doc: "📝", gen: "🧬", entry: "🚀" })[row.role] ?? "📄";
+      { dir: row.dir, share: share,
+        header: row.prefix + row.connector + (row.dir ? "📁 " + row.name + "/" : icon + " " + row.name),
+        share_code: share <= 10 ? "1;32" : share <= 20 ? "38;5;118" : share <= 35 ? "1;33" : share <= 55 ? "38;5;208" : "1;31",
+        meta: filter(row.dir ? [
+          row.lang,
+          row.files > 0 ? string(row.files) + " files" : "",
+          row.tokens > 0 ? terminal.tokens(int(row.tokens)) + " tk" : "",
+          row.funcs > 0 ? string(row.funcs) + " fn" : "",
+          row.fully_excluded ? "excluded" : ""
+        ] : [
+          terminal.age(row.age),
+          row.tokens > 0 ? "~" + terminal.tokens(int(row.tokens)) + " tk" : "",
+          row.lines > 0 ? string(row.lines) + "L" : "",
+          row.funcs > 0 ? string(row.funcs) + " fn" : "",
+          row.paired != "" ? "↔ " + row.paired : "",
+          row.excluded ? "excluded" : row.target ? "[context]" : ""
+        ], # != "")
+      })
+  }
+  -> { ...,
+    title: let root = .; root.full ? (
+      root.included > 0 && root.excluded > 0 ? terminal.printf("📦 Full Project Tree (%d files · ~%s tokens · %d in context · %d excluded)\n", root.total_files, terminal.tokens(int(root.total_tokens)), root.included, root.excluded)
+        : terminal.printf("📦 Full Project Tree (%d files · ~%s tokens)\n", root.total_files, terminal.tokens(int(root.total_tokens)))
+    ) : (
+      root.excluded > 0 ? terminal.printf("📦 Context Tree (%d files · ~%s tokens · %d excluded)\n", root.included, terminal.tokens(int(root.total_tokens)), root.excluded)
+        : terminal.printf("📦 Context Tree (%d files · ~%s tokens)\n", root.included, terminal.tokens(int(root.total_tokens)))
+    ),
+    rendered_rows: let root = .; map(.rows,
+      terminal.paint(#.header, "1", root.color && #.dir)
+        + repeat(" ", max(60 - terminal.width(#.header), 1))
+        + (#.dir ? ((#.share > 0 ? terminal.paint(terminal.printf("%5.1f%%", #.share), #.share_code, root.color) : "     ")
+            + " " + terminal.bar(#.share, 16, #.share_code, root.color)
+            + (len(#.meta) > 0 ? " [" + join(#.meta, " · ") + "]" : ""))
+          : terminal.paint(len(#.meta) > 0 ? "[" + join(#.meta, " · ") + "]" : "", "2", root.color && len(#.meta) > 0))
+        + "\n"),
+    footer_meta: filter([
+      string(.included) + " files", "~" + terminal.tokens(int(.total_tokens)) + " tokens",
+      .raw_bytes > 0 ? terminal.bytes(int(.saved_bytes)) + " saved of " + terminal.bytes(int(.raw_bytes)) : "",
+      .excluded > 0 ? string(.excluded) + " excluded" : ""
+    ], # != "")
+  }
+  -> { content: let root = .; root.empty ? "" : root.title
+    + (root.language_total > 0 ? "   Languages: " + root.language_text + "\n" : "")
+    + "   Legend: 📄 source  📝 docs  ⚙️ config  🧪 test  🚀 entry  🧬 generated\n"
+    + "           ·N fn = AST symbols  ·NL = lines  ·[3d] = last modified  ·↔ = paired test\n"
+    + (root.full ? "           [context] = in package   excluded = present but omitted\n\n" : "           excluded = file/dir present in repo but omitted from this package\n\n")
+    + join(root.rendered_rows, "")
+    + terminal.paint(repeat("─", 72), "2", root.color) + "\n"
+    + terminal.paint("TOTAL", "1", root.color) + repeat(" ", 48) + terminal.paint("saved: ", "2", root.color)
+    + terminal.paint(root.raw_bytes > 0 ? terminal.printf("%5.1f%%", root.savings) : "  0.0%", root.raw_bytes > 0 ? root.savings_code : "2;37", root.color)
+    + " " + terminal.bar(root.occupation, 16, root.savings_code, root.color)
+    + " " + terminal.paint("[" + join(root.footer_meta, " · ") + "]", "1", root.color) + "\n"
+  }
+}
+@pipeline terminal_tree
+  @terminal_tree_format()
+@end

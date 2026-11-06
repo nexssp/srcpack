@@ -1,0 +1,31 @@
+@include "../../../nflows/output.nflow"
+
+parallel {
+  implicit_clipboard: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: false, explicit_pack: false, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  explicit_pack_clipboard: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: false, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  configured_file: const @{ io: { output_path: "configured.md", explicit_output: "", config_path: "config.yml", copy: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  explicit_file: const @{ io: { output_path: "out.md", explicit_output: "out.md", config_path: "", copy: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  stdout_sentinel: const @{ io: { output_path: "-", explicit_output: "-", config_path: "", copy: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  no_copy_stdout: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: false, check: false, explicit_pack: false, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  clipboard_only: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: false, explicit_pack: false, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  clipboard_with_file: const @{ io: { output_path: "out.md", explicit_output: "out.md", config_path: "", copy: true, check: false, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  file_check: const @{ io: { output_path: "out.md", explicit_output: "out.md", config_path: "", copy: false, check: true, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  pack_check_clipboard: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: true, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  clipboard_check: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: true, explicit_pack: false, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  stdout_check: const @{ io: { output_path: "-", explicit_output: "-", config_path: "", copy: false, check: true, explicit_pack: false, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  copy_check_file: const @{ io: { output_path: "out.md", explicit_output: "out.md", config_path: "", copy: true, check: true, explicit_pack: true, quiet: false, started_at: 123 } } -> output.pipeline.output_policy,
+  check_report: const @{ policy: { mode: output.output_mode.check, path: "out.md", quiet: false } } -> output.pipeline.output_report_policy,
+  clipboard_report: const @{ policy: { mode: output.output_mode.clipboard, path: "", quiet: false } } -> output.pipeline.output_report_policy,
+  stdout_report: const @{ policy: { mode: output.output_mode.stdout, path: "", quiet: false } } -> output.pipeline.output_report_policy,
+  file_report: const @{ policy: { mode: output.output_mode.file, path: "out.md", quiet: false } } -> output.pipeline.output_report_policy,
+  quiet_report: const @{ policy: { mode: output.output_mode.file, path: "out.md", quiet: true } } -> output.pipeline.output_report_policy,
+}
+
+@test: result.implicit_clipboard.mode == output.output_mode.clipboard && result.explicit_pack_clipboard.mode == output.output_mode.clipboard && result.configured_file.mode == output.output_mode.file && result.explicit_file.mode == output.output_mode.file
+@test: result.stdout_sentinel.mode == output.output_mode.stdout && result.no_copy_stdout.mode == output.output_mode.stdout && result.clipboard_only.mode == output.output_mode.clipboard && result.clipboard_with_file.mode == output.output_mode.file
+@test: result.file_check.mode == output.output_mode.check && result.pack_check_clipboard.mode == output.output_mode.clipboard && result.clipboard_check.mode == output.output_mode.clipboard && result.stdout_check.mode == output.output_mode.stdout && result.copy_check_file.mode == output.output_mode.check
+@test: result.implicit_clipboard.save_state == true && result.file_check.save_state == false && result.explicit_file.trailing_newline == true && result.file_check.trailing_newline == false
+@test: result.check_report.report_prefix == "✓ Checked in " && result.check_report.report_suffix == " (no changes written)\n"
+@test: result.clipboard_report.report_prefix == "✓ Completed in " && result.clipboard_report.report_suffix == "\nOutput: clipboard only (no file written)\n"
+@test: result.stdout_report.report_suffix == "\nOutput: rendered context written to stdout\n" && result.file_report.report_suffix == "\nOutput: wrote context to out.md\n"
+@test: result.quiet_report.report_prefix == "" && result.quiet_report.report_suffix == ""

@@ -1,0 +1,19 @@
+@include "../../../nflows/pack_fold.nflow"
+
+parallel {
+  populated: srcpack_test.records @{ items: [
+    {file: {name: "first"}, omitted: false, content: "cafe", snippets: ["ignored because content is present"], funcCount: 2, size: 10},
+    {file: {name: "second"}, omitted: false, content: "", snippets: ["e", "xy"], funcCount: 3, size: 11},
+    {file: {name: "omitted"}, omitted: true, content: "not counted", snippets: [], funcCount: 99, size: 90},
+    {file: {name: "empty"}, omitted: false, content: "", snippets: [], funcCount: 7, size: 20}
+  ] } -> pack.batch -> pack_fold.@pack_stats_fold() -> collect,
+  empty: srcpack_test.records @{ items: [] } -> pack.batch -> pack_fold.@pack_stats_fold() -> collect
+}
+-> {
+  populated: {files: .populated[0].files, file_count: .populated[0].fileCount, func_count: .populated[0].funcCount, packed_bytes: .populated[0].packedBytes, raw_bytes: .populated[0].rawBytes},
+  empty: {files: .empty[0].files, file_count: .empty[0].fileCount, func_count: .empty[0].funcCount, packed_bytes: .empty[0].packedBytes, raw_bytes: .empty[0].rawBytes}
+}
+
+@test: len(result.populated.files) == 4 && result.populated.files[0].name == "first" && result.populated.files[1].name == "second" && result.populated.files[2].name == "omitted" && result.populated.files[3].name == "empty"
+@test: result.populated.file_count == 2 && result.populated.func_count == 5 && result.populated.packed_bytes == 7 && result.populated.raw_bytes == 21
+@test: len(result.empty.files) == 0 && result.empty.file_count == 0 && result.empty.func_count == 0 && result.empty.packed_bytes == 0 && result.empty.raw_bytes == 0

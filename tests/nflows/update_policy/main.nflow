@@ -1,0 +1,36 @@
+@include "../../../bundles/update/update_policy.nflow"
+
+parallel {
+  sorted_plan: const @{ target_names: ["zeta", "alpha"], profile: "", profile_arg: "arch", output_prefix: "reports/", check: true, quiet: false } -> update_policy.@update_target_plan(),
+  default_plan: const @{ target_names: [], profile: "", profile_arg: "", output_prefix: "_srcpack/", check: false, quiet: false } -> update_policy.@update_target_plan(),
+  outcomes: const @{ joined_rows: [
+    { target: "alpha", file: "alpha.md", status: update_policy.update_status.checked, result_present: true, ok: true, error: "" },
+    { target: "beta", file: "beta.md", status: update_policy.update_status.wrote, result_present: true, ok: true, error: "" },
+    { target: "gamma", file: "gamma.md", status: update_policy.update_status.wrote, result_present: false, ok: false, error: "" },
+    { target: "delta", file: "delta.md", status: update_policy.update_status.wrote, result_present: true, ok: false, error: "pack failed" }
+  ] } -> update_policy.@update_outcomes(),
+  report: const @{ plan: { check: false, quiet: false }, outcomes: [
+    { failed: false, written: false, checked: true, icon: "✓", label: "alpha", detail: "alpha.md" },
+    { failed: false, written: true, checked: false, icon: "✓", label: "beta", detail: "beta.md" },
+    { failed: true, written: false, checked: false, icon: "✗", label: "gamma", detail: "target did not produce a result" },
+    { failed: true, written: false, checked: false, icon: "✗", label: "delta", detail: "pack failed" }
+  ] } -> update_policy.@update_report(),
+  quiet_report: const @{ plan: { check: true, quiet: true }, outcomes: [
+    { failed: false, written: false, checked: true, icon: "✓", label: "alpha", detail: "alpha.md" }
+  ] } -> update_policy.@update_report()
+}
+-> {
+  sorted_plan: { profile: .sorted_plan.profile, output_profile: .sorted_plan.output_profile, items: .sorted_plan.items },
+  default_plan: .default_plan.items,
+  outcomes: .outcomes.outcomes,
+  report: .report.summary,
+  quiet_report: .quiet_report.summary
+}
+
+@test: result.sorted_plan.profile == "arch" && result.sorted_plan.output_profile == "arch"
+@test: result.sorted_plan.items[0].target == "alpha" && result.sorted_plan.items[0].file == "reports/alpha_arch.md" && result.sorted_plan.items[0].status == update_policy.update_status.checked
+@test: result.sorted_plan.items[1].target == "zeta" && result.sorted_plan.items[1].request.selectors == ["zeta"]
+@test: result.default_plan[0].target == "(default)" && result.default_plan[0].request.selectors == ["."] && result.default_plan[0].file == "_srcpack/default.md"
+@test: result.outcomes[0].checked == true && result.outcomes[1].written == true && result.outcomes[2].detail == "target did not produce a result" && result.outcomes[3].detail == "pack failed"
+@test: result.report.written == 1 && result.report.checked == 1 && result.report.failed == 2 && result.report.message == "Summary: 1 written, 2 failed"
+@test: len(result.quiet_report.outcomes) == 0 && result.quiet_report.message == "Summary: 1 checked"
