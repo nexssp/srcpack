@@ -1,39 +1,148 @@
-# .github/workflows/release.yml
 name: Release
 
 on:
   push:
     tags:
-      - 'v*'   # Triggers on tags like v1.0.0, v2.3.4, etc.
+      - 'v*'
 
 permissions:
-  contents: write  # Needed to create releases and upload artifacts
+  contents: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  validate:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # Needed for changelog and proper versioning
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
-
-      - name: Install dependencies (CGO)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc libc6-dev   # Required for CGO tree-sitter
-
-      - name: Run GoReleaser
+      - name: Validate GoReleaser configuration
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: v2.18.3
-          args: release --clean
+          args: check
+
+  build:
+    needs: validate
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux/amd64
+            runner: ubuntu-22.04
+            goos: linux
+            goarch: amd64
+            cc: gcc
+            binary: srcpack
+          - target: linux/arm64
+            runner: ubuntu-22.04-arm
+            goos: linux
+            goarch: arm64
+            cc: gcc
+            binary: srcpack
+          - target: windows/amd64
+            runner: ubuntu-22.04
+            goos: windows
+            goarch: amd64
+            cc: x86_64-w64-mingw32-gcc
+            binary: srcpack.exe
+          - target: darwin/amd64
+            runner: macos-26-intel
+            goos: darwin
+            goarch: amd64
+            cc: clang
+            binary: srcpack
+          - target: darwin/arm64
+            runner: macos-26
+            goos: darwin
+            goarch: arm64
+            cc: clang
+            binary: srcpack
+    runs-on: ${{ matrix.runner }}
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      CGO_ENABLED: '1'
+      CC: ${{ matrix.cc }}
+      BINARY: ${{ matrix.binary }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install Windows CGO cross-compiler
+        if: matrix.goos == 'windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64 zip
+      - name: Prepare build directory
+        run: mkdir -p build
+      - name: Build target with GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: v2.18.3
+          args: build --clean --single-target --output build/${{ matrix.binary }}
+      - name: Verify target binary
+        shell: bash
+        run: |
+          test -s "build/${BINARY}"
+          go version -m "build/${BINARY}" > build-info.txt
+          grep -F "$(printf '\tbuild\tGOOS=%s' "$GOOS")" build-info.txt
+          grep -F "$(printf '\tbuild\tGOARCH=%s' "$GOARCH")" build-info.txt
+          grep -F $'\tbuild\tCGO_ENABLED=1' build-info.txt
+      - name: Package release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package dist
+          cp "build/${BINARY}" package/
+          cp README.md LICENSE SECURITY.md package/
+          version="${GITHUB_REF_NAME#v}"
+          base="srcpack_${version}_${GOOS}_${GOARCH}"
+          if [[ "$GOOS" == "windows" ]]; then
+            (cd package && zip -q -9 "${GITHUB_WORKSPACE}/dist/${base}.zip" \
+              srcpack.exe README.md LICENSE SECURITY.md)
+          else
+            tar -C package -czf "${GITHUB_WORKSPACE}/dist/${base}.tar.gz" \
+              srcpack README.md LICENSE SECURITY.md
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: srcpack-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/srcpack_*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create checksums and publish GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Automatically provided by GitHub
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          (cd dist && sha256sum srcpack_* > "srcpack_${version}_checksums.txt")
+          if [[ "$TAG" == *-* ]]; then
+            gh release create "$TAG" dist/* --verify-tag --generate-notes \
+              --title "$TAG" --prerelease
+          else
+            gh release create "$TAG" dist/* --verify-tag --generate-notes \
+              --title "$TAG"
+          fi
