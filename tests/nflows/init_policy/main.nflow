@@ -1,13 +1,20 @@
 @include "../../../bundles/init/init_policy.nflow"
 
 parallel {
-  default_mode: const @{ dirs: ["src"] } -> init_policy.pipeline.init_normalize_request,
-  legacy_targets: const @{ dirs: ["targets", "src", "internal/api"] } -> init_policy.pipeline.init_normalize_request,
-  explicit_mode: const @{ mode: init_policy.init_mode.targets, dirs: ["src"] } -> init_policy.pipeline.init_normalize_request,
-  invalid_mode: const @{ mode: "unexpected", dirs: ["src"] } -> init_policy.pipeline.init_validate_request,
-  missing_target_dirs: const @{ mode: init_policy.init_mode.targets, dirs: [] } -> init_policy.pipeline.init_validate_request,
-  existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: false, reset: false } -> init_policy.pipeline.init_validate_request,
-  forced_existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: true, reset: false } -> init_policy.pipeline.init_validate_request
+  default_mode: const @{ dirs: ["src"] }
+    -> init_policy.pipeline.init_normalize_request,
+  legacy_targets: const @{ dirs: ["targets", "src", "internal/api"] }
+    -> init_policy.pipeline.init_normalize_request,
+  explicit_mode: const @{ mode: init_policy.init_mode.targets, dirs: ["src"] }
+    -> init_policy.pipeline.init_normalize_request,
+  invalid_mode: const @{ mode: "unexpected", dirs: ["src"] }
+    -> init_policy.pipeline.init_validate_request,
+  missing_target_dirs: const @{ mode: init_policy.init_mode.targets, dirs: [] }
+    -> init_policy.pipeline.init_validate_request,
+  existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: false, reset: false }
+    -> init_policy.pipeline.init_validate_request,
+  forced_existing_config: const @{ mode: init_policy.init_mode.default, dirs: [], config_exists: true, config_name: "nexss.srcpack.yml", force: true, reset: false }
+    -> init_policy.pipeline.init_validate_request
 }
 
 @test: result.default_mode.mode == init_policy.init_mode.default && result.default_mode.dirs == ["src"]

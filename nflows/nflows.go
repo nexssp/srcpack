@@ -16,8 +16,39 @@ import (
 	_ "github.com/nexssp/transport/tcli/nexssflow"
 )
 
-//go:embed *.nflow
+//go:embed cli_invocation.nflow common.nflow output.nflow pack_fold.nflow render.nflow srcpack.nflow
 var FS embed.FS
+
+type embeddedSource struct {
+	files fs.FS
+	file  string
+}
+
+// embeddedSources is indexed once so resolving each include does not repeat fs.Glob.
+var embeddedSources = indexEmbeddedSources()
+
+func indexEmbeddedSources() map[string]embeddedSource {
+	sources := make(map[string]embeddedSource)
+	for _, module := range []struct {
+		prefix  string
+		files   fs.FS
+		pattern string
+	}{
+		{prefix: "nflows", files: FS, pattern: "*.nflow"},
+		{prefix: "bundles", files: bundles.FS, pattern: "*/*.nflow"},
+	} {
+		entries, err := fs.Glob(module.files, module.pattern)
+		if err != nil {
+			// These fixed patterns are valid for embed.FS; failure indicates a programming error.
+			panic(fmt.Errorf("index embedded NFlow sources for %s: %w", module.prefix, err))
+		}
+		for _, file := range entries {
+			identity := module.prefix + "/" + file
+			sources[identity] = embeddedSource{files: module.files, file: file}
+		}
+	}
+	return sources
+}
 
 // Loader resolves the flat legacy sources and explicitly namespaced command and
 // capability bundles. Unknown paths are not flattened.
@@ -33,27 +64,16 @@ func (embedLoader) Load(from, target string) ([]byte, string, error) {
 	}
 	// Each command owns its schema, process and Go actions. Resolve only
 	// registered namespaces, never arbitrary paths by their basename.
-	for _, module := range []struct {
-		prefix string
-		files  fs.FS
-	}{
-		{"nflows", FS},
-		{"bundles", bundles.FS},
-	} {
-		pattern := "*.nflow"
-		if module.prefix == "bundles" {
-			pattern = "*/*.nflow"
+	for _, prefix := range []string{"nflows", "bundles"} {
+		marker := prefix + "/"
+		index := strings.LastIndex(name, marker)
+		if index < 0 {
+			continue
 		}
-		entries, err := fs.Glob(module.files, pattern)
-		if err != nil {
-			return nil, "", err
-		}
-		for _, file := range entries {
-			identity := module.prefix + "/" + file
-			if name == identity || strings.HasSuffix(name, "/"+identity) {
-				data, err := fs.ReadFile(module.files, file)
-				return data, identity, err
-			}
+		identity := name[index:]
+		if source, ok := embeddedSources[identity]; ok {
+			data, err := fs.ReadFile(source.files, source.file)
+			return data, identity, err
 		}
 	}
 	for _, namespace := range []string{"commands/", "bundles/", "nflows/"} {

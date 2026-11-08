@@ -236,3 +236,23 @@ func TestMaterializeDefaultHeadAndRootGitlinkRejection(t *testing.T) {
 		t.Fatalf("expected whole-repository gitlink rejection, got %v", err)
 	}
 }
+
+func TestGitRunnerFileProtocolOverrideFollowsAllowFile(t *testing.T) {
+	for _, allowFile := range []bool{false, true} {
+		t.Run(fmt.Sprintf("allowFile=%t", allowFile), func(t *testing.T) {
+			workDir := t.TempDir()
+			_, runner, err := initializeGit(context.Background(), workDir, "https://example.invalid/repo.git", allowFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := runner.run(context.Background(), "config", "--get", "protocol.file.allow")
+			if allowFile {
+				if err != nil || strings.TrimSpace(got) != "always" {
+					t.Fatalf("protocol.file.allow = %q, error %v; want always", got, err)
+				}
+			} else if err == nil {
+				t.Fatalf("protocol.file.allow unexpectedly configured as %q", strings.TrimSpace(got))
+			}
+		})
+	}
+}

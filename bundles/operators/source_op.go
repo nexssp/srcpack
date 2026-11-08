@@ -443,6 +443,7 @@ func effectiveParseOptions(cfg PackConfig, profile string) ParseOptions {
 		OnlySig:        cfg.OnlySig,
 		Dense:          cfg.Dense,
 		Comments:       cfg.Comments,
+		NeedFuncCount:  cfg.NeedFuncCount,
 		Mask:           cfg.Mask,
 		IncludeConfig:  cfg.IncludeConfig,
 		MaxLines:       cfg.MaxLines,

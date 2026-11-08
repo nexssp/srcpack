@@ -45,6 +45,7 @@
   only_sig          bool  `cli:"only-sig,signatures" usage:"emit declarations and signatures only"`
   dense             bool  `cli:"dense" usage:"use compact source formatting"`
   mask              bool  `cli:"mask,mask-secrets" usage:"mask secret-like values"`
+  no_mask           bool  `cli:"no-mask" usage:"disable secret-like value masking"`
   include_config    bool  `cli:"include-config" usage:"include curated, masked tooling and build config files"`
   max_lines         int  `cli:"max-lines" usage:"maximum source lines per file"`
   max_lines_head    int  `cli:"max-lines-head" usage:"head lines to retain when truncating"`
@@ -71,12 +72,16 @@
 
 @include "../pack/pack_workflow.nflow"
 
-@pipeline tree:cli="tree:Print the workspace source tree":request-schema=TreeInput
+@pipeline tree
+  :cli="tree:Print the workspace source tree"
+  :request-schema=TreeInput
   cli.restore
   -> { ..., _command: tree_command.tree, tree_only: true }
   -> pack_workflow.pipeline.pack_resolve
   -> match {
-    .save_view != "" -> pack_workflow.pipeline.pack_save_view,
-    _ -> pack_workflow.pipeline.pack_execute
+    .save_view != ""
+      -> pack_workflow.pipeline.pack_save_view,
+    _
+      -> pack_workflow.pipeline.pack_execute
   }
 @end

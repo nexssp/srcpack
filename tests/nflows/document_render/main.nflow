@@ -7,25 +7,45 @@ parallel {
     {content: "source", snippets: nil, omitted: false, rel_path: "café.go", abs_path: "/abs/café.go", lang: "go", lines: 99, size: 1024},
     {content: "", snippets: ["one"], omitted: false, rel_path: "snippets.go", abs_path: "/abs/snippets.go", lang: "go", lines: 2, size: 2048},
     {content: "not emitted", snippets: [], omitted: true, rel_path: "omitted.go", abs_path: "/abs/omitted.go", lang: "go", lines: 1, size: 16}
-  ] } -> render.@shape_document(),
-  markdown: const @{ config: {editor: "", prompt: "Review", start: "START:${PROFILE}", end: "END", file_start: "FILE:${REL_PATH}/${LANG}", file_end: "</FILE>", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {PROFILE: "arch"}, tree: "TREE", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}, {values: {REL_PATH: "b.go", LANG: "go"}, content: "hidden", snippets: [], omitted: true}] } -> { ..., tree: .tree + "\n", config: {editor: .config.editor, prompt: .config.prompt, start: .config.start + "\n", end: .config.end, file_start: .config.file_start + "\n", file_end: "\n</FILE>", diff_content: .config.diff_content, no_header: .config.no_header, no_prompt: .config.no_prompt, no_start: .config.no_start, no_end: .config.no_end} } -> document.pipeline.document_render,
-  zed: const @{ config: {editor: " ZED ", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  raw_mode: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  snippets: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "snippets.go", LANG: "go"}, content: "", snippets: [" one ", "two", "three", "  ", "four"], omitted: false}] } -> { ..., files: map(.files, let file = #; { values: file.values, content: file.content, snippets: [file.snippets[0], file.snippets[1], "three" + "\n" + "line", file.snippets[3], file.snippets[4]], omitted: file.omitted }) } -> document.pipeline.document_render,
-  hidden_sections: const @{ config: {editor: "markdown", prompt: "hidden prompt", start: "HIDDEN START", end: "HIDDEN END", file_start: "", file_end: "", diff_content: "diff", no_header: true, no_prompt: false, no_start: true, no_end: true}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  tree_placeholder: const @{ config: {editor: "raw", prompt: "", start: "${TREE}", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] } -> document.pipeline.document_render,
-  default_preset: const @{ config: {editor: "unknown", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: ""}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  claude: const @{ config: {editor: "claude"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  fold: const @{ config: {editor: "fold"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  none: const @{ config: {editor: "none"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  no_header: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_header: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  no_prompt: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_prompt: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  no_start: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_start: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  no_end: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_end: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] } -> document.pipeline.document_render,
-  tree_placeholder_no_start: const @{ config: {editor: "raw", start: "${TREE}", no_start: true}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] } -> document.pipeline.document_render,
-  empty_expansion: const @{ config: {editor: "raw", start: "${EMPTY}", end: "${EMPTY}"}, values: {EMPTY: ""}, tree: "", files: [] } -> document.pipeline.document_render,
-  whitespace_prompt: const @{ config: {editor: "raw", prompt: "   "}, values: {}, tree: "", files: [] } -> document.pipeline.document_render,
-  custom_interpolation: const @{ config: {editor: "raw", start: "START:${PROFILE}:${UNKNOWN}\n", file_start: "FILE:${REL_PATH}", file_end: "END:${UNKNOWN}"}, values: {PROFILE: "${TARGETS}", TARGETS: "literal"}, tree: "", files: [{values: {REL_PATH: "${LANG}", LANG: "go"}, content: "body ${PROFILE}", snippets: [], omitted: false}] } -> document.pipeline.document_render
+    ] } -> render.@shape_document(),
+  markdown: const @{ config: {editor: "", prompt: "Review", start: "START:${PROFILE}", end: "END", file_start: "FILE:${REL_PATH}/${LANG}", file_end: "</FILE>", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {PROFILE: "arch"}, tree: "TREE", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}, {values: {REL_PATH: "b.go", LANG: "go"}, content: "hidden", snippets: [], omitted: true}] }
+    -> { ..., tree: .tree + "\n", config: {editor: .config.editor, prompt: .config.prompt, start: .config.start + "\n", end: .config.end, file_start: .config.file_start + "\n", file_end: "\n</FILE>", diff_content: .config.diff_content, no_header: .config.no_header, no_prompt: .config.no_prompt, no_start: .config.no_start, no_end: .config.no_end} }
+    -> document.pipeline.document_render,
+  zed: const @{ config: {editor: " ZED ", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  raw_mode: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  snippets: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "snippets.go", LANG: "go"}, content: "", snippets: [" one ", "two", "three", "  ", "four"], omitted: false}] }
+    -> { ..., files: map(.files, let file = #; { values: file.values, content: file.content, snippets: [file.snippets[0], file.snippets[1], "three" + "\n" + "line", file.snippets[3], file.snippets[4]], omitted: file.omitted }) }
+    -> document.pipeline.document_render,
+  hidden_sections: const @{ config: {editor: "markdown", prompt: "hidden prompt", start: "HIDDEN START", end: "HIDDEN END", file_start: "", file_end: "", diff_content: "diff", no_header: true, no_prompt: false, no_start: true, no_end: true}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  tree_placeholder: const @{ config: {editor: "raw", prompt: "", start: "${TREE}", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] }
+    -> document.pipeline.document_render,
+  default_preset: const @{ config: {editor: "unknown", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: ""}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  claude: const @{ config: {editor: "claude"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  fold: const @{ config: {editor: "fold"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  none: const @{ config: {editor: "none"}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  no_header: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_header: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  no_prompt: const @{ config: {editor: "raw", prompt: "Review", start: "START\n", end: "END\n", no_prompt: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  no_start: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_start: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  no_end: const @{ config: {editor: "raw", start: "START\n", end: "END\n", no_end: true}, values: {}, tree: "", files: [{values: {}, content: "source", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
+  tree_placeholder_no_start: const @{ config: {editor: "raw", start: "${TREE}", no_start: true}, values: {TREE: "TREE BLOCK"}, tree: "TREE BLOCK", files: [] }
+    -> document.pipeline.document_render,
+  empty_expansion: const @{ config: {editor: "raw", start: "${EMPTY}", end: "${EMPTY}"}, values: {EMPTY: ""}, tree: "", files: [] }
+    -> document.pipeline.document_render,
+  whitespace_prompt: const @{ config: {editor: "raw", prompt: "   "}, values: {}, tree: "", files: [] }
+    -> document.pipeline.document_render,
+  custom_interpolation: const @{ config: {editor: "raw", start: "START:${PROFILE}:${UNKNOWN}\n", file_start: "FILE:${REL_PATH}", file_end: "END:${UNKNOWN}"}, values: {PROFILE: "${TARGETS}", TARGETS: "literal"}, tree: "", files: [{values: {REL_PATH: "${LANG}", LANG: "go"}, content: "body ${PROFILE}", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render
 }
 -> {
   defaults: .shape_default.values,

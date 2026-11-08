@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -20,7 +24,7 @@ import (
 // the unchanged embedded source. Only srcpack.nflow chooses a command pipeline.
 func executeRootPipeline(ctx context.Context, cli cliOptions, run resolved) (runner.Execution, error) {
 	var zero runner.Execution
-	source, err := nflows.FS.ReadFile("runtime.nflow")
+	source, err := readNFlowFixture("runtime.nflow")
 	if err != nil {
 		return zero, fmt.Errorf("read embedded runtime.nflow: %w", err)
 	}
@@ -36,13 +40,14 @@ func executeRootPipeline(ctx context.Context, cli cliOptions, run resolved) (run
 	if err != nil {
 		return zero, err
 	}
+	//nolint:staticcheck // The legacy entrypoint tests existing full-host bundle compatibility.
 	bundles := append(native.Bundles(), srcpackflow.FullBundle(nil), tclinexssflow.RoutingOnlyBundle())
 	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		return zero, fmt.Errorf("build runner config: %w", err)
 	}
 	cfg.CompileOpts = append(cfg.CompileOpts, compiler.WithConfigMap(values))
-	ctx = compiler.WithSourceLoader(ctx, nflows.Loader())
+	ctx = compiler.WithSourceLoader(ctx, legacyFixtureLoader{fallback: nflows.Loader()})
 	// No named EntryPoint: runner executes the root match(.command) expression.
 	return runner.Execute(ctx, cfg, string(source), "runtime.nflow", payload)
 }
@@ -116,4 +121,30 @@ func configString(value any) string {
 		return strings.Join(items, ",")
 	}
 	return fmt.Sprint(value)
+}
+
+// legacyFixtureLoader is used only by CLI regression tests for sources retained
+// under tests/fixtures; production Loader deliberately excludes these files.
+type legacyFixtureLoader struct {
+	fallback compiler.SourceLoader
+}
+
+func (l legacyFixtureLoader) Load(from, target string) ([]byte, string, error) {
+	data, err := readNFlowFixture(filepath.Base(target))
+	if err == nil {
+		return data, filepath.Base(target), nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, "", err
+	}
+	return l.fallback.Load(from, target)
+}
+
+func readNFlowFixture(name string) ([]byte, error) {
+	_, sourceFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil, errors.New("locate NFlow fixture: runtime.Caller failed")
+	}
+	fixture := filepath.Join(filepath.Dir(sourceFile), "..", "..", "tests", "fixtures", "nflows", filepath.Base(name))
+	return os.ReadFile(fixture)
 }

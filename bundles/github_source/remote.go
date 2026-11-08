@@ -501,7 +501,11 @@ func (g gitRunner) run(parent context.Context, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(parent, 90*time.Second)
 	defer cancel()
 	gitArgs := make([]string, 0, 10+len(args))
-	gitArgs = append(gitArgs, "-c", "core.hooksPath=/dev/null", "-c", "credential.helper=", "-c", "protocol.file.allow=always", "-c", "fetch.fsckObjects=true", "-c", "http.followRedirects=false")
+	gitArgs = append(gitArgs, "-c", "core.hooksPath=/dev/null", "-c", "credential.helper=")
+	if g.allowFile {
+		gitArgs = append(gitArgs, "-c", "protocol.file.allow=always")
+	}
+	gitArgs = append(gitArgs, "-c", "fetch.fsckObjects=true", "-c", "http.followRedirects=false")
 	gitArgs = append(gitArgs, args...)
 	cmd := exec.CommandContext(ctx, "git", gitArgs...)
 	cmd.Dir = g.dir

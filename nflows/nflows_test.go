@@ -2,6 +2,7 @@ package nflows_test
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,10 +57,12 @@ func TestEmbeddedLoaderNamespaces(t *testing.T) {
 	ktest.RequireCondition(t, len(data) > 0, "bundle-relative CRUD module was empty")
 	_, _, err = loader.Load("bundles/init/init.nflow", "models.nflow")
 	ktest.RequireCondition(t, err != nil, "command include must not alias a flat NFlow basename")
-	data, identity, err = loader.Load(from, filepath.Join(root, "pack.nflow"))
+	_, _, err = loader.Load(from, filepath.Join(root, "pack.nflow"))
+	ktest.RequireCondition(t, err != nil, "obsolete flat pack source must not be embedded")
+	data, identity, err = loader.Load(from, "bundles/pack/pack.nflow")
 	ktest.RequireNoError(t, err)
-	ktest.RequireEqual(t, identity, "pack.nflow")
-	ktest.RequireCondition(t, strings.Contains(string(data), "render.pipeline.render_configured_document_pipeline"), "production pack must use the configured shared NFlow formatter")
+	ktest.RequireEqual(t, identity, "bundles/pack/pack.nflow")
+	ktest.RequireCondition(t, strings.Contains(string(data), "pack_workflow.pipeline.pack_execute"), "production pack must use the shared workflow")
 	for _, target := range []string{filepath.Join(root, "nested", "pack.nflow"), filepath.Join(root, "bundles", "other", "document.nflow")} {
 		_, _, err := loader.Load(from, target)
 		ktest.RequireCondition(t, err != nil, "unknown namespace must not alias an embedded basename")
@@ -69,11 +72,12 @@ func TestEmbeddedLoaderNamespaces(t *testing.T) {
 }
 
 func TestProductionUsesNFlowFormattingAndSingleRoot(t *testing.T) {
-	for _, name := range []string{"pack.nflow", "tree.nflow"} {
-		data, err := nflows.FS.ReadFile(name)
+	for _, name := range []string{"bundles/pack/pack.nflow", "bundles/tree/tree.nflow"} {
+		data, identity, err := nflows.Loader().Load("srcpack.nflow", name)
 		ktest.RequireNoError(t, err)
+		ktest.RequireEqual(t, identity, name)
 		ktest.RequireCondition(t, !strings.Contains(string(data), "srcpack.render"), "production %s must not invoke the legacy renderer", name)
-		ktest.RequireCondition(t, strings.Contains(string(data), "-> collect\n    -> render.pipeline.render_configured_document_pipeline"), "stream must end before composing the formatter")
+		ktest.RequireCondition(t, strings.Contains(string(data), "pack_workflow.pipeline.pack_execute"), "production %s must use the shared pack workflow", name)
 	}
 	workflow, _, err := nflows.Loader().Load("bundles/pack/pack.nflow", "pack_workflow.nflow")
 	ktest.RequireNoError(t, err)
@@ -102,6 +106,12 @@ func TestProductionUsesNFlowFormattingAndSingleRoot(t *testing.T) {
 	ktest.RequireNoError(t, err)
 	ktest.RequireEqual(t, identity, "cli_invocation.nflow")
 	ktest.RequireCondition(t, strings.Contains(string(invocation), "@pipeline normalize"), "included argv policy pipeline is missing")
+}
+
+func TestProductionRootEmbedContainsOnlySixNamedSources(t *testing.T) {
+	files, err := fs.Glob(nflows.FS, "*.nflow")
+	ktest.RequireNoError(t, err)
+	ktest.RequireEqual(t, strings.Join(files, ","), "cli_invocation.nflow,common.nflow,output.nflow,pack_fold.nflow,render.nflow,srcpack.nflow")
 }
 
 func TestRenderConfigArgumentMacroCoversAllFields(t *testing.T) {

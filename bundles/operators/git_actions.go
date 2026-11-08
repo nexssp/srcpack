@@ -133,7 +133,7 @@ func gitPaths(root string, data []byte) []string {
 // GitUnifiedDiff returns the raw patch for the filter's active mode.
 func GitUnifiedDiff(ctx context.Context, root string, filter GitFilter) (string, error) {
 	if filter.Staged || (filter.Since == "" && filter.Modified) {
-		diff, err := repository.New().Diff(ctx, repository.DiffRequest{Root: root, Staged: filter.Staged})
+		diff, err := repository.New().Diff(ctx, repository.DiffRequest{Root: root, Staged: filter.Staged && !filter.Modified})
 		if err == nil && !diff.Truncated {
 			return diff.Patch, nil
 		}
@@ -148,7 +148,7 @@ func GitUnifiedDiff(ctx context.Context, root string, filter GitFilter) (string,
 
 func legacyGitUnifiedDiff(ctx context.Context, root string, filter GitFilter) (string, error) {
 	switch {
-	case filter.Staged:
+	case filter.Staged && !filter.Modified:
 		out, err := runGit(ctx, root, "diff", "--cached")
 		if err != nil {
 			return "", fmt.Errorf("git diff --cached: %w", err)

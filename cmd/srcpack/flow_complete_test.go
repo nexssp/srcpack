@@ -185,7 +185,7 @@ func TestFlowProfileAliasesAndTypesOutput(t *testing.T) {
 		canonical string
 	}{
 		{"  ARCHITECTURE-MAP  ", "arch"},
-		{" FULL ", "impl"},
+		{" FULL ", "source"},
 		{" Sources ", "source"},
 		{" WithTests ", "with-tests"},
 	} {

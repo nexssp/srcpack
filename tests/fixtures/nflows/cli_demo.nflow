@@ -19,10 +19,12 @@
     editor     string  `cli:"editor,e" config:"true" usage:"output format (markdown, zed, claude, fold)"`
 }
 
-@pipeline pack:cli="pack:Package workspace source through srcpack operators":request-schema=PackDemoInput
+@pipeline pack
+  :cli="pack:Package workspace source through srcpack operators"
+  :request-schema=PackDemoInput
   srcpack.source
     -> ast.parse
-    -> stats.collect:quiet
+    -> stats.collect :quiet
     -> srcpack.render
     -> collect
     -> srcpack.join

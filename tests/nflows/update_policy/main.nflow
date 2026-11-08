@@ -8,16 +8,16 @@ parallel {
     { target: "beta", file: "beta.md", status: update_policy.update_status.wrote, result_present: true, ok: true, error: "" },
     { target: "gamma", file: "gamma.md", status: update_policy.update_status.wrote, result_present: false, ok: false, error: "" },
     { target: "delta", file: "delta.md", status: update_policy.update_status.wrote, result_present: true, ok: false, error: "pack failed" }
-  ] } -> update_policy.@update_outcomes(),
+    ] } -> update_policy.@update_outcomes(),
   report: const @{ plan: { check: false, quiet: false }, outcomes: [
     { failed: false, written: false, checked: true, icon: "✓", label: "alpha", detail: "alpha.md" },
     { failed: false, written: true, checked: false, icon: "✓", label: "beta", detail: "beta.md" },
     { failed: true, written: false, checked: false, icon: "✗", label: "gamma", detail: "target did not produce a result" },
     { failed: true, written: false, checked: false, icon: "✗", label: "delta", detail: "pack failed" }
-  ] } -> update_policy.@update_report(),
+    ] } -> update_policy.@update_report(),
   quiet_report: const @{ plan: { check: true, quiet: true }, outcomes: [
     { failed: false, written: false, checked: true, icon: "✓", label: "alpha", detail: "alpha.md" }
-  ] } -> update_policy.@update_report()
+    ] } -> update_policy.@update_report()
 }
 -> {
   sorted_plan: { profile: .sorted_plan.profile, output_profile: .sorted_plan.output_profile, items: .sorted_plan.items },

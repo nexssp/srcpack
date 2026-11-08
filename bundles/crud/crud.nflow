@@ -23,20 +23,37 @@
 @pipeline crud_route
   { ..., exists: .name in keys(.entries), current: .entries[.name] }
   -> match(.operation) {
-    crud_operation.list -> { names: sort(keys(.entries)), records: .entries },
-    crud_operation.get -> match(.exists) {
-      false -> { code: "not_found", message: .name + " not found" } -> crud.reject,
-      _ -> { value: .current }
+    crud_operation.list
+      -> { names: sort(keys(.entries)), records: .entries },
+    crud_operation.get
+      -> match(.exists) {
+      false
+        -> { code: "not_found", message: .name + " not found" }
+        -> crud.reject,
+      _
+        -> { value: .current }
     },
-    crud_operation.save -> match(.exists && !.replace) {
-      true -> { code: "conflict", message: .name + " already exists; set replace: true to replace it" } -> crud.reject,
-      _ -> { path, section, source, entries, patch: { key: .name, remove: false, value } } -> crud.patch
+    crud_operation.save
+      -> match(.exists && !.replace) {
+      true
+        -> { code: "conflict", message: .name + " already exists; set replace: true to replace it" }
+        -> crud.reject,
+      _
+        -> { path, section, source, entries, patch: { key: .name, remove: false, value } }
+        -> crud.patch
     },
-    crud_operation.delete -> match(.exists) {
-      false -> { code: "not_found", message: .name + " not found" } -> crud.reject,
-      _ -> { path, section, source, entries, patch: { key: .name, remove: true } } -> crud.patch
+    crud_operation.delete
+      -> match(.exists) {
+      false
+        -> { code: "not_found", message: .name + " not found" }
+        -> crud.reject,
+      _
+        -> { path, section, source, entries, patch: { key: .name, remove: true } }
+        -> crud.patch
     },
-    _ -> { code: "validation", message: "unknown CRUD operation " + .operation } -> crud.reject
+    _
+      -> { code: "validation", message: "unknown CRUD operation " + .operation }
+      -> crud.reject
   }
 @end
 

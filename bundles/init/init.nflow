@@ -11,30 +11,43 @@
   dirs     []string  `cli:"positional" usage:"Directories to turn into targets"`
 }
 
-@pipeline init:cli="init:Create starter nexss.srcpack.yml and ignore file":request-schema=InitInput
+@pipeline init
+  :cli="init:Create starter nexss.srcpack.yml and ignore file"
+  :request-schema=InitInput
   cli.restore
   -> init_policy.pipeline.init_normalize_request
   -> init.inspect
   -> init_policy.pipeline.init_validate_request
   -> match {
-    .ok -> noop,
-    _ -> { message, kind } -> fail
+    .ok
+      -> noop,
+    _
+      -> { message, kind }
+      -> fail
   }
   # Prepare and validate generated content before reset can remove anything.
   -> match(.mode) {
-    init_policy.init_mode.targets -> init.generate_targets,
-    _ -> init.generate_default
+    init_policy.init_mode.targets
+      -> init.generate_targets,
+    _
+      -> init.generate_default
   }
   -> match {
-    .reset -> match(.dry_run) {
-      true -> init.preview_clean_generated,
-      _ -> init.clean_generated
+    .reset
+      -> match(.dry_run) {
+      true
+        -> init.preview_clean_generated,
+      _
+        -> init.clean_generated
     },
-    _ -> noop
+    _
+      -> noop
   }
   -> match {
-    .dry_run -> init.preview,
-    _ -> init.write_atomic
+    .dry_run
+      -> init.preview,
+    _
+      -> init.write_atomic
   }
   -> init.report_success
 @end

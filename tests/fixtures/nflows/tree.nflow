@@ -4,7 +4,7 @@
 @require srcpack_render
 @require srcpack_io
 @include "models.nflow"
-@include "render.nflow"
+@include "../../../nflows/render.nflow"
 
 @schema TreeInput struct {
   targets     []string  `cli:"target,t" usage:"workspace paths to include (repeatable)"`
@@ -46,7 +46,9 @@
     -> render.pipeline.render_configured_document_pipeline
 }
 
-@pipeline tree:cli="tree:Srcpack Tree Structure":request-schema=TreeInput
+@pipeline tree
+  :cli="tree:Srcpack Tree Structure"
+  :request-schema=TreeInput
   @tree_body(true)
 @end
 

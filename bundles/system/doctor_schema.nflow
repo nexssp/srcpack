@@ -16,7 +16,6 @@
   prompt            any
   start             any
   end               any
-  summary           any
 }
 
 # Doctor validates the generic YAML representation before config.Load performs
@@ -24,7 +23,8 @@
 # as data so the doctor can report one config error and retain its context.
 @pipeline doctor_validate_shape
   DoctorRawConfigShape.validate ? on_error {
-    else -> { cwd: .input.cwd, path: .input.path, shape_error: .error.message }
+    else
+      -> { cwd: .input.cwd, path: .input.path, shape_error: .error.message }
   }
 @end
 

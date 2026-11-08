@@ -2,14 +2,22 @@
 @include "../../../nflows/cli_invocation.nflow"
 
 parallel {
-  short_pack: { args: ["p", "src"] } -> cli_invocation.pipeline.normalize,
-  update_alias: { args: ["run-all", "arch"] } -> cli_invocation.pipeline.normalize,
-  profiles_alias: { args: ["profiles"] } -> cli_invocation.pipeline.normalize,
-  types_alias: { args: ["type-list"] } -> cli_invocation.pipeline.normalize,
-  pack_help: { args: ["help", "p", "--verbose"] } -> cli_invocation.pipeline.normalize,
-  explicit_pack: { args: ["pack", "src"] } -> cli_invocation.pipeline.normalize,
-  selector_first: { args: ["src"] } -> cli_invocation.pipeline.normalize,
-  help_flag: { args: ["--help"] } -> cli_invocation.pipeline.normalize
+  short_pack: { args: ["p", "src"] }
+    -> cli_invocation.pipeline.normalize,
+  update_alias: { args: ["run-all", "arch"] }
+    -> cli_invocation.pipeline.normalize,
+  profiles_alias: { args: ["profiles"] }
+    -> cli_invocation.pipeline.normalize,
+  types_alias: { args: ["type-list"] }
+    -> cli_invocation.pipeline.normalize,
+  pack_help: { args: ["help", "p", "--verbose"] }
+    -> cli_invocation.pipeline.normalize,
+  explicit_pack: { args: ["pack", "src"] }
+    -> cli_invocation.pipeline.normalize,
+  selector_first: { args: ["src"] }
+    -> cli_invocation.pipeline.normalize,
+  help_flag: { args: ["--help"] }
+    -> cli_invocation.pipeline.normalize
 }
 -> {
   short_pack: { args: .short_pack.args, command: .short_pack.command, explicit_pack: .short_pack.explicit_pack },

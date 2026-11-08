@@ -30,10 +30,12 @@ Options:
       --only-sig           Keep declarations and signatures without bodies
       --comments           Preserve comments; --no-comments strips them
       --exported-only      Keep only exported declarations
-      --mask-secrets       Mask recognized secret-like values
-      --max-lines N        Target size for a full-source head/tail excerpt
-      --max-lines-head N   Explicit head budget
-      --max-lines-tail N   Explicit tail budget
+	  --mask, --mask-secrets  Mask recognized secret-like values (default)
+	  --no-mask            Disable secret masking
+	  --mask=false         Disable masking; later mask flags can override
+	  --max-lines N        Target size for a full-source head/tail excerpt
+	  --max-lines-head N   Explicit head budget
+	--max-lines-tail N   Explicit tail budget
       --trim-blank-lines   Collapse consecutive blank lines
       --trim-indent        Strip leading indentation
       --ext LIST           Include only comma-separated extensions
@@ -74,6 +76,7 @@ Options:
 Management:
   srcpack init             Create starter nexss.srcpack.yml
   srcpack update           Regenerate every configured target
+  update masking uses options.mask_secrets from nexss.srcpack.yml; it has no per-run mask override
   srcpack list             List built-in profiles
   srcpack info NAME        Show profile details
   srcpack config <show|path|validate>

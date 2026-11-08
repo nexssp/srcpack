@@ -63,6 +63,28 @@ func TestFlowCLIPackSummaryStartsWithOriginalCommand(t *testing.T) {
 	}
 }
 
+func TestFlowCLINoMaskPreservesIncludedConfigSecret(t *testing.T) {
+	const secret = "ghp_0123456789abcdefghijklmnopqrstuvwxyz"
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "config.yml"), []byte("token: "+secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+
+	stdout, _, err := captureFlowCLIStreams(t, func() error {
+		return execute(context.Background(), []string{"pack", "--include-config", "--no-mask", "--output", "-"})
+	})
+	if err != nil {
+		t.Fatalf("srcpack --no-mask failed: %v", err)
+	}
+	if !strings.Contains(stdout, "config.yml") || !strings.Contains(stdout, secret) {
+		t.Fatalf("unmasked config content missing from output:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "[REDACTED_SECRET]") {
+		t.Fatalf("--no-mask unexpectedly redacted config content:\n%s", stdout)
+	}
+}
+
 func TestFlowCLIPackJSONOutputIsValidJSONWithoutHumanSummary(t *testing.T) {
 	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
 	t.Chdir(root)

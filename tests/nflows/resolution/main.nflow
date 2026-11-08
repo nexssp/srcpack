@@ -14,27 +14,42 @@ const @{
   overlays: { ..., base_options: { NoTests: true, MaxLines: 100, TreeDepth: 0, MaskSecrets: true, Examples: ["base-example", "base-sample"], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, profiles: [
     { options: { NoTests: false, MaxLines: 40, TreeDepth: 6, Examples: [] }, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" },
     { options: { MaxLines: 0, TreeDepth: 0, Examples: [] }, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }
-  ], cli_options: { NoTests: false, MaxLines: 0, Examples: [] } } -> resolution.pipeline.pack_resolution_policy,
-  cli_prompt: { ..., cli_prompt: "explicit CLI prompt" } -> resolution.pipeline.pack_resolution_policy,
+  ], cli_options: { NoTests: false, MaxLines: 0, Examples: [] } }
+    -> resolution.pipeline.pack_resolution_policy,
+  cli_prompt: { ..., cli_prompt: "explicit CLI prompt" }
+    -> resolution.pipeline.pack_resolution_policy,
   disabled_profile_prompt: { ..., profiles: [
     { options: {}, prompt: { Value: "parent", Set: true, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" },
     { options: {}, prompt: { Value: "child", Set: true, Disabled: true }, output_path: "", output_prefixed: "", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }
-  ] } -> resolution.pipeline.pack_resolution_policy,
+  ] }
+    -> resolution.pipeline.pack_resolution_policy,
   disabled_sections: { ..., profiles: [
     { options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "parent start", Set: true, Disabled: false }, end: { Value: "parent end", Set: true, Disabled: false }, file_start: "", file_end: "" },
     { options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "", output_prefixed: "", start: { Value: "", Set: true, Disabled: true }, end: { Value: "", Set: true, Disabled: true }, file_start: "", file_end: "" }
-  ] } -> resolution.pipeline.pack_resolution_policy,
-  cli_output: { ..., cli_output: "reports/cli.md", cli_output_prefixed: "reports/project_cli.md", dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] } -> resolution.pipeline.pack_resolution_policy,
-  profile_output: { ..., dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] } -> resolution.pipeline.pack_resolution_policy,
-  global_output: { ..., global_output: "reports/global.md" } -> resolution.pipeline.pack_resolution_policy,
-  implicit_clipboard: { ... } -> resolution.pipeline.pack_resolution_policy,
-  no_copy: { ..., copy_explicit: true } -> resolution.pipeline.pack_resolution_policy,
-  explicit_stdout_copy: { ..., cli_output: "-", cli_output_prefixed: "-", dir_prefix: true, copy: true, explicit_output: "-" } -> resolution.pipeline.pack_resolution_policy,
-  requested_output: { ..., requested_output: "/work/project/_srcpack/application_arch.md" } -> resolution.pipeline.pack_resolution_policy,
-  empty_targets: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: [], files: [], cli_files: [] } -> resolution.pipeline.pack_resolution_policy,
-  explicit_depth: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 9, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: ["src"] } -> resolution.pipeline.pack_resolution_policy,
-  remote_full_tree: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], FullTree: true, DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false } } -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
-  remote_changed: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], Modified: true, FullTree: false, DiffOnly: false, Since: "", Changed: false, Staged: false } } -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
+  ] }
+    -> resolution.pipeline.pack_resolution_policy,
+  cli_output: { ..., cli_output: "reports/cli.md", cli_output_prefixed: "reports/project_cli.md", dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] }
+    -> resolution.pipeline.pack_resolution_policy,
+  profile_output: { ..., dir_prefix: true, global_output: "reports/global.md", global_output_prefixed: "reports/project_global.md", profiles: [{ options: {}, prompt: { Value: "", Set: false, Disabled: false }, output_path: "reports/profile.md", output_prefixed: "reports/project_profile.md", start: { Value: "", Set: false, Disabled: false }, end: { Value: "", Set: false, Disabled: false }, file_start: "", file_end: "" }] }
+    -> resolution.pipeline.pack_resolution_policy,
+  global_output: { ..., global_output: "reports/global.md" }
+    -> resolution.pipeline.pack_resolution_policy,
+  implicit_clipboard: { ... }
+    -> resolution.pipeline.pack_resolution_policy,
+  no_copy: { ..., copy_explicit: true }
+    -> resolution.pipeline.pack_resolution_policy,
+  explicit_stdout_copy: { ..., cli_output: "-", cli_output_prefixed: "-", dir_prefix: true, copy: true, explicit_output: "-" }
+    -> resolution.pipeline.pack_resolution_policy,
+  requested_output: { ..., requested_output: "/work/project/_srcpack/application_arch.md" }
+    -> resolution.pipeline.pack_resolution_policy,
+  empty_targets: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: [], files: [], cli_files: [] }
+    -> resolution.pipeline.pack_resolution_policy,
+  explicit_depth: { ..., base_options: { NoTests: false, MaxLines: 0, TreeDepth: 9, MaskSecrets: false, Examples: [], DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false, FullTree: false }, paths: ["src"] }
+    -> resolution.pipeline.pack_resolution_policy,
+  remote_full_tree: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], FullTree: true, DiffOnly: false, Since: "", Modified: false, Changed: false, Staged: false } }
+    -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
+  remote_changed: { ..., has_remote: true, base_options: { NoTests: false, MaxLines: 0, TreeDepth: 0, MaskSecrets: false, Examples: [], Modified: true, FullTree: false, DiffOnly: false, Since: "", Changed: false, Staged: false } }
+    -> resolution.pipeline.pack_resolution_policy ? on_error { else -> { error: .error.message } },
 }
 -> {
   overlays: {options: .overlays.options},

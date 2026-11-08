@@ -131,6 +131,14 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.Exclude = stringField(in, "exclude", "")
 	cli.Config.Prompt = stringField(in, "prompt", "")
 	cli.Config.Editor = stringField(in, "editor", editorMarkdown)
+	maskOverride, err := resolveMaskOverride(ctx, cli.Command, in)
+	if err != nil {
+		return nil, err
+	}
+	if maskOverride != nil {
+		cli.Config.Mask = *maskOverride
+		cli.Overrides.MaskSecrets = maskOverride
+	}
 	// Targets and positional selectors are combined below, preserving argv order.
 	cli.Config.Tests = boolField(in, "tests")
 	cli.Config.NoTests = boolField(in, "no_tests")
@@ -172,7 +180,6 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	setBool("no_generated", &cli.Overrides.NoGenerated)
 	setBool("no_deps", &cli.Overrides.NoDeps)
 	setBool("no_examples", &cli.Overrides.NoExamples)
-	setBool("mask", &cli.Overrides.MaskSecrets)
 	setBool("changed", &cli.Overrides.Changed)
 	setBool("modified", &cli.Overrides.Modified)
 	setBool("staged", &cli.Overrides.Staged)
@@ -229,6 +236,41 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	}
 	plan.Facts["requested_output"] = requestedOutput
 	return map[string]any{"host": &packRequestHost{CLI: cli, Started: time.Now(), Plan: plan}, "facts": plan.Facts, "requested_output": requestedOutput}, nil
+}
+
+// resolveMaskOverride merges the positive and negative mask flags by argv
+// order. Explicit values are respected, including --no-mask=false.
+func resolveMaskOverride(ctx context.Context, command string, input map[string]any) (*bool, error) {
+	schemaName := "PackInput"
+	if command == "tree" {
+		schemaName = "TreeInput"
+	}
+	ordered := cliinput.OrderedFieldValues(ctx, schemaName, "mask", "no_mask")
+	var result *bool
+	for _, occurrence := range ordered {
+		enabled, err := strconv.ParseBool(occurrence.Value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s value %q: %w", occurrence.Field, occurrence.Value, err)
+		}
+		if occurrence.Field == "no_mask" {
+			enabled = !enabled
+		}
+		result = &enabled
+	}
+	if result != nil {
+		return result, nil
+	}
+
+	// Non-argv callers provide typed fields but no lexical provenance. Resolve
+	// each explicitly supplied value; when both exist, the negative field wins.
+	if enabled, ok := input["mask"].(bool); ok {
+		result = &enabled
+	}
+	if disabled, ok := input["no_mask"].(bool); ok {
+		enabled := !disabled
+		result = &enabled
+	}
+	return result, nil
 }
 
 // packRequestHost carries typed objects through the policy projection. NFlow
@@ -489,26 +531,20 @@ func isBareProfile(v string) bool {
 }
 
 func canonicalProfile(name string) string {
-	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "architecture", "architecture-map", "signatures":
-		return "arch"
-	case "implementation", "full":
-		return "impl"
-	case "sources":
-		return "source"
-	case "withtests", "tests":
-		return profileWithTests
-	default:
-		return strings.ToLower(strings.TrimSpace(name))
-	}
+	return strings.ToLower(config.CanonicalProfileName(name))
 }
 
 func isProfile(name string) bool {
-	switch canonicalProfile(name) {
-	case "arch", "api", "impl", "source", "compact", "dense", "with-tests":
-		return true
+	_, ok := config.FindBuiltinProfile(name)
+	return ok
+}
+
+func builtinProfileNames() []any {
+	names := make([]any, 0, len(config.BuiltinProfiles))
+	for i := range config.BuiltinProfiles {
+		names = append(names, config.BuiltinProfiles[i].Name)
 	}
-	return false
+	return names
 }
 
 func resolveViewSelector(raw, root string) string {

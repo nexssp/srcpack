@@ -67,6 +67,26 @@ func conciseCLIError(err error) string {
 	return "unknown error"
 }
 
+// isCLIUsageError recognizes only request-parse BadRequests emitted by tcli.
+// Domain validation/runtime BadRequests must retain the ordinary status 1.
+func isCLIUsageError(err error) bool {
+	// Check each wrapper because errors.As can find an outer runtime AppError before an inner CLI usage error.
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		var appErr *xerr.AppError
+		if !errors.As(current, &appErr) {
+			continue
+		}
+		message := appErr.Message
+		if strings.HasPrefix(message, "unknown flag: -") ||
+			strings.HasPrefix(message, "unexpected positional argument ") ||
+			strings.HasPrefix(message, "missing required CLI field ") ||
+			(strings.HasPrefix(message, "flag -") && strings.Contains(message, " requires a value")) {
+			return true
+		}
+	}
+	return false
+}
+
 // Some Flow versions return a flattened pipeline error rather than preserving
 // every Unwrap link. Keep the user-facing target and filesystem cause in that
 // case, while still removing the surrounding execution/projection diagnostics.

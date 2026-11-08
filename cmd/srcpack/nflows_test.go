@@ -26,6 +26,7 @@ func TestSrcpackNflowDeclaresIncludedCommandSchemas(t *testing.T) {
 	ktest.RequireNoError(t, err)
 
 	bundles := native.Bundles()
+	//nolint:staticcheck // This test preserves compatibility for existing aggregate-bundle hosts.
 	bundles = append(bundles, nexssflow.FullBundle(nil))
 	cfg, err := runner.BuildConfig(bundles)
 	ktest.RequireNoError(t, err)

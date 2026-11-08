@@ -6,6 +6,7 @@ version: '3'
 
 vars:
   SRCPACK: 'go run ./cmd/srcpack'
+  NFLOW: 'go run ./cmd/nflow-lint'
   BASE:
     sh: git merge-base HEAD origin/main 2>/dev/null || echo HEAD
   CENTRAL_REF: 'main'
@@ -37,8 +38,12 @@ tasks:
 
   # ── Quality & Linting ────────────────────────────────────────────
 
-  fmt:       { desc: "golangci-lint fmt", cmds: [golangci-lint fmt] }
-  lint:      { desc: "golangci-lint run", cmds: [golangci-lint run] }
+  nflow:fmt:       { desc: "Apply Flow formatting", cmds: ['{{.NFLOW}} fmt-write'] }
+  nflow:fmt-check: { desc: "Check Flow formatting (read-only)", cmds: ['{{.NFLOW}} fmt-check'] }
+  nflow:lint:      { desc: "Lint production NFlow with srcpack bundles; report skipped files", cmds: ['{{.NFLOW}} lint-project'] }
+  nflow:quality:   { desc: "[nflow:lint, nflow:fmt-check]", deps: [nflow:lint, nflow:fmt-check] }
+  fmt:             { desc: "Format Go and NFlow sources", deps: [nflow:fmt], cmds: [golangci-lint fmt] }
+  lint:            { desc: "golangci-lint + NFlow lint/format check", deps: [nflow:lint, nflow:fmt-check], cmds: [golangci-lint run] }
   lint:new:  { desc: 'golangci-lint run --new-from-rev="BASE"', cmds: ['golangci-lint run --new-from-rev="{{.BASE}}"'] }
   lint:fix:  { desc: 'golangci-lint run --fix --new-from-rev="BASE"', cmds: ['golangci-lint run --fix --new-from-rev="{{.BASE}}"'] }
   vuln:      { desc: "govulncheck -show=version [./...]", cmds: ['govulncheck -show=version {{.PKG}}'] }

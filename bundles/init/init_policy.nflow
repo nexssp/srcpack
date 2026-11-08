@@ -20,21 +20,29 @@
   -> {
     ...,
     mode: ._init_mode == "" ? (len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? init_mode.targets : init_mode.default) : ._init_mode,
-    dirs: ._init_mode == "" && len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? ._init_dirs[1:] : ._init_dirs
+    dirs: ._init_mode == "" && len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? ._init_dirs[1 :] : ._init_dirs
   }
 @end
 
 @pipeline init_validate_request
   match(.mode) {
-    init_mode.default -> match {
-      .config_exists && !.force && !.reset -> { ..., ok: false, message: .config_name + " already exists (use --force to overwrite)", kind: error_kind.conflict },
-      _ -> { ..., ok: true, message: "", kind: "" }
+    init_mode.default
+      -> match {
+      .config_exists && !.force && !.reset
+        -> { ..., ok: false, message: .config_name + " already exists (use --force to overwrite)", kind: error_kind.conflict },
+      _
+        -> { ..., ok: true, message: "", kind: "" }
     },
-    init_mode.targets -> match {
-      len(.dirs) == 0 -> { ..., ok: false, message: "targets mode requires at least one directory", kind: error_kind.conflict },
-      .config_exists && !.force && !.reset -> { ..., ok: false, message: .config_name + " already exists (use --force to overwrite)", kind: error_kind.conflict },
-      _ -> { ..., ok: true, message: "", kind: "" }
+    init_mode.targets
+      -> match {
+      len(.dirs) == 0
+        -> { ..., ok: false, message: "targets mode requires at least one directory", kind: error_kind.conflict },
+      .config_exists && !.force && !.reset
+        -> { ..., ok: false, message: .config_name + " already exists (use --force to overwrite)", kind: error_kind.conflict },
+      _
+        -> { ..., ok: true, message: "", kind: "" }
     },
-    _ -> { ..., ok: false, message: "unknown init mode \"" + .mode + "\" (valid: default, targets)", kind: error_kind.conflict }
+    _
+      -> { ..., ok: false, message: "unknown init mode \"" + .mode + "\" (valid: default, targets)", kind: error_kind.conflict }
   }
 @end

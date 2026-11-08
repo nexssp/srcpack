@@ -44,7 +44,7 @@ srcpack impl -t auth
 # Mixed fidelity
 srcpack "framework#dense" "app#source"
 
-# Config context, opt-in and masked
+# Opt-in config context (secrets masked by default)
 srcpack arch --include-config
 
 # Prompt attached
@@ -140,7 +140,7 @@ srcpack clean --dry-run          # preview cleanup
     --only-sig
     --comments / --no-comments
     --exported-only
-    --mask / --mask-secrets
+    --mask / --mask-secrets / --no-mask
     --include-config
     --max-lines N
     --max-lines-head N

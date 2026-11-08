@@ -20,6 +20,7 @@ type PackConfig struct {
 	TargetRoots    map[string]string `json:"target_roots,omitempty"`
 	TargetLabels   map[string]string `json:"target_labels,omitempty"`
 	Ext            string            `json:"ext" cli:"ext"`
+	NeedFuncCount  bool              `json:"need_func_count"`
 	Tests          bool              `json:"tests" cli:"tests"`
 	NoTests        bool              `json:"no_tests" cli:"no-tests"`
 	NoGenerated    bool              `json:"no_generated" cli:"no-generated"`
@@ -103,6 +104,7 @@ type ParseOptions struct {
 	OnlySig        bool
 	Dense          bool
 	Comments       bool
+	NeedFuncCount  bool
 	Mask           bool
 	IncludeConfig  bool
 	MaxLines       int

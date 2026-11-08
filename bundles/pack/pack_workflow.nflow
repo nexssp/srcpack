@@ -17,8 +17,11 @@
 
 @pipeline pack_save_view
   match {
-    len(.selectors) == 0 -> { message: "--save-view requires at least one selector" } -> fail,
-    _ -> noop
+    len(.selectors) == 0
+      -> { message: "--save-view requires at least one selector" }
+      -> fail,
+    _
+      -> noop
   }
   -> { report: { name: .save_view, count: len(.selectors) }, result: match { _ -> packcmd.view_request -> config_views.pipeline.config_views } }
   -> { content: "✓ Saved view " + toJSON(.report.name) + " (" + string(.report.count) + " selector(s))\n" }
@@ -70,8 +73,12 @@
   -> {
     ...,
     records: match(.policy.save_state) {
-      true -> pick @{ field: "pack" } -> pipeline.pack_scan,
-      _ -> pick @{ field: "pack" } -> pipeline.pack_preview
+      true
+        -> pick @{ field: "pack" }
+        -> pipeline.pack_scan,
+      _
+        -> pick @{ field: "pack" }
+        -> pipeline.pack_preview
     }
   }
   -> { ..., stats_result: match { _ -> { records, config: .stats } -> packcmd.statistics } }

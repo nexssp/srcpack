@@ -53,14 +53,33 @@ func TestHelpTextIncludesCurrentTreeDepth(t *testing.T) {
 }
 
 func TestProfileInfoCanonicalizesAliases(t *testing.T) {
-	out, err := profileInfo(context.Background(), map[string]any{"name": "Architecture", "canonical_name": "arch"})
-	if err != nil {
-		t.Fatal(err)
+	for _, profile := range config.BuiltinProfiles {
+		for _, name := range append([]string{profile.Name}, profile.Aliases...) {
+			out, err := profileInfo(context.Background(), map[string]any{"name": name})
+			if err != nil {
+				t.Fatalf("profileInfo(%q) error = %v", name, err)
+			}
+			want := profile.Name + ": " + profile.Description + "\n"
+			if got := out["content"]; got != want {
+				t.Errorf("profileInfo(%q) = %q, want %q", name, got, want)
+			}
+		}
 	}
-	if got := out["content"]; got != "arch: "+config.BuiltinProfiles[0].Description+"\n" {
-		t.Fatalf("profile description = %q", got)
+	for _, test := range []struct{ name, want string }{
+		{name: " Full ", want: "source"},
+		{name: "SIGNATURES", want: "dense"},
+		{name: "Tests", want: "with-tests"},
+	} {
+		out, err := profileInfo(context.Background(), map[string]any{"name": test.name})
+		if err != nil {
+			t.Fatalf("profileInfo(%q) error = %v", test.name, err)
+		}
+		got, ok := out["content"].(string)
+		if !ok || !strings.HasPrefix(got, test.want+": ") {
+			t.Errorf("profileInfo(%q) = %v, want canonical name %q", test.name, out["content"], test.want)
+		}
 	}
-	unknown, err := profileInfo(context.Background(), map[string]any{"name": "wat", "canonical_name": "wat"})
+	unknown, err := profileInfo(context.Background(), map[string]any{"name": "wat"})
 	if err != nil {
 		t.Fatal(err)
 	}

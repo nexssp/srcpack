@@ -8,8 +8,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/nexssp/srcpack/nflows"
 )
 
 func TestDemoProductionFoldAndDSLExtension(t *testing.T) {
@@ -107,7 +105,7 @@ func TestDemoEmptyAndExcludedInputs(t *testing.T) {
 }
 
 func TestDemoSourceKeepsProductionFoldAndRemovesSideEffects(t *testing.T) {
-	pack, err := nflows.FS.ReadFile("pack.nflow")
+	pack, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "nflows", "pack.nflow"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,7 +1,7 @@
-@include "common.nflow"
-@include "render.nflow"
+@include "../../../nflows/common.nflow"
+@include "../../../nflows/render.nflow"
 
-@include "pack_fold.nflow"
+@include "../../../nflows/pack_fold.nflow"
 
 @schema CommonFlags struct {
   json     bool  `cli:"json" config:"true" usage:"emit machine-readable JSON envelope"`
@@ -94,7 +94,9 @@
     -> render.pipeline.render_configured_document_pipeline
 }
 
-@pipeline pack:cli="pack:Package workspace source code as AI context":request-schema=PackInput
+@pipeline pack
+  :cli="pack:Package workspace source code as AI context"
+  :request-schema=PackInput
   @pack_body(true)
 @end
 

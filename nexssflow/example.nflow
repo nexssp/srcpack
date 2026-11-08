@@ -3,9 +3,10 @@
 @pipeline review_context
   srcpack.source
     -> ast.parse
-    -> stats.collect:quiet:color=never
-    -> srcpack.render:editor="markdown"
+    -> stats.collect :quiet :color=never
+    -> srcpack.render :editor="markdown"
     -> collect
 @end
 
-{} -> review_context
+{}
+  -> review_context

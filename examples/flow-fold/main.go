@@ -18,6 +18,8 @@ import (
 	"github.com/nexssp/flow/runner"
 	tclinexssflow "github.com/nexssp/transport/tcli/nexssflow"
 
+	"github.com/nexssp/srcpack/bundles/document"
+	"github.com/nexssp/srcpack/bundles/terminal"
 	"github.com/nexssp/srcpack/nexssflow"
 	"github.com/nexssp/srcpack/nflows"
 )
@@ -92,11 +94,20 @@ func writeFixture(root string) error {
 
 func executeDemo(ctx context.Context, root string) (demoResult, error) {
 	var result demoResult
-	pack, err := nflows.FS.ReadFile("pack.nflow")
+	pack, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "nflows", "pack.nflow"))
 	if err != nil {
 		return result, err
 	}
-	cfg, err := runner.BuildConfig(append(native.Bundles(), nexssflow.FullBundle(nil), tclinexssflow.RoutingOnlyBundle()))
+	bundles := append(native.Bundles(),
+		nexssflow.SourceBundle(nil),
+		nexssflow.AnalysisBundle(nil),
+		nexssflow.RenderBundle(nil),
+		nexssflow.IOBundle(nil),
+		document.Bundle(nil),
+		terminal.Bundle(nil),
+		tclinexssflow.RoutingOnlyBundle(),
+	)
+	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		return result, err
 	}

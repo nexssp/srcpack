@@ -1,18 +1,30 @@
 @include "../../../bundles/manage/manage_reports.nflow"
 
 parallel {
-  target_empty: const @{ config: { targets: {} } } -> manage_reports.pipeline.target_list_report,
-  target_list: const @{ config: { targets: { zeta: { paths: ["src"], dir: [{path: "internal"}], files: ["main.go"], targets: ["shared"] }, alpha: { paths: ["api", "pkg"] } } } } -> manage_reports.pipeline.target_list_report,
-  target_show: const @{ config: { targets: { api: { description: "API sources", paths: ["src"], dir: [{path: "internal"}], files: ["README.md"], targets: ["shared"] } } }, args: ["api"] } -> manage_reports.pipeline.target_show_report,
-  prompt_list: const @{ config: { prompts: { brief: "Be direct and concise", zeta: "last" } }, prompt_snippets: { brief: "Be direct and concise", zeta: "last" } } -> manage_reports.pipeline.prompt_list_report,
-  prompt_show: const @{ config: { prompts: { brief: "Be direct and concise" } }, args: ["brief"] } -> manage_reports.pipeline.prompt_show_report,
-  profile_show: const @{ config: { profiles: { review: { name: "review", description: "Review profile", prompt: { Value: "brief", Set: true, Disabled: false } } } }, args: ["review"] } -> manage_reports.pipeline.profile_show_report,
-  profile_muted: const @{ config: { profiles: { muted: { name: "muted", description: "Muted profile", prompt: { Value: "brief", Set: true, Disabled: true } } } }, args: ["muted"] } -> manage_reports.pipeline.profile_show_report,
-  editor_show: const @{ config: { editors: { custom: { description: "Custom format", file_start: "<file>", file_end: "</file>" } } }, args: ["custom"] } -> manage_reports.pipeline.editor_show_report,
-  view_empty: const @{ views: {} } -> manage_reports.pipeline.view_list_report,
-  view_list: const @{ views: { saved: ["src#arch", "pkg#source"] } } -> manage_reports.pipeline.view_list_report,
-  view_show: const @{ args: ["saved"], report_name: "saved", result: { value: ["src#arch", "pkg#source"] } } -> manage_reports.pipeline.view_show_report,
-  view_delete: const @{ name: "saved" } -> manage_reports.pipeline.view_delete_report,
+  target_empty: const @{ config: { targets: {} } }
+    -> manage_reports.pipeline.target_list_report,
+  target_list: const @{ config: { targets: { zeta: { paths: ["src"], dir: [{path: "internal"}], files: ["main.go"], targets: ["shared"] }, alpha: { paths: ["api", "pkg"] } } } }
+    -> manage_reports.pipeline.target_list_report,
+  target_show: const @{ config: { targets: { api: { description: "API sources", paths: ["src"], dir: [{path: "internal"}], files: ["README.md"], targets: ["shared"] } } }, args: ["api"] }
+    -> manage_reports.pipeline.target_show_report,
+  prompt_list: const @{ config: { prompts: { brief: "Be direct and concise", zeta: "last" } }, prompt_snippets: { brief: "Be direct and concise", zeta: "last" } }
+    -> manage_reports.pipeline.prompt_list_report,
+  prompt_show: const @{ config: { prompts: { brief: "Be direct and concise" } }, args: ["brief"] }
+    -> manage_reports.pipeline.prompt_show_report,
+  profile_show: const @{ config: { profiles: { review: { name: "review", description: "Review profile", prompt: { Value: "brief", Set: true, Disabled: false } } } }, args: ["review"] }
+    -> manage_reports.pipeline.profile_show_report,
+  profile_muted: const @{ config: { profiles: { muted: { name: "muted", description: "Muted profile", prompt: { Value: "brief", Set: true, Disabled: true } } } }, args: ["muted"] }
+    -> manage_reports.pipeline.profile_show_report,
+  editor_show: const @{ config: { editors: { custom: { description: "Custom format", file_start: "<file>", file_end: "</file>" } } }, args: ["custom"] }
+    -> manage_reports.pipeline.editor_show_report,
+  view_empty: const @{ views: {} }
+    -> manage_reports.pipeline.view_list_report,
+  view_list: const @{ views: { saved: ["src#arch", "pkg#source"] } }
+    -> manage_reports.pipeline.view_list_report,
+  view_show: const @{ args: ["saved"], report_name: "saved", result: { value: ["src#arch", "pkg#source"] } }
+    -> manage_reports.pipeline.view_show_report,
+  view_delete: const @{ name: "saved" }
+    -> manage_reports.pipeline.view_delete_report,
 }
 -> {
   target_empty: .target_empty.content,

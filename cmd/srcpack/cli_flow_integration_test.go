@@ -15,7 +15,6 @@ import (
 	tclinexssflow "github.com/nexssp/transport/tcli/nexssflow"
 
 	"github.com/nexssp/srcpack/nexssflow"
-	"github.com/nexssp/srcpack/nflows"
 )
 
 func TestFlowCLIDemo(t *testing.T) {
@@ -46,13 +45,14 @@ func TestFlowCLIDemo(t *testing.T) {
 	cliBundle.Libraries[0] = tclinexssflow.LibraryWithTransport(transport)
 
 	bundles := native.Bundles()
+	//nolint:staticcheck // Verify that existing hosts can still use the deprecated aggregate.
 	bundles = append(bundles, nexssflow.FullBundle(nil), cliBundle)
 	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		t.Fatalf("runner.BuildConfig() error = %v", err)
 	}
 
-	source, err := nflows.FS.ReadFile("cli_demo.nflow")
+	source, err := readNFlowFixture("cli_demo.nflow")
 	if err != nil {
 		t.Fatalf("read embedded CLI demo: %v", err)
 	}
@@ -84,12 +84,13 @@ func TestFlowCLIDemoHelpUsesDeclaredSchema(t *testing.T) {
 	cliBundle := tclinexssflow.Bundle(nil)
 	cliBundle.Libraries[0] = tclinexssflow.LibraryWithTransport(transport)
 	bundles := native.Bundles()
+	//nolint:staticcheck // Verify that existing hosts can still use the deprecated aggregate.
 	bundles = append(bundles, nexssflow.FullBundle(nil), cliBundle)
 	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		t.Fatalf("runner.BuildConfig() error = %v", err)
 	}
-	source, err := nflows.FS.ReadFile("cli_demo.nflow")
+	source, err := readNFlowFixture("cli_demo.nflow")
 	if err != nil {
 		t.Fatalf("read embedded CLI demo: %v", err)
 	}
@@ -115,15 +116,15 @@ func TestFlowCLIDemoHelpUsesDeclaredSchema(t *testing.T) {
 }
 
 func TestFlowCLIFlagMatrix(t *testing.T) {
+	const fakeCredential = "ghp_0123456789abcdefghijklmnopqrstuvwxyz"
+
 	workspace := map[string]string{
 		"main.go":         "package main\n\n// Public says hello.\nfunc Public() string { return \"hi\" }\n\nfunc private() {}\n",
 		"main_test.go":    "package main\n\nfunc TestPublic(t *testing.T) {}\n",
 		"lib.go":          "package main\n\nfunc Lib() {}\n",
-		"config.yml":      "key: value\n",
+		"config.yml":      "key: value\ntoken: " + fakeCredential + "\n",
 		"generated.pb.go": "package main\n",
 		"vendor/dep.go":   "package vendor\n",
-		// #nosec G101 -- intentional fake AWS-shaped fixture tests secret masking.
-		"secret.go": "package main\n\nconst token = \"AKIAIOSFODNN7EXAMPLE\"\n",
 	}
 
 	tests := []struct {
@@ -169,9 +170,9 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 		},
 		{
 			name:       "include-config adds masked raw manifests to signatures",
-			args:       []string{"--only-sig", "--include-config"},
-			wantSubstr: []string{"config.yml", "key: value"},
-			dropSubstr: []string{`return "hi"`},
+			args:       []string{"--only-sig", "--include-config", "--mask"},
+			wantSubstr: []string{"config.yml", "key: value", "[REDACTED_SECRET]"},
+			dropSubstr: []string{`return "hi"`, fakeCredential},
 		},
 		{
 			name:       "dense compacts signatures",
@@ -187,9 +188,9 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 		},
 		{
 			name:       "mask replaces secrets",
-			args:       []string{"--mask"},
+			args:       []string{"--include-config", "--mask"},
 			wantSubstr: []string{"[REDACTED_SECRET]"},
-			dropSubstr: []string{"AKIAIOSFODNN7EXAMPLE"},
+			dropSubstr: []string{fakeCredential},
 		},
 		{
 			name:       "exclude drops matching paths",
@@ -247,13 +248,14 @@ func runFlowCLI(t *testing.T, workspace map[string]string, args ...string) strin
 	cliBundle.Libraries[0] = tclinexssflow.LibraryWithTransport(transport)
 
 	bundles := native.Bundles()
+	//nolint:staticcheck // Verify that existing hosts can still use the deprecated aggregate.
 	bundles = append(bundles, nexssflow.FullBundle(nil), cliBundle)
 	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		t.Fatalf("runner.BuildConfig: %v", err)
 	}
 
-	source, err := nflows.FS.ReadFile("cli_demo.nflow")
+	source, err := readNFlowFixture("cli_demo.nflow")
 	if err != nil {
 		t.Fatalf("read embedded CLI demo: %v", err)
 	}

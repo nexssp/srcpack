@@ -11,7 +11,9 @@ import (
 	"github.com/nexssp/srcpack/bundles/terminal"
 )
 
-// Library returns srcpack's full operator surface as one library for legacy Go hosts.
+// Deprecated: use operators.SourceLibrary, operators.AnalysisLibrary,
+// operators.RenderLibrary, and operators.IOLibrary to mount only the required
+// capabilities. This aggregate will be removed in v1.0.0.
 func Library() action.Library { return operators.Library() }
 
 const (
@@ -47,8 +49,8 @@ func IOBundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{ID: IOBundleID, Libraries: []action.Library{operators.IOLibrary()}}
 }
 
-// Bundle is a legacy aggregate retained for existing external hosts. New
-// NFlow sources should require the focused capability bundles above instead.
+// Deprecated: use SourceBundle, AnalysisBundle, RenderBundle, and IOBundle to
+// mount only the required capabilities. This aggregate will be removed in v1.0.0.
 func Bundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{ID: "srcpack", Libraries: []action.Library{
 		operators.SourceLibrary(), operators.AnalysisLibrary(),
@@ -56,8 +58,9 @@ func Bundle(_ map[string]string) compiler.Bundle {
 	}}
 }
 
-// FullBundle preserves the composed mounting API for manual Go hosts. NFlow
-// sources use Bundle and explicit @require declarations instead.
+// Deprecated: use SourceBundle, AnalysisBundle, RenderBundle, and IOBundle,
+// together with only the independent bundles required by the host. This
+// convenience composition will be removed in v1.0.0.
 // FullBundle composes SRCPACK's domain libraries with independent config preset,
 // document and terminal bundles. Existing hosts keep their mounting API; each
 // bundle directory can be copied without an SRCPACK dependency.

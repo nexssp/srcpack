@@ -21,6 +21,14 @@ repos:
         types: [go]
         stages: [pre-commit]
 
+      - id: nflow-quality
+        name: NFlow lint and formatting check
+        entry: task nflow:quality
+        language: system
+        pass_filenames: false
+        files: '\.nflow$'
+        stages: [pre-commit]
+
       - id: go-test
         name: go test (short, cached per tree)
         entry: task test

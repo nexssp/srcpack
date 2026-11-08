@@ -41,55 +41,97 @@
     args: .args ?? [],
     first_raw: len(.args ?? []) > 0 ? .args[0] : "",
     first: len(.args ?? []) > 0 ? lower(trim(.args[0])) : "",
-    rest: len(.args ?? []) > 0 ? .args[1:] : []
+    rest: len(.args ?? []) > 0 ? .args[1 :] : []
   }
   -> match(.first) {
-    "" -> { args: [cmd.dashboard], command: cmd.dashboard, explicit_pack: false },
-    alias.help_flag -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
-    alias.version_flag -> { args: [cmd.version], command: cmd.version, explicit_pack: false },
-    alias.pack_short -> { args: concat([cmd.pack], .rest), command: cmd.pack, explicit_pack: false },
-    alias.update_short -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
-    alias.profiles -> { args: [cmd.list], command: cmd.list, explicit_pack: false },
-    alias.update_all -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
-    alias.validate -> { args: concat([cmd.doctor], .rest), command: cmd.doctor, explicit_pack: false },
-    alias.type_list -> { args: concat([cmd.types], .rest), command: cmd.types, explicit_pack: false },
-    alias.help_short -> match(len(.rest) > 0 && lower(trim(.rest[0])) in [alias.pack_short, cmd.pack]) {
-      true -> { args: concat([cmd.help, cmd.pack], .rest[1:]), command: cmd.help, explicit_pack: false },
-      _ -> match(len(.rest) == 0) {
-        true -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
-        _ -> { args: concat([cmd.help], .rest), command: cmd.help, explicit_pack: false }
+    ""
+      -> { args: [cmd.dashboard], command: cmd.dashboard, explicit_pack: false },
+    alias.help_flag
+      -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
+    alias.version_flag
+      -> { args: [cmd.version], command: cmd.version, explicit_pack: false },
+    alias.pack_short
+      -> { args: concat([cmd.pack], .rest), command: cmd.pack, explicit_pack: false },
+    alias.update_short
+      -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
+    alias.profiles
+      -> { args: [cmd.list], command: cmd.list, explicit_pack: false },
+    alias.update_all
+      -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
+    alias.validate
+      -> { args: concat([cmd.doctor], .rest), command: cmd.doctor, explicit_pack: false },
+    alias.type_list
+      -> { args: concat([cmd.types], .rest), command: cmd.types, explicit_pack: false },
+    alias.help_short
+      -> match(len(.rest) > 0 && lower(trim(.rest[0])) in [alias.pack_short, cmd.pack]) {
+      true
+        -> { args: concat([cmd.help, cmd.pack], .rest[1: ]), command: cmd.help, explicit_pack: false },
+      _
+        -> match(len(.rest) == 0) {
+        true
+          -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
+        _
+          -> { args: concat([cmd.help], .rest), command: cmd.help, explicit_pack: false }
       }
     },
-    cmd.help -> match(len(.rest) > 0 && lower(trim(.rest[0])) in [alias.pack_short, cmd.pack]) {
-      true -> { args: concat([cmd.help, cmd.pack], .rest[1:]), command: cmd.help, explicit_pack: false },
-      _ -> match(len(.rest) == 0) {
-        true -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
-        _ -> { args: concat([cmd.help], .rest), command: cmd.help, explicit_pack: false }
+    cmd.help
+      -> match(len(.rest) > 0 && lower(trim(.rest[0])) in [alias.pack_short, cmd.pack]) {
+      true
+        -> { args: concat([cmd.help, cmd.pack], .rest[1: ]), command: cmd.help, explicit_pack: false },
+      _
+        -> match(len(.rest) == 0) {
+        true
+          -> { args: [cmd.usage], command: cmd.usage, explicit_pack: false },
+        _
+          -> { args: concat([cmd.help], .rest), command: cmd.help, explicit_pack: false }
       }
     },
-    _ -> match(.first) {
-      cmd.init -> { args: concat([cmd.init], .rest), command: cmd.init, explicit_pack: false },
-      cmd.pack -> { args: concat([cmd.pack], .rest), command: cmd.pack, explicit_pack: true },
-      cmd.tree -> { args: concat([cmd.tree], .rest), command: cmd.tree, explicit_pack: false },
-      cmd.update -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
-      cmd.config -> { args: concat([cmd.config], .rest), command: cmd.config, explicit_pack: false },
-      cmd.target -> { args: concat([cmd.target], .rest), command: cmd.target, explicit_pack: false },
-      cmd.prompt -> { args: concat([cmd.prompt], .rest), command: cmd.prompt, explicit_pack: false },
-      cmd.profile -> { args: concat([cmd.profile], .rest), command: cmd.profile, explicit_pack: false },
-      cmd.editor -> { args: concat([cmd.editor], .rest), command: cmd.editor, explicit_pack: false },
-      cmd.view -> { args: concat([cmd.view], .rest), command: cmd.view, explicit_pack: false },
-      cmd.dashboard -> { args: concat([cmd.dashboard], .rest), command: cmd.dashboard, explicit_pack: false },
-      cmd.usage -> { args: concat([cmd.usage], .rest), command: cmd.usage, explicit_pack: false },
-      cmd.version -> { args: concat([cmd.version], .rest), command: cmd.version, explicit_pack: false },
-      cmd.list -> { args: concat([cmd.list], .rest), command: cmd.list, explicit_pack: false },
-      cmd.info -> { args: concat([cmd.info], .rest), command: cmd.info, explicit_pack: false },
-      cmd.clean -> { args: concat([cmd.clean], .rest), command: cmd.clean, explicit_pack: false },
-      cmd.doctor -> { args: concat([cmd.doctor], .rest), command: cmd.doctor, explicit_pack: false },
-      cmd.types -> { args: concat([cmd.types], .rest), command: cmd.types, explicit_pack: false },
-      cmd.health -> { args: concat([cmd.health], .rest), command: cmd.health, explicit_pack: false },
-      cmd.demo -> { args: concat([cmd.demo], .rest), command: cmd.demo, explicit_pack: false },
-      cmd.cookbook -> { args: concat([cmd.cookbook], .rest), command: cmd.cookbook, explicit_pack: false },
-      _ -> { args: concat([cmd.pack], .args), command: cmd.pack, explicit_pack: false }
+    _
+      -> match(.first) {
+      cmd.init
+        -> { args: concat([cmd.init], .rest), command: cmd.init, explicit_pack: false },
+      cmd.pack
+        -> { args: concat([cmd.pack], .rest), command: cmd.pack, explicit_pack: true },
+      cmd.tree
+        -> { args: concat([cmd.tree], .rest), command: cmd.tree, explicit_pack: false },
+      cmd.update
+        -> { args: concat([cmd.update], .rest), command: cmd.update, explicit_pack: false },
+      cmd.config
+        -> { args: concat([cmd.config], .rest), command: cmd.config, explicit_pack: false },
+      cmd.target
+        -> { args: concat([cmd.target], .rest), command: cmd.target, explicit_pack: false },
+      cmd.prompt
+        -> { args: concat([cmd.prompt], .rest), command: cmd.prompt, explicit_pack: false },
+      cmd.profile
+        -> { args: concat([cmd.profile], .rest), command: cmd.profile, explicit_pack: false },
+      cmd.editor
+        -> { args: concat([cmd.editor], .rest), command: cmd.editor, explicit_pack: false },
+      cmd.view
+        -> { args: concat([cmd.view], .rest), command: cmd.view, explicit_pack: false },
+      cmd.dashboard
+        -> { args: concat([cmd.dashboard], .rest), command: cmd.dashboard, explicit_pack: false },
+      cmd.usage
+        -> { args: concat([cmd.usage], .rest), command: cmd.usage, explicit_pack: false },
+      cmd.version
+        -> { args: concat([cmd.version], .rest), command: cmd.version, explicit_pack: false },
+      cmd.list
+        -> { args: concat([cmd.list], .rest), command: cmd.list, explicit_pack: false },
+      cmd.info
+        -> { args: concat([cmd.info], .rest), command: cmd.info, explicit_pack: false },
+      cmd.clean
+        -> { args: concat([cmd.clean], .rest), command: cmd.clean, explicit_pack: false },
+      cmd.doctor
+        -> { args: concat([cmd.doctor], .rest), command: cmd.doctor, explicit_pack: false },
+      cmd.types
+        -> { args: concat([cmd.types], .rest), command: cmd.types, explicit_pack: false },
+      cmd.health
+        -> { args: concat([cmd.health], .rest), command: cmd.health, explicit_pack: false },
+      cmd.demo
+        -> { args: concat([cmd.demo], .rest), command: cmd.demo, explicit_pack: false },
+      cmd.cookbook
+        -> { args: concat([cmd.cookbook], .rest), command: cmd.cookbook, explicit_pack: false },
+      _
+        -> { args: concat([cmd.pack], .args), command: cmd.pack, explicit_pack: false }
     }
   }
 @end

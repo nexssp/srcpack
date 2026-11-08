@@ -22,20 +22,31 @@ const @{
 }
 -> parallel {
   json: plan_report.pipeline.pack_plan_report,
-  human: { ..., io: fromPairs(concat(toPairs(.io), [["json", false]])) } -> plan_report.pipeline.pack_plan_report,
-  stdout_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false]])) } -> plan_report.pipeline.pack_plan_report,
-  file_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false], ["output_path", "/tmp/context.md"], ["config_path", "nexss.srcpack.yml"]])) } -> plan_report.pipeline.pack_plan_report,
-  check_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["check", true]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
-    else -> { message: .error.message }
+  human: { ..., io: fromPairs(concat(toPairs(.io), [["json", false]])) }
+    -> plan_report.pipeline.pack_plan_report,
+  stdout_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false]])) }
+    -> plan_report.pipeline.pack_plan_report,
+  file_output: { ..., io: fromPairs(concat(toPairs(.io), [["copy", false], ["output_path", "/tmp/context.md"], ["config_path", "nexss.srcpack.yml"]])) }
+    -> plan_report.pipeline.pack_plan_report,
+  check_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["check", true]])) }
+    -> plan_report.pipeline.pack_plan_report ? on_error {
+    else
+      -> { message: .error.message }
   },
-  copy_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_copy", true]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
-    else -> { message: .error.message }
+  copy_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_copy", true]])) }
+    -> plan_report.pipeline.pack_plan_report ? on_error {
+    else
+      -> { message: .error.message }
   },
-  output_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_output", "context.md"]])) } -> plan_report.pipeline.pack_plan_report ? on_error {
-    else -> { message: .error.message }
+  output_conflict: { ..., io: fromPairs(concat(toPairs(.io), [["explicit_output", "context.md"]])) }
+    -> plan_report.pipeline.pack_plan_report ? on_error {
+    else
+      -> { message: .error.message }
   },
-  save_view_conflict: { ..., save_view: "daily" } -> plan_report.pipeline.pack_plan_report ? on_error {
-    else -> { message: .error.message }
+  save_view_conflict: { ..., save_view: "daily" }
+    -> plan_report.pipeline.pack_plan_report ? on_error {
+    else
+      -> { message: .error.message }
   }
 }
 -> {

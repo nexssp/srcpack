@@ -73,7 +73,7 @@ func inputFacts(ctx context.Context, in map[string]any) (map[string]any, error) 
 		facts = append(facts, map[string]any{"raw": item.Value, "forced": item.Field == "targets", "path_exists": statErr == nil, "has_view": hasView, "view": view})
 	}
 	inv, _ := ctx.Value(invocationKey{}).(invocation)
-	return map[string]any{"input": in, "cli_bool_flags": boolOverrides, "ordered": facts, "profile": canonicalProfile(stringField(in, "profile", "")), "context_command": inv.command, "context_explicit": inv.explicitPack, "tree_output": filepath.Join("_srcpack", "tree.md"), "default_depth": config.DefaultTreeDepth}, nil
+	return map[string]any{"input": in, "cli_bool_flags": boolOverrides, "ordered": facts, "profile": canonicalProfile(stringField(in, "profile", "")), "valid_profiles": builtinProfileNames(), "context_command": inv.command, "context_explicit": inv.explicitPack, "tree_output": filepath.Join("_srcpack", "tree.md"), "default_depth": config.DefaultTreeDepth}, nil
 }
 
 // selectorFacts parses srcpack's grammar and reports filesystem facts. It does

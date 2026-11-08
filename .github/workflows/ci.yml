@@ -30,6 +30,12 @@ jobs:
       - name: Run golangci-lint
         run: golangci-lint run --timeout=5m
 
+      - name: Check NFlow formatting
+        run: go run ./cmd/nflow-lint fmt-check
+
+      - name: Lint NFlow sources
+        run: go run ./cmd/nflow-lint lint-project
+
       - name: Run Unit Tests
         run: go test ./...
 

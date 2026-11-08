@@ -2,6 +2,8 @@ package nexssflow_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -15,7 +17,6 @@ import (
 
 	// Blank import triggers compiler.Register("srcpack", Bundle) in init().
 	_ "github.com/nexssp/srcpack/nexssflow"
-	"github.com/nexssp/srcpack/nflows"
 )
 
 // TestBundleResolvesThroughRequireContract proves the @require path
@@ -28,7 +29,7 @@ import (
 func TestBundleResolvesThroughRequireContract(t *testing.T) {
 	t.Parallel()
 
-	source, err := nflows.FS.ReadFile("main.nflow")
+	source, err := os.ReadFile(filepath.Join("..", "tests", "fixtures", "nflows", "main.nflow"))
 	ktest.RequireNoError(t, err)
 
 	ctx := context.Background()

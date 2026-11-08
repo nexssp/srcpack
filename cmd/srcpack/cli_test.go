@@ -232,7 +232,8 @@ func TestCopyFlagFeedsRootOutputPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(source), ".policy.copy -> srcpack.copy_output") {
+	sourceText := strings.Join(strings.Fields(string(source)), " ")
+	if !strings.Contains(sourceText, ".policy.copy -> srcpack.copy_output") {
 		t.Fatal("output.nflow must explicitly choose the clipboard action")
 	}
 }

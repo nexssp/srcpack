@@ -6,17 +6,6 @@
   pack: "pack"
   tree: "tree"
 }
-@symbols profile_name {
-  arch: "arch"
-  api: "api"
-  impl: "impl"
-  source: "source"
-  compact: "compact"
-  dense: "dense"
-  with_tests: "with-tests"
-  default: "default"
-}
-
 @macro pack_expand_selector_views() {
   {
     ...,
@@ -98,9 +87,12 @@
   packcmd.input_facts
   -> @pack_choose_selectors()
   -> match {
-    .selection.profile != "" && !(.selection.profile in [profile_name.arch, profile_name.api, profile_name.impl, profile_name.source, profile_name.compact, profile_name.dense, profile_name.with_tests]) ->
-      { message: "unknown profile " + toJSON(.selection.profile) + "; valid profiles: arch, api, impl, source, compact, dense, with-tests" } -> fail,
-    _ -> noop
+    .selection.profile != "" && !(.selection.profile in .valid_profiles)
+      ->
+      { message: "unknown profile " + toJSON(.selection.profile) + "; valid profiles: " + join(.valid_profiles, ", ") }
+        -> fail,
+    _
+      -> noop
   }
   -> @pack_target_metadata()
   -> @pack_flag_policy()
@@ -116,8 +108,10 @@
     policy: match { _ -> pick @{field: "facts"} -> resolution.pipeline.pack_resolution_policy }
   }
   -> match {
-    .policy.need_diff -> packcmd.git_diff,
-    _ -> { ..., diff_content: "" }
+    .policy.need_diff
+      -> packcmd.git_diff,
+    _
+      -> { ..., diff_content: "" }
   }
   -> packcmd.build_request
   -> {

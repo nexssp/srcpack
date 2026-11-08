@@ -1,5 +1,7 @@
 package main
 
+// These test-only helpers remain as a parity safety net during the CLI migration; delete them after v1.0.0.
+
 import (
 	"fmt"
 	"os"

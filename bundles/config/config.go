@@ -34,7 +34,6 @@ type Profile struct {
 	Prompt           FlexibleText  `yaml:"prompt,omitempty"            json:"prompt,omitzero"`
 	Start            FlexibleText  `yaml:"start,omitempty"             json:"start,omitzero"`
 	End              FlexibleText  `yaml:"end,omitempty"               json:"end,omitzero"`
-	Summary          FlexibleText  `yaml:"summary,omitempty"           json:"summary,omitzero"`
 	FileStart        string        `yaml:"file_start,omitempty"       json:"file_start,omitempty"`
 	FileEnd          string        `yaml:"file_end,omitempty"         json:"file_end,omitempty"`
 	Editor           string        `yaml:"editor,omitempty"           json:"editor,omitempty"`
@@ -201,9 +200,6 @@ func MergeProfile(dst *Profile, src Profile) {
 	}
 	if src.End.Set {
 		dst.End = src.End
-	}
-	if src.Summary.Set {
-		dst.Summary = src.Summary
 	}
 	if src.FileStart != "" {
 		dst.FileStart = src.FileStart

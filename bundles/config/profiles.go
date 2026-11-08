@@ -19,7 +19,7 @@ type ProfileMeta struct {
 var BuiltinProfiles = []ProfileMeta{
 	{
 		Name:        "arch",
-		Aliases:     []string{"no-comments", "nocomments", "skeleton", "api-map", "arch-clean"},
+		Aliases:     []string{"architecture", "architecture-map", "no-comments", "nocomments", "skeleton", "api-map", "arch-clean"},
 		Description: "Architecture map: signatures only (NO bodies, NO comments)",
 		Options: ConfigOptions{
 			ExportedOnly:   new(true),
@@ -45,7 +45,7 @@ var BuiltinProfiles = []ProfileMeta{
 	},
 	{
 		Name:        "impl",
-		Aliases:     []string{"review", "logic"},
+		Aliases:     []string{"implementation", "review", "logic"},
 		Description: "Implementation logic (bodies preserved, comments stripped)",
 		Options: ConfigOptions{
 			ExportedOnly:   new(false),
@@ -71,7 +71,7 @@ var BuiltinProfiles = []ProfileMeta{
 	},
 	{
 		Name:        "with-tests",
-		Aliases:     []string{"test", "tests"},
+		Aliases:     []string{"test", "tests", "withtests"},
 		Description: "Source code plus unit tests and test helpers",
 		Options: ConfigOptions{
 			ExportedOnly:   new(false),

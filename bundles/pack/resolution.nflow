@@ -57,6 +57,7 @@
     paths: len(.paths) == 0 && len(.files) == 0 && len(.cli_files) == 0 ? ["."] : .paths,
     files: concat(.files, .cli_files)
   }
+  # Keep these branches compact; Flow v0.70.1 adds trailing spaces when it expands the continuations.
   -> match {
     .has_remote && (.options.Changed || .options.Modified || .options.Staged || .options.Since != "" || .options.DiffOnly) ->
       {message: "remote sources cannot be combined with --changed, --modified, --staged, --since or --diff-only; these flags describe the local workspace"} -> fail,

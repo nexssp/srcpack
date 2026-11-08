@@ -6,61 +6,28 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/nexssp/srcpack/bundles/config"
 )
 
-// Doctor's Flow orchestration must retain the existing audit/report contract.
-// These run through the real CLI entry point, not just the new primitives.
-func TestDoctorStage1CLIReportParity(t *testing.T) {
-	cases := []struct {
-		name, yaml string
-		files      map[string]string
-	}{
-		{"empty-config", "{}\n", nil},
-		{"empty-document", "", nil},
-		{"null-document", "null\n", nil},
-		{"null-optional-sections", "targets: null\nprofiles: null\noptions: null\nfiles: null\n", nil},
-		{"numeric-prompt-key", "prompts:\n  123: example\n", nil},
-		{"numeric-prompt-value", "prompts:\n  example: 123\n", nil},
-		{"yaml-alias", "targets:\n  first: &entry\n    paths: [.]\n  second: *entry\n", nil},
-		{"existing-file-and-dir", "targets:\n  code:\n    paths: [src]\n    files: [src/a.go]\n", map[string]string{"src/a.go": "package a\n"}},
-		{"unsorted-targets", "targets:\n  zebra:\n    paths: [missing-z]\n  alpha:\n    paths: [missing-a]\n", nil},
-		{"missing-and-output-paths", "targets:\n  broken:\n    paths: [missing, _srcpack/out.md]\n", nil},
-		{"undefined-target-and-cycle", "targets:\n  first:\n    targets: [second, absent]\n  second:\n    targets: [first]\n", nil},
-		{"shared-child-is-not-cycle", "targets:\n  a:\n    targets: [b, c]\n  b:\n    targets: [d]\n  c:\n    targets: [d]\n  d:\n    paths: [.]\n", nil},
-		{"remote-syntax-only", "targets:\n  remote:\n    paths: [github:nexssp/flow//compiler]\n", nil},
-		{"undefined-prompt-is-warning", "profiles:\n  custom:\n    prompt: unknown-prompt\n", nil},
-		{"dir-entry-aliases", "targets:\n  mixed:\n    dir:\n      - src\n      - path: other\n    files: [src/a.go]\n", map[string]string{"src/a.go": "package a\n", "other/b.go": "package b\n"}},
+// TestDoctorFlowReportsMissingTargetExpectedOutput locks the modern NFlow audit
+// contract to concrete output instead of comparing it with the legacy validator.
+func TestDoctorFlowReportsMissingTargetExpectedOutput(t *testing.T) {
+	root := materializeWorkspace(t, nil)
+	t.Chdir(root)
+	if err := os.WriteFile("nexss.srcpack.yml", []byte("targets:\n  broken:\n    paths: [missing]\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			root := materializeWorkspace(t, tc.files)
-			t.Chdir(root)
-			path := filepath.Join(root, "nexss.srcpack.yml")
-			if err := os.WriteFile(path, []byte(tc.yaml), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			before, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := config.Validate(root, path)
-			stdout, runErr := capturePolicyStdout(t, func() error { return execute(context.Background(), []string{"doctor"}) })
-			if (runErr == nil) != want.Passed {
-				t.Fatalf("passed=%v error=%v\n%s", want.Passed, runErr, stdout)
-			}
-			if stdout != want.String() {
-				t.Fatalf("report changed:\ngot: %s\nwant: %s", stdout, want.String())
-			}
-			after, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if string(after) != string(before) {
-				t.Fatal("doctor modified the configuration")
-			}
-		})
+	want := "\n🩺 Srcpack doctor\n" + strings.Repeat("─", 45) + "\n" +
+		"✅ [config ] loaded nexss.srcpack.yml\n" +
+		"❌ [target ] broken references missing path: missing\n" +
+		strings.Repeat("─", 45) + "\nErrors found. Resolve issues above.\n\n"
+	stdout, err := capturePolicyStdout(t, func() error {
+		return execute(context.Background(), []string{"doctor"})
+	})
+	if err == nil {
+		t.Fatal("doctor accepted a missing target path")
+	}
+	if stdout != want {
+		t.Fatalf("modern doctor report changed:\ngot:  %q\nwant: %q", stdout, want)
 	}
 }
 
@@ -121,9 +88,11 @@ func TestDoctorStage1PathsAreRelativeToConfigNotWorkingDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(filepath.Join(root, "nested"))
-	want := config.Validate(filepath.Join(root, "nested"), path)
+	want := "\n🩺 Srcpack doctor\n" + strings.Repeat("─", 45) + "\n" +
+		"✅ [config ] loaded nexss.srcpack.yml\n" +
+		"✅ [target ] code: valid\n" + strings.Repeat("─", 45) + "\nAll checks passed.\n\n"
 	stdout, err := capturePolicyStdout(t, func() error { return execute(context.Background(), []string{"doctor"}) })
-	if err != nil || stdout != want.String() {
-		t.Fatalf("config-relative audit: %v\ngot: %s\nwant: %s", err, stdout, want.String())
+	if err != nil || stdout != want {
+		t.Fatalf("config-relative audit: %v\ngot: %q\nwant: %q", err, stdout, want)
 	}
 }

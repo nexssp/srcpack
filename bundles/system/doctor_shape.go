@@ -94,7 +94,7 @@ func doctorRaw(_ context.Context, input map[string]any) (map[string]any, error) 
 	}
 	for _, key := range []string{
 		"targets", "profiles", "prompts", "editors", "options", "views", "dir",
-		"files", "includes", "include_profiles", "prompt", "start", "end", "summary",
+		"files", "includes", "include_profiles", "prompt", "start", "end",
 	} {
 		if value, present := configMap[key]; present {
 			out[key] = value

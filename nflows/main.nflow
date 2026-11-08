@@ -1,4 +1,0 @@
-@description "Srcpack local context pipeline"
-@require github.com/nexssp/srcpack
-
-srcpack.source -> ast.parse -> stats.collect -> workspace.save_state -> srcpack.render -> out.file:path=@config.output -> clipboard.write:enabled=false -> collect

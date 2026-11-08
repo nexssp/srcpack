@@ -92,7 +92,7 @@ func TestCLIMissingUnicodeTargetDisplay(t *testing.T) {
 			}
 			defer capture.Close()
 			oldArgs, oldStderr := os.Args, os.Stderr
-			os.Args, os.Stderr = []string{"srcpack", ".,ćmd#source", "-c"}, capture
+			os.Args, os.Stderr = []string{"srcpack", ".,ćmd#source"}, capture
 			defer func() { os.Args, os.Stderr = oldArgs, oldStderr }()
 			if code := run(); code != 1 {
 				t.Fatalf("exit code = %d, want 1", code)
@@ -123,7 +123,35 @@ func TestCLIMissingUnicodeTargetDisplay(t *testing.T) {
 			}
 		})
 	}
-	if err := execute(context.Background(), []string{".,ćmd#source", "-c"}); !errors.Is(err, os.ErrNotExist) {
+	if err := execute(context.Background(), []string{".,ćmd#source"}); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("execute must preserve original cause: %v", err)
+	}
+}
+
+func TestRunExitCodeUsageVersusRuntimeError(t *testing.T) {
+	t.Chdir(t.TempDir())
+	oldArgs, oldStderr := os.Args, os.Stderr
+	defer func() { os.Args, os.Stderr = oldArgs, oldStderr }()
+	stderr, err := os.CreateTemp(t.TempDir(), "stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stderr.Close()
+	os.Stderr = stderr
+
+	os.Args = []string{"srcpack", "--not-a-real-flag"}
+	if code := run(); code != 2 {
+		t.Fatalf("usage error exit code = %d, want 2", code)
+	}
+
+	if err := stderr.Truncate(0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := stderr.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	os.Args = []string{"srcpack", "missing.go", "--quiet"}
+	if code := run(); code != 1 {
+		t.Fatalf("runtime error exit code = %d, want 1", code)
 	}
 }

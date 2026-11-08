@@ -47,8 +47,10 @@
 
 @pipeline view_list_report
   match {
-    len(keys(.views)) == 0 -> { content: "No views saved.\nCreate one with: srcpack \"path#profile\" --save-view=name\n" },
-    _ -> { content: join(map(sort(keys(.views)), terminal.printf("  %-20s %s\n", #, join(.views[#], "  "))), "") }
+    len(keys(.views)) == 0
+      -> { content: "No views saved.\nCreate one with: srcpack \"path#profile\" --save-view=name\n" },
+    _
+      -> { content: join(map(sort(keys(.views)), terminal.printf("  %-20s %s\n", #, join(.views[#], "  "))), "") }
   }
 @end
 

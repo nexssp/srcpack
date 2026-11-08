@@ -14,7 +14,7 @@ The demo creates three tiny Go files in a temporary directory, excludes the test
 
 ## The story to show
 
-**1. Build the useful system from small parts.** The demo reads the current embedded [`pack.nflow`](../../nflows/pack.nflow), not a copied fold expression:
+**1. Build the useful system from small parts.** For parity with the previous CLI path, the demo reads the retained test-only [`pack.nflow` wrapper](../../tests/fixtures/nflows/pack.nflow) together with the shared [`pack_fold.nflow`](../../nflows/pack_fold.nflow), not a copied fold expression:
 
 ```text
 srcpack.source → ast.parse → pack.stats_input → pack.batch → stream.fold

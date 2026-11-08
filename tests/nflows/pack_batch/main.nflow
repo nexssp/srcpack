@@ -6,7 +6,7 @@ parallel {
     {file: {name: "second"}, omitted: false, content: "", snippets: ["e", "xy"], funcCount: 3, size: 11},
     {file: {name: "omitted"}, omitted: true, content: "not counted", snippets: [], funcCount: 99, size: 90},
     {file: {name: "empty"}, omitted: false, content: "", snippets: [], funcCount: 7, size: 20}
-  ] } -> pack.batch -> pack_fold.@pack_stats_fold() -> collect,
+    ] } -> pack.batch -> pack_fold.@pack_stats_fold() -> collect,
   empty: srcpack_test.records @{ items: [] } -> pack.batch -> pack_fold.@pack_stats_fold() -> collect
 }
 -> {

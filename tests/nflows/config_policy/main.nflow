@@ -1,10 +1,14 @@
 @include "../../../bundles/config_cli/config.nflow"
 
 parallel {
-  missing_path: const @{ path: "" } -> config.pipeline.config_path_policy,
-  configured_path: const @{ path: "nexss.srcpack.yml" } -> config.pipeline.config_path_policy,
-  missing_validation: const @{ path: "" } -> config.pipeline.config_validation_policy,
-  configured_validation: const @{ path: "nexss.srcpack.yml" } -> config.pipeline.config_validation_policy,
+  missing_path: const @{ path: "" }
+    -> config.pipeline.config_path_policy,
+  configured_path: const @{ path: "nexss.srcpack.yml" }
+    -> config.pipeline.config_path_policy,
+  missing_validation: const @{ path: "" }
+    -> config.pipeline.config_validation_policy,
+  configured_validation: const @{ path: "nexss.srcpack.yml" }
+    -> config.pipeline.config_validation_policy,
 }
 
 @test: result.missing_path.text == "(no config file present)"

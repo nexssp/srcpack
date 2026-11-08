@@ -40,6 +40,7 @@
   only_sig          bool  `cli:"only-sig,signatures" usage:"emit declarations and signatures only"`
   dense             bool  `cli:"dense" usage:"use compact source formatting"`
   mask              bool  `cli:"mask,mask-secrets" usage:"mask secret-like values"`
+  no_mask           bool  `cli:"no-mask" usage:"disable secret-like value masking"`
   include_config    bool  `cli:"include-config" usage:"include curated, masked tooling and build config files"`
   max_lines         int  `cli:"max-lines" usage:"maximum source lines per file"`
   max_lines_head    int  `cli:"max-lines-head" usage:"head lines to retain when truncating"`
@@ -64,12 +65,17 @@
   no_end            bool  `cli:"no-end" config:"true" usage:"suppress the document end section"`
 }
 
-@pipeline pack:cli="pack:Package workspace source code as AI context":request-schema=PackInput
+@pipeline pack
+  :cli="pack:Package workspace source code as AI context"
+  :request-schema=PackInput
   cli.restore
   -> pack_workflow.pipeline.pack_resolve
   -> match {
-    .io.plan -> plan_report.pipeline.pack_plan,
-    .save_view != "" -> pack_workflow.pipeline.pack_save_view,
-    _ -> pack_workflow.pipeline.pack_execute
+    .io.plan
+      -> plan_report.pipeline.pack_plan,
+    .save_view != ""
+      -> pack_workflow.pipeline.pack_save_view,
+    _
+      -> pack_workflow.pipeline.pack_execute
   }
 @end

@@ -70,7 +70,6 @@ func Bundle(_ map[string]string) compiler.Bundle {
 			action.New("system.clean.inspect", cleanInspect).Build(),
 			action.New("system.clean.report_dry_run", cleanDryRun).Build(),
 			action.New("system.clean.remove", cleanRemove).Build(),
-			action.New("system.doctor.inspect", doctor).Build(),
 			action.New("system.doctor.context", doctorContext).Build(),
 			action.New("system.doctor.facts", doctorFacts).Build(),
 			action.New("system.doctor.path_stat", doctorPathStat).Build(),
@@ -156,7 +155,8 @@ func profiles(_ context.Context, _ map[string]any) (map[string]any, error) {
 const systemErrorField = "error"
 
 func profileInfo(_ context.Context, in map[string]any) (map[string]any, error) {
-	canonical, _ := in["canonical_name"].(string)
+	name, _ := in["name"].(string)
+	canonical := config.CanonicalProfileName(name)
 	var description string
 	var ok bool
 	for i := range config.BuiltinProfiles {
@@ -263,23 +263,6 @@ func cleanRemove(_ context.Context, in map[string]any) (map[string]any, error) {
 
 func generated(name string) bool {
 	return strings.HasSuffix(name, ".md") || strings.HasSuffix(name, ".tmp") || strings.HasSuffix(name, ".xml")
-}
-
-func doctor(_ context.Context, _ map[string]any) (map[string]any, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	_, path := config.FindRoot(cwd)
-	if path == "" {
-		return map[string]any{"passed": false, "error": "no config file found; run 'srcpack init' to create one", "report": ""}, nil
-	}
-	report := config.Validate(cwd, path)
-	message := "doctor found problems"
-	if report.Passed {
-		message = ""
-	}
-	return map[string]any{"passed": report.Passed, "error": message, "report": report.String()}, nil
 }
 
 func healthInspect(ctx context.Context, _ map[string]any) (map[string]any, error) {

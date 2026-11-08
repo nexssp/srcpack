@@ -29,22 +29,6 @@ start: |-
 end: |-
   <!-- END OF SOURCE REFERENCE [Profile: ${PROFILE_NAME}] -->
 
-summary: |-
-  ✅ Srcpack completed in ${DURATION}
-  ─────────────────────────────────────────────
-  Profile         : ${PROFILE_NAME}
-  Target(s)       : ${TARGETS}
-  Prompt          : ${PROMPT_NAME}
-  Editor Format   : ${EDITOR_NAME}
-  Directory       : ${DIRS}
-  Files Processed : ${FILE_COUNT}
-  Functions Found : ${FUNC_COUNT}
-  Raw Size        : ${RAW_SIZE_KBYTES} KB
-  Packed Size     : ${TOTAL_SIZE_KBYTES} KB (Saved ${SAVED_PERCENT}%)
-  Est. Tokens     : ~${TOTAL_SIZE_TOKENS}
-  Output          : ${OUTPUT_FILE}
-  Clipboard       : ${COPIED_STATUS}
-
 options:
   strip_comments: true
   remove_body_func: true

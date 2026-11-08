@@ -139,6 +139,24 @@ func TestGitUnifiedDiffParityWithLegacyForSupportedModes(t *testing.T) {
 		}
 	}
 
+	combined := GitFilter{Modified: true, Staged: true}
+	combinedGot, err := GitUnifiedDiff(context.Background(), root, combined)
+	if err != nil {
+		t.Fatal(err)
+	}
+	combinedWant, err := legacyGitUnifiedDiff(context.Background(), root, combined)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if combinedGot != combinedWant {
+		t.Fatalf("combined diff output differs from legacy\nwant:\n%s\ngot:\n%s", combinedWant, combinedGot)
+	}
+	for _, path := range []string{"modified.go", "staged.go"} {
+		if !strings.Contains(combinedGot, path) {
+			t.Errorf("combined diff does not include %s:\n%s", path, combinedGot)
+		}
+	}
+
 	// Since-ref semantics remain on the established implementation because the
 	// shared provider does not yet accept an arbitrary comparison ref.
 	filter := GitFilter{Since: "HEAD", Modified: true}

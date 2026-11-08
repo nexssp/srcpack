@@ -19,6 +19,9 @@ func run() int {
 
 	if err := execute(ctx, os.Args[1:]); err != nil {
 		writeCLIError(os.Stderr, err, os.Getenv("SRCPACK_DEBUG") == "1")
+		if isCLIUsageError(err) {
+			return 2
+		}
 		return 1
 	}
 	return 0

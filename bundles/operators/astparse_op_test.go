@@ -135,6 +135,7 @@ func TestASTParse_IncludeConfigIsOptInAndMasked(t *testing.T) {
 		Content:  []byte("api_key: \"test-secret-value-123\"\n"),
 		ParseOptions: operators.ParseOptions{
 			OnlySig:       true,
+			Mask:          true,
 			IncludeConfig: true,
 		},
 		ParseOptionsSet: true,
@@ -151,6 +152,28 @@ func TestASTParse_IncludeConfigIsOptInAndMasked(t *testing.T) {
 	out = runASTParse(t, file)
 	if len(out) != 1 || len(out[0].Content) != 0 {
 		t.Fatalf("config without --include-config was not omitted: %#v", out)
+	}
+}
+
+func TestASTParse_IncludeConfigHonorsDisabledMasking(t *testing.T) {
+	const secret = "ghp_0123456789abcdefghijklmnopqrstuvwxyz"
+	file := operators.ParsedFile{
+		FileMeta: mustMeta("config.yml", "text"),
+		Content:  []byte("token: " + secret + "\n"),
+		ParseOptions: operators.ParseOptions{
+			IncludeConfig: true,
+			Mask:          false,
+		},
+		ParseOptionsSet: true,
+	}
+
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one config record", len(out))
+	}
+	got := string(out[0].Content)
+	if !strings.Contains(got, secret) || strings.Contains(got, "[REDACTED_SECRET]") {
+		t.Fatalf("disabled masking changed config content: %q", got)
 	}
 }
 
@@ -179,6 +202,35 @@ func TestASTParse_GoSymbolSpansUseOriginalLines(t *testing.T) {
 	ktest.RequireEqual(t, span.Kind, "func")
 	ktest.RequireEqual(t, span.StartLine, 42)
 	ktest.RequireEqual(t, span.EndLine, 44)
+}
+
+func TestASTParse_PassThroughCountsOnlyWhenRequested(t *testing.T) {
+	source := []byte("package sample\nfunc One() {}\nfunc Two() {}\n")
+	for _, tc := range []struct {
+		name          string
+		needFuncCount bool
+		wantCount     int
+	}{
+		{name: "not needed", wantCount: 0},
+		{name: "summary or tree needs count", needFuncCount: true, wantCount: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			file := operators.ParsedFile{
+				FileMeta: mustMeta("sample.go", "go"), Content: source,
+				ParseOptions: operators.ParseOptions{Comments: true, NeedFuncCount: tc.needFuncCount}, ParseOptionsSet: true,
+			}
+			out := runASTParse(t, file)
+			if len(out) != 1 {
+				t.Fatalf("got %d records, want one", len(out))
+			}
+			if out[0].FuncCount != tc.wantCount {
+				t.Fatalf("function count = %d, want %d", out[0].FuncCount, tc.wantCount)
+			}
+			if string(out[0].Content) != string(source) {
+				t.Fatalf("pass-through content changed: %q", out[0].Content)
+			}
+		})
+	}
 }
 
 // ── helpers ──────────────────────────────────────────────────────────

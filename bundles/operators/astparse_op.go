@@ -14,6 +14,7 @@ type ASTConfig struct {
 	OnlySig        bool `json:"only_sig"         cli:"only-sig"`
 	Dense          bool `json:"dense"            cli:"dense"`
 	Comments       bool `json:"comments"         cli:"comments"`
+	NeedFuncCount  bool `json:"need_func_count"`
 	Mask           bool `json:"mask"             cli:"mask"`
 	IncludeConfig  bool `json:"include_config"   cli:"include-config"`
 	MaxLines       int  `json:"max_lines"        cli:"max-lines"`
@@ -56,7 +57,9 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 				}
 
 				if fileOptions.IncludeConfig && isConfigContextFile(sourceContextPath(file)) {
-					file.Content = maskSourceBytes(file.Content)
+					if fileOptions.Mask {
+						file.Content = maskSourceBytes(file.Content)
+					}
 					file.Snippets = nil
 					file.FuncCount = 0
 					file.ParseOptions = fileOptions
@@ -76,7 +79,7 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					!fileOptions.TrimBlankLines &&
 					!fileOptions.ExportedOnly
 				if passThrough || len(file.Content) == 0 {
-					if passThrough && len(file.Content) > 0 && file.FuncCount == 0 {
+					if passThrough && len(file.Content) > 0 && file.FuncCount == 0 && (cfg.NeedFuncCount || fileOptions.NeedFuncCount) {
 						// Parse only for metadata; retain the original bytes on this fast path.
 						if result, parseErr := extract.Parse(file.Path, file.Content, file.Lang, extract.Options{}); parseErr == nil {
 							file.FuncCount = result.FuncCount

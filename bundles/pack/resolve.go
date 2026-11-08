@@ -27,7 +27,7 @@ type resolved struct {
 
 // finishResolution is a typed operator-config adapter. Precedence and stage
 // choices have already been made by the calling NFlow pipeline.
-func finishResolution(_ context.Context, cli cliOptions, startedAt time.Time, plan resolutionPlan, policy map[string]any) (resolved, error) {
+func finishResolution(ctx context.Context, cli cliOptions, startedAt time.Time, plan resolutionPlan, policy map[string]any) (resolved, error) {
 	out := resolved{}
 	projectRoot, chain := plan.WorkspaceRoot, plan.Chain
 	paths, files := stringSliceField(policy["paths"]), stringSliceField(policy["files"])
@@ -55,6 +55,7 @@ func finishResolution(_ context.Context, cli cliOptions, startedAt time.Time, pl
 	out.Pack = operators.PackConfig{
 		Targets:        paths,
 		Files:          files,
+		NeedFuncCount:  (!cli.Config.Quiet && !cli.JSON) || opts.TreeOnly,
 		TargetProfiles: cli.Config.TargetProfiles,
 		TargetExcludes: cli.Config.TargetExcludes,
 		TargetPrompts:  cli.Config.TargetPrompts,
@@ -116,6 +117,7 @@ func finishResolution(_ context.Context, cli cliOptions, startedAt time.Time, pl
 	}
 	out.Stats.Output = displayOutput
 
+	metadata := gitMetadataForResolution(ctx, cli.Plan, projectRoot, resolveGitMetadata)
 	out.Render = operators.RenderConfig{
 		Editor:      cli.Config.Editor,
 		Prompt:      out.PromptText,
@@ -129,6 +131,9 @@ func finishResolution(_ context.Context, cli cliOptions, startedAt time.Time, pl
 		OutputFile:  displayOutput,
 		PromptName:  stringField(policy, "prompt_name", "(none)"),
 		CurrentDate: startedAt.Format(time.RFC3339),
+		GitCommit:   metadata.Commit,
+		GitTag:      metadata.Tag,
+		GitBranch:   metadata.Branch,
 		Directory:   projectRoot,
 		DiffContent: diffContent,
 		NoHeader:    opts.NoHeader,
