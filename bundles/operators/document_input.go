@@ -64,6 +64,8 @@ func documentInput(ctx context.Context, cfg RenderConfig, files []ParsedFile, st
 			documentFieldContent: string(file.Content), "snippets": file.Snippets, "omitted": file.Omitted,
 			"rel_path": file.RelPath, "abs_path": file.Path, "lang": file.Lang,
 			"lines": file.Lines, "size": file.Size,
+			"source_start_line": file.SourceStartLine, "source_end_line": file.SourceEndLine,
+			"symbol_spans": file.SymbolSpans,
 		})
 	}
 	return map[string]any{

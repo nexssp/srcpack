@@ -9,6 +9,7 @@
     only_sig   bool  `cli:"only-sig"`
     dense      bool  `cli:"dense"`
     mask       bool  `cli:"mask"`
+    include_config bool `cli:"include-config"`
     max_lines  int  `cli:"max-lines"`
     exclude    string  `cli:"exclude,x"`
     prompt     string  `cli:"prompt"`

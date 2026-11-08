@@ -15,6 +15,7 @@ type ASTConfig struct {
 	Dense          bool `json:"dense"            cli:"dense"`
 	Comments       bool `json:"comments"         cli:"comments"`
 	Mask           bool `json:"mask"             cli:"mask"`
+	IncludeConfig  bool `json:"include_config"   cli:"include-config"`
 	MaxLines       int  `json:"max_lines"        cli:"max-lines"`
 	MaxLinesHead   int  `json:"max_lines_head"`
 	MaxLinesTail   int  `json:"max_lines_tail"`
@@ -44,6 +45,28 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 				if file.ParseOptionsSet {
 					fileOptions = file.ParseOptions
 				}
+				if file.SourceStartLine < 1 {
+					file.SourceStartLine = 1
+				}
+				if file.SourceEndLine < file.SourceStartLine {
+					file.SourceEndLine = file.SourceStartLine + bytes.Count(file.Content, []byte{'\n'})
+				}
+				if file.Lines < 1 {
+					file.Lines = bytes.Count(file.Content, []byte{'\n'}) + 1
+				}
+
+				if fileOptions.IncludeConfig && isConfigContextFile(sourceContextPath(file)) {
+					file.Content = maskSourceBytes(file.Content)
+					file.Snippets = nil
+					file.FuncCount = 0
+					file.ParseOptions = fileOptions
+					file.ParseOptionsSet = true
+					if !yield(file, nil) {
+						return
+					}
+					continue
+				}
+
 				passThrough := !fileOptions.OnlySig &&
 					!fileOptions.Dense &&
 					fileOptions.Comments &&
@@ -82,6 +105,10 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					// Fall back to raw content instead of silently dropping
 					// the file from the pack.
 					res = extract.Result{Content: string(file.Content)}
+				}
+				var symbolSpans []SymbolSpan
+				if fileOptions.OnlySig && file.Lang == "go" {
+					symbolSpans = extractGoSymbolSpans(file.Path, file.Content, fileOptions.ExportedOnly, file.SourceStartLine)
 				}
 
 				var finalContent []byte
@@ -151,6 +178,9 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					Snippets:        finalSnippets,
 					FuncCount:       res.FuncCount,
 					Lines:           bytes.Count(file.Content, []byte{'\n'}) + 1,
+					SourceStartLine: file.SourceStartLine,
+					SourceEndLine:   file.SourceEndLine,
+					SymbolSpans:     symbolSpans,
 					Hash:            file.Hash,
 					Profile:         file.Profile,
 					Prompt:          file.Prompt,
@@ -164,6 +194,19 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 			}
 		}
 	}
+}
+
+func maskSourceBytes(source []byte) []byte {
+	buf, ok := maskBufPool.Get().(*bytes.Buffer)
+	if !ok {
+		buf = bytes.NewBuffer(make([]byte, 0, 16*1024))
+	}
+	buf.Reset()
+	MaskSecretsFast(source, buf)
+	masked := bytes.Clone(buf.Bytes())
+	buf.Reset()
+	maskBufPool.Put(buf)
+	return masked
 }
 
 func ASTParseOperator() action.NamedOperator {

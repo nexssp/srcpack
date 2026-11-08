@@ -70,6 +70,8 @@ Profiles control how much source goes into the package. These descriptions match
 
 These profiles skip generated and dependency files, along with example directories, by default. `source` means full selected non-test source, not every file in a repository. Use `srcpack list` to see built-in profiles and `srcpack info NAME` to inspect one. A selector’s `#profile` can be mixed with other profiles in the same command; `-p/--profile` supplies a default for the whole run.
 
+Use `--include-config` when a code map needs build, tooling, or CI context. It adds curated config and manifest files as raw text, with detected secret-like values masked; `.env` variants and common credential/private-key files remain excluded, even when explicitly selected. Masking is best-effort, not a guarantee that arbitrary secrets will be detected. Rendered file blocks also carry a machine-readable `srcpack-source` comment with original line ranges; Go signature profiles include symbol line spans there as well.
+
 ## 20 useful commands before you configure anything
 
 Run these from a local srcpack checkout. Replace local folders with the ones in your workspace. Commands 1–20 work without `nexss.srcpack.yml`.

@@ -75,6 +75,7 @@ func finishResolution(_ context.Context, cli cliOptions, startedAt time.Time, pl
 		Dense:          opts.Dense,
 		Comments:       !opts.StripComments,
 		Mask:           opts.MaskSecrets,
+		IncludeConfig:  cli.Config.IncludeConfig,
 		MaxLines:       opts.MaxLines,
 		MaxLinesHead:   opts.MaxLinesHead,
 		MaxLinesTail:   opts.MaxLinesTail,

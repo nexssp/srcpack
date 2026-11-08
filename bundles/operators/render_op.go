@@ -3,6 +3,7 @@ package operators
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"iter"
 	"strconv"
@@ -264,6 +265,9 @@ func defaultFileEnd(editor string) string {
 
 func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	var buf bytes.Buffer
+	if metadata := sourceLocationComment(file); len(metadata) > 0 {
+		buf.Write(metadata)
+	}
 
 	header := expandPlaceholders(fileStart, fileLookup(file))
 	buf.WriteString(header)
@@ -288,6 +292,33 @@ func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	buf.WriteString(footer)
 
 	return buf.Bytes()
+}
+
+func sourceLocationComment(file *ParsedFile) []byte {
+	if file.SourceStartLine < 1 || file.SourceEndLine < file.SourceStartLine {
+		return nil
+	}
+	path := file.RelPath
+	if path == "" {
+		path = file.Path
+	}
+	if path == "" {
+		return nil
+	}
+	metadata, err := json.Marshal(struct {
+		Path      string       `json:"path"`
+		StartLine int          `json:"start_line"`
+		EndLine   int          `json:"end_line"`
+		Symbols   []SymbolSpan `json:"symbols,omitempty"`
+	}{
+		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
+		Symbols: file.SymbolSpans,
+	})
+	if err != nil {
+		return nil
+	}
+	result := append([]byte("<!-- srcpack-source: "), metadata...)
+	return append(result, []byte(" -->\n")...)
 }
 
 // writeSnippets packs consecutive single-line declarations tightly and

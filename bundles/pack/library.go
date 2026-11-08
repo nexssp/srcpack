@@ -119,6 +119,7 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.Quiet = boolField(in, "quiet")
 	cli.Config.Color = stringField(in, "color", "auto")
 	cli.Config.Mask = boolField(in, "mask")
+	cli.Config.IncludeConfig = boolField(in, "include_config")
 	cli.Config.Changed = boolField(in, "changed")
 	cli.Config.Modified = boolField(in, "modified")
 	cli.Config.Staged = boolField(in, "staged")

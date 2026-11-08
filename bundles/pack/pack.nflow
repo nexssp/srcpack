@@ -40,6 +40,7 @@
   only_sig          bool  `cli:"only-sig,signatures" usage:"emit declarations and signatures only"`
   dense             bool  `cli:"dense" usage:"use compact source formatting"`
   mask              bool  `cli:"mask,mask-secrets" usage:"mask secret-like values"`
+  include_config    bool  `cli:"include-config" usage:"include curated, masked tooling and build config files"`
   max_lines         int  `cli:"max-lines" usage:"maximum source lines per file"`
   max_lines_head    int  `cli:"max-lines-head" usage:"head lines to retain when truncating"`
   max_lines_tail    int  `cli:"max-lines-tail" usage:"tail lines to retain when truncating"`

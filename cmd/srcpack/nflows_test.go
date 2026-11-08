@@ -102,7 +102,7 @@ func TestSrcpackNflowDeclaresIncludedCommandSchemas(t *testing.T) {
 	}
 	for _, want := range []string{
 		"json", "quiet", "verbose",
-		"targets", "files", "ext", "only_sig", "output", "plan",
+		"targets", "files", "ext", "only_sig", "include_config", "output", "plan",
 	} {
 		ktest.RequireCondition(t, slices.Contains(names, want), "PackInput lacks %q; got %v", want, names)
 	}

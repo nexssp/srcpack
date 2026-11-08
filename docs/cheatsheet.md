@@ -44,6 +44,9 @@ srcpack impl -t auth
 # Mixed fidelity
 srcpack "framework#dense" "app#source"
 
+# Config context, opt-in and masked
+srcpack arch --include-config
+
 # Prompt attached
 srcpack "auth~tests#impl@find auth bugs"
 
@@ -138,6 +141,7 @@ srcpack clean --dry-run          # preview cleanup
     --comments / --no-comments
     --exported-only
     --mask / --mask-secrets
+    --include-config
     --max-lines N
     --max-lines-head N
     --max-lines-tail N
@@ -191,6 +195,8 @@ srcpack clean --dry-run          # preview cleanup
 -c, --copy
     --save-view NAME
 ```
+
+Rendered file blocks include a machine-readable `srcpack-source` comment with the original line range. Go signature profiles also include per-symbol line spans; symbol selection is not yet supported.
 
 ## Config file shape
 

@@ -168,6 +168,12 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 			dropSubstr: []string{`return "hi"`},
 		},
 		{
+			name:       "include-config adds masked raw manifests to signatures",
+			args:       []string{"--only-sig", "--include-config"},
+			wantSubstr: []string{"config.yml", "key: value"},
+			dropSubstr: []string{`return "hi"`},
+		},
+		{
 			name:       "dense compacts signatures",
 			args:       []string{"--dense", "--only-sig"},
 			wantSubstr: []string{"Public()"},

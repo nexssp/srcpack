@@ -297,8 +297,9 @@ func visitFile(
 		return yield(zero, fmt.Errorf("read %q: %w", path, readErr))
 	}
 
+	sourceStartLine, sourceEndLine := 1, bytes.Count(content, []byte{'\n'})+1
 	if startLine > 0 {
-		content = sliceLines(content, startLine, endLine)
+		content, sourceStartLine, sourceEndLine = sliceLinesWithSpan(content, startLine, endLine)
 	}
 
 	hash := computeHash(content)
@@ -311,6 +312,8 @@ func visitFile(
 		Content:         content,
 		Hash:            hash,
 		Lines:           bytes.Count(content, []byte{'\n'}) + 1,
+		SourceStartLine: sourceStartLine,
+		SourceEndLine:   sourceEndLine,
 		Profile:         profile,
 		Prompt:          prompt,
 		ParseOptions:    effectiveParseOptions(cfg, profile),
@@ -319,13 +322,12 @@ func visitFile(
 	return yield(item, nil)
 }
 
-// sliceLines returns lines [start, end] (1-indexed, inclusive). When
-// end is 0 it runs to the end of the file. Out-of-range values return
-// the full content.
-func sliceLines(data []byte, start, end int) []byte {
+// sliceLinesWithSpan returns lines [start, end] (1-indexed, inclusive), plus
+// their original line range. When end is 0 it runs to EOF.
+func sliceLinesWithSpan(data []byte, start, end int) ([]byte, int, int) {
 	lines := bytes.Split(data, []byte("\n"))
 	if start < 1 || start > len(lines) {
-		return data
+		return data, 1, len(lines)
 	}
 	from := start - 1
 	to := end
@@ -333,14 +335,17 @@ func sliceLines(data []byte, start, end int) []byte {
 		to = len(lines)
 	}
 	if to < from {
-		return data
+		return data, 1, len(lines)
 	}
-	return bytes.Join(lines[from:to], []byte("\n"))
+	return bytes.Join(lines[from:to], []byte("\n")), start, to
 }
 
 func skipReason(path, relPath string, cfg PackConfig, extensions map[string]bool, examples []string) string {
 	base := strings.ToLower(filepath.Base(path))
 
+	if isSensitiveSourceFile(relPath) {
+		return "sensitive"
+	}
 	if binaryExtensions[strings.ToLower(filepath.Ext(path))] {
 		return "binary"
 	}
@@ -439,6 +444,7 @@ func effectiveParseOptions(cfg PackConfig, profile string) ParseOptions {
 		Dense:          cfg.Dense,
 		Comments:       cfg.Comments,
 		Mask:           cfg.Mask,
+		IncludeConfig:  cfg.IncludeConfig,
 		MaxLines:       cfg.MaxLines,
 		MaxLinesHead:   cfg.MaxLinesHead,
 		MaxLinesTail:   cfg.MaxLinesTail,

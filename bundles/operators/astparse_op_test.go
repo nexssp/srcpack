@@ -129,6 +129,58 @@ func TestASTParse_MaxLinesHeadTail(t *testing.T) {
 	ktest.RequireStringContains(t, combined, "TRUNCATED MIDDLE")
 }
 
+func TestASTParse_IncludeConfigIsOptInAndMasked(t *testing.T) {
+	file := operators.ParsedFile{
+		FileMeta: mustMeta(".golangci.yml", "text"),
+		Content:  []byte("api_key: \"test-secret-value-123\"\n"),
+		ParseOptions: operators.ParseOptions{
+			OnlySig:       true,
+			IncludeConfig: true,
+		},
+		ParseOptionsSet: true,
+	}
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one config record", len(out))
+	}
+	got := string(out[0].Content)
+	ktest.RequireStringContains(t, got, `api_key: "[REDACTED_CREDENTIAL]"`)
+	ktest.RequireStringNotContains(t, got, "test-secret-value-123")
+
+	file.ParseOptions.IncludeConfig = false
+	out = runASTParse(t, file)
+	if len(out) != 1 || len(out[0].Content) != 0 {
+		t.Fatalf("config without --include-config was not omitted: %#v", out)
+	}
+}
+
+func TestASTParse_GoSymbolSpansUseOriginalLines(t *testing.T) {
+	source := "package sample\n\nfunc Exported() {\n\t_ = 1\n}\n\nfunc hidden() {}\n"
+	file := operators.ParsedFile{
+		FileMeta:        mustMeta("sample.go", "go"),
+		Content:         []byte(source),
+		SourceStartLine: 40,
+		SourceEndLine:   47,
+		ParseOptions: operators.ParseOptions{
+			OnlySig:      true,
+			ExportedOnly: true,
+		},
+		ParseOptionsSet: true,
+	}
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one", len(out))
+	}
+	if len(out[0].SymbolSpans) != 1 {
+		t.Fatalf("got %d symbol spans, want only the exported function: %#v", len(out[0].SymbolSpans), out[0].SymbolSpans)
+	}
+	span := out[0].SymbolSpans[0]
+	ktest.RequireEqual(t, span.Name, "Exported")
+	ktest.RequireEqual(t, span.Kind, "func")
+	ktest.RequireEqual(t, span.StartLine, 42)
+	ktest.RequireEqual(t, span.EndLine, 44)
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 func runASTParse(t *testing.T, file operators.ParsedFile) []operators.ParsedFile {

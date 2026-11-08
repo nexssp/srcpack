@@ -30,6 +30,7 @@ type PackConfig struct {
 	OnlySig        bool              `json:"only_sig" cli:"only-sig"`
 	Dense          bool              `json:"dense" cli:"dense"`
 	Mask           bool              `json:"mask" cli:"mask"`
+	IncludeConfig  bool              `json:"include_config" cli:"include-config"`
 	MaxLines       int               `json:"max_lines" cli:"max-lines"`
 	MaxLinesHead   int               `json:"max_lines_head"`
 	MaxLinesTail   int               `json:"max_lines_tail"`
@@ -75,6 +76,9 @@ type ParsedFile struct {
 	Snippets        []string
 	FuncCount       int
 	Lines           int
+	SourceStartLine int          `json:"source_start_line,omitempty"`
+	SourceEndLine   int          `json:"source_end_line,omitempty"`
+	SymbolSpans     []SymbolSpan `json:"symbol_spans,omitempty"`
 	IsRaw           bool
 	IsFull          bool
 	Omitted         bool
@@ -87,11 +91,20 @@ type ParsedFile struct {
 	ParseOptionsSet bool
 }
 
+type SymbolSpan struct {
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Receiver  string `json:"receiver,omitempty"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+}
+
 type ParseOptions struct {
 	OnlySig        bool
 	Dense          bool
 	Comments       bool
 	Mask           bool
+	IncludeConfig  bool
 	MaxLines       int
 	MaxLinesHead   int
 	MaxLinesTail   int

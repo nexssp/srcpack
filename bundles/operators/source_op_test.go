@@ -153,6 +153,42 @@ func TestSource_LineRangeSelectors(t *testing.T) {
 	}
 }
 
+func TestSource_PreservesOriginalLineRange(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "sample.txt", "one\ntwo\nthree\nfour\nfive\n")
+	t.Chdir(dir)
+
+	collected := collectSource(t, operators.PackConfig{Targets: []string{"sample.txt:2-4"}})
+	if len(collected) != 1 {
+		t.Fatalf("source emitted %d records, want one", len(collected))
+	}
+	file := collected[0]
+	ktest.RequireEqual(t, file.SourceStartLine, 2)
+	ktest.RequireEqual(t, file.SourceEndLine, 4)
+	ktest.RequireEqual(t, string(file.Content), "two\nthree\nfour")
+}
+
+func TestSource_ExcludesSensitiveFilesEvenWhenExplicit(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{
+		".env", ".env.production", ".npmrc", "credentials.json",
+		"service-account.json", "private.pem", "safe.yml",
+	} {
+		writeFile(t, dir, name, "key: value\n")
+	}
+	t.Chdir(dir)
+
+	collected := collectSource(t, operators.PackConfig{
+		Targets:       []string{".env", ".env.production", ".npmrc", "credentials.json", "service-account.json", "private.pem", "safe.yml"},
+		IncludeConfig: true,
+	})
+	var included []string
+	for _, file := range collected {
+		included = append(included, file.RelPath)
+	}
+	ktest.RequireEqual(t, included, []string{"safe.yml"})
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 func collectSource(t *testing.T, cfg operators.PackConfig) []operators.ParsedFile {
