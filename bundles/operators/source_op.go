@@ -81,7 +81,7 @@ func SourceOperator() action.AnyStreamAction {
 					yield(zero, err)
 					return
 				}
-				path, startLine, endLine := parseLineRange(target)
+				path, startLine, endLine := ParseLineRange(target)
 				if cfg.TargetRoots[target] != "" {
 					// A materialized target is a literal filename, not another selector.
 					path, startLine, endLine = target, 0, 0
@@ -490,26 +490,48 @@ func parseExtensions(value string) map[string]bool {
 	return result
 }
 
-func parseLineRange(target string) (path string, start, end int) {
+// ParseLineRange separates a local file selector's optional inclusive line range.
+// A zero end means through EOF; invalid suffixes remain part of the path.
+func ParseLineRange(target string) (path string, start, end int) {
 	idx := strings.LastIndex(target, ":")
 	if idx == -1 || idx == 1 {
 		return target, 0, 0
 	}
 	rangeStr := target[idx+1:]
-	parts := strings.Split(rangeStr, "-")
-	start, err := strconv.Atoi(parts[0])
-	if err != nil || start < 1 {
-		return target, 0, 0
-	}
-	if len(parts) > 1 {
-		end, err = strconv.Atoi(parts[1])
-		if err != nil || end < start {
+	if from, to, ok := strings.Cut(rangeStr, "-"); ok {
+		if strings.Contains(to, "-") {
 			return target, 0, 0
 		}
-	} else {
-		end = start
+		switch {
+		case from == "":
+			lastLine, err := strconv.Atoi(to)
+			if err != nil || lastLine < 1 {
+				return target, 0, 0
+			}
+			return target[:idx], 1, lastLine
+		case to == "":
+			firstLine, err := strconv.Atoi(from)
+			if err != nil || firstLine < 1 {
+				return target, 0, 0
+			}
+			return target[:idx], firstLine, 0
+		default:
+			firstLine, err := strconv.Atoi(from)
+			if err != nil || firstLine < 1 {
+				return target, 0, 0
+			}
+			lastLine, err := strconv.Atoi(to)
+			if err != nil || lastLine < firstLine {
+				return target, 0, 0
+			}
+			return target[:idx], firstLine, lastLine
+		}
 	}
-	return target[:idx], start, end
+	line, err := strconv.Atoi(rangeStr)
+	if err != nil || line < 1 {
+		return target, 0, 0
+	}
+	return target[:idx], line, line
 }
 
 func computeHash(data []byte) string {

@@ -162,6 +162,7 @@ func TestCommandInvocationNormalizesOnlyCommandSyntax(t *testing.T) {
 		{[]string{"run-all"}, []string{"update"}, "update", false, true},
 		{[]string{"validate"}, []string{"doctor"}, "doctor", false, true},
 		{[]string{"type-list"}, []string{"types"}, "types", false, true},
+		{[]string{"cookbook"}, []string{"cookbook"}, "cookbook", false, true},
 	}
 	for _, tc := range tests {
 		got, cmd, explicit, err := commandInvocation(context.Background(), tc.args)
@@ -282,5 +283,22 @@ func TestFlowCLIMixedCommaSelectorsKeepPerTargetProfiles(t *testing.T) {
 	}
 	if strings.Contains(s, "BODY_A") || strings.Contains(s, "BODY_B") || !strings.Contains(s, "BODY_C") {
 		t.Fatalf("per-target profiles lost: %s", s)
+	}
+}
+
+func TestFlowCLIOpenEndedLineSelectorKeepsProfile(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{
+		"main.go": "package main\n\nfunc Selected() string {\n\treturn \"selected body\"\n}\n",
+	})
+	t.Chdir(root)
+	if err := execute(context.Background(), []string{"main.go:1-#source", "--output", "out.md", "--quiet"}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile("out.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), `return "selected body"`) {
+		t.Fatalf("open-ended selector lost its source profile:\n%s", data)
 	}
 }

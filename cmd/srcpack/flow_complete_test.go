@@ -49,7 +49,7 @@ func TestEveryCommandIsDeclaredInNFlowSourceModules(t *testing.T) {
 	}
 	collectCommands(prepared.Metadata())
 
-	for _, name := range []string{"init", "pack", "tree", "update", "config", "target", "prompt", "profile", "editor", "view", "dashboard", "usage", "version", "list", "info", "clean", "doctor", "types", "health", "demo"} {
+	for _, name := range []string{"init", "pack", "tree", "update", "config", "target", "prompt", "profile", "editor", "view", "dashboard", "usage", "version", "list", "info", "clean", "doctor", "types", "health", "demo", "cookbook"} {
 		if !commands[name] {
 			t.Errorf("command %s is not declared in the NFlow source modules", name)
 		}
@@ -105,6 +105,28 @@ func TestFlowAdministrativeResourcesRoundTrip(t *testing.T) {
 	}
 }
 
+func TestFlowCookbookPrintsPracticalExamples(t *testing.T) {
+	t.Chdir(t.TempDir())
+	text, err := capturePolicyStdout(t, func() error { return execute(context.Background(), []string{"cookbook"}) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"# srcpack cookbook",
+		`srcpack "internal/auth#api" "internal/store#with-tests"`,
+		`service.go:80-#source`,
+		`service.go:-140#source`,
+		"github:OWNER/REPO//PATH?ref=REF",
+		"--modified --diff-only",
+		"srcpack view list",
+		"srcpack target add auth internal/auth",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("cookbook output omitted %q", want)
+		}
+	}
+}
+
 func TestFlowSystemCommandsAndSafeClean(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)
@@ -112,7 +134,7 @@ func TestFlowSystemCommandsAndSafeClean(t *testing.T) {
 	if err := execute(ctx, []string{"help", "target"}); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{nil, {"help"}, {"--version"}, {"list"}, {"info"}, {"info", "sources"}, {"types"}, {"health"}, {"demo"}} {
+	for _, args := range [][]string{nil, {"help"}, {"--version"}, {"list"}, {"info"}, {"info", "sources"}, {"types"}, {"health"}, {"demo"}, {"cookbook"}} {
 		text, err := capturePolicyStdout(t, func() error { return execute(ctx, args) })
 		if err != nil || text == "" {
 			t.Fatalf("%v: %v output=%q", args, err, text)
@@ -197,6 +219,8 @@ func TestFlowProfileAliasesAndTypesOutput(t *testing.T) {
   vue:         *.vue
   web:         *.html, *.htm, *.css, *.scss, *.js, *.jsx, *.ts, *.tsx, *.svelte, *.vue
   zig:         *.zig
+
+Filter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml
 `
 	if got != want {
 		t.Fatalf("types output = %q, want %q", got, want)

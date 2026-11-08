@@ -17,9 +17,11 @@ Make sure `srcpack` is on your `PATH`, then run it from any project you want to 
 ```sh
 cd /path/to/your/project
 srcpack ".#arch"
+srcpack cookbook
 ```
 
 That creates a quick architecture map and copies it to the clipboard. Use `-o -` to print the result in your terminal or `-o FILE` to save it.
+`srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration.
 
 ## Combine local and remote code in one command
 
@@ -50,7 +52,7 @@ Quote each selector in your shell. Paths can be directories, files, comma-separa
 github:OWNER/REPO[//PATH][?ref=REF]
 ```
 
-For a branch, tag, or commit, add `?ref=`. If you omit it, srcpack uses the repository’s current default revision. Remote source is fetched temporarily for the command; no separate clone is needed. Git must be installed, and remote repositories must be public. Private-repository credentials are not forwarded. See [remote source details](docs/REMOTE_SOURCES.md) for escaping, fetching, and limitations.
+For a branch, tag, or commit, add `?ref=`. If you omit it, srcpack uses the repository’s current default revision. Remote source is fetched temporarily for the command; no separate clone is needed. Git must be installed, and remote repositories must be public. Private-repository credentials are not forwarded. Run `srcpack cookbook` for working remote examples and limitations.
 
 ### Profiles
 
@@ -82,8 +84,8 @@ Run these from a local srcpack checkout. Replace local folders with the ones in 
 | 6 | `srcpack "README.md#source" "go.mod#source"` | Package specific files together. |
 | 7 | `srcpack "bundles/pack,nflows#arch"` | Map multiple directories at once. |
 | 8 | `srcpack "bundles/pack#arch" "nflows#source"` | Mix detail levels in one result. |
-| 9 | `srcpack "bundles/pack#impl~*_test.go"` | Exclude matching test files. |
-| 10 | `srcpack "bundles/pack#impl@Review input validation and errors."` | Add a one-off review prompt. |
+| 9 | `srcpack "bundles/pack~*_test.go#impl"` | Exclude matching test files. |
+| 10 | `srcpack "bundles/pack#impl" --prompt "Review input validation and errors."` | Add a one-off prompt to the rendered context. |
 | 11 | `srcpack tree "bundles/pack"` | Inspect the selected directory tree. |
 | 12 | `srcpack tree "bundles/pack" --tree-files` | Show file names in the tree. |
 | 13 | `srcpack ".#arch" --modified` | Include changed and untracked local files. |
@@ -108,4 +110,4 @@ srcpack view list
 srcpack view show flow-review
 ```
 
-Run `srcpack init` when you want reusable workspace configuration such as named targets, prompts, editors, or profiles. `srcpack doctor` checks that configuration. For every command and flag, see the [command reference](docs/COMMANDS.md); for more practical workflows, see the [practical guide](docs/PRACTICAL_GUIDE.md).
+Run `srcpack init` when you want reusable workspace configuration such as named targets, prompts, editors, or profiles. `srcpack doctor` checks that configuration. Run `srcpack --help` for the command reference, `srcpack cookbook` for practical workflows, or read the [selector cheat sheet](docs/cheatsheet.md) and [cookbook source](bundles/system/cookbook.md).

@@ -418,18 +418,8 @@ func selectorTargetKey(target, cwd string) string {
 	if remote.IsRemote(target) {
 		return target
 	}
-	if idx := strings.LastIndex(target, ":"); idx > 1 {
-		parts := strings.Split(target[idx+1:], "-")
-		valid := len(parts) == 1 || len(parts) == 2
-		for _, p := range parts {
-			n, e := strconv.Atoi(p)
-			if e != nil || n < 1 {
-				valid = false
-			}
-		}
-		if valid {
-			target = target[:idx]
-		}
+	if path, start, _ := operators.ParseLineRange(target); start > 0 {
+		target = path
 	}
 	if cwd != "" && !filepath.IsAbs(target) {
 		if base, e := filepath.Abs(cwd); e == nil {

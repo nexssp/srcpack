@@ -3,7 +3,7 @@
 ## Selector grammar
 
 ```
-path[,path...]>[~exclude[,exclude...]][#profile][@prompt]
+path[,path...][~exclude[,exclude...]][#profile][@prompt]
 ```
 
 | Slot | Example |
@@ -12,11 +12,12 @@ path[,path...]>[~exclude[,exclude...]][#profile][@prompt]
 | Exclude | `~tests,vendor` |
 | Profile | `#arch`, `#impl`, `#source`, `#dense` |
 | Prompt | `@find auth bugs`, `@prompt.md` |
-| Line range | `file.go:10-40` |
+| Line range | `file.go:10-40`, `file.go:10-`, `file.go:-40`, `file.go:10` |
 
 Compose:
 ```sh
 srcpack "src#arch" "internal/auth#source@review" "cmd~tests#impl"
+srcpack cookbook
 ```
 
 ## Profiles
@@ -115,6 +116,7 @@ srcpack info arch                # profile details
 srcpack config path              # config file path
 srcpack config show              # effective merged config
 srcpack types                    # file-type aliases
+srcpack . --ext json,yaml        # pass extension suffixes, not type labels
 srcpack health                   # service status
 srcpack demo                     # small AST demo
 srcpack clean --dry-run          # preview cleanup

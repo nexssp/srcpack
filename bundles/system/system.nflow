@@ -86,6 +86,7 @@
       "    srcpack update --check                     Preview changes without writing\n" +
       "    srcpack arch --check                       Single-target preview\n" +
       "    srcpack impl --modified                   Only changed + untracked files\n" +
+      "    srcpack cookbook                           Copy-and-paste workflows and selector examples\n" +
       "    srcpack doctor                             Validate config\n" +
       "    srcpack clean --dry-run                    Preview what would be removed\n\n" +
       "  Full reference: srcpack help\n\n",
@@ -96,6 +97,13 @@
 @pipeline usage:cli="usage:Show the complete srcpack command reference":request-schema=EmptyInput
   cli.restore
   -> system.help
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline cookbook:cli="cookbook:Print practical copy-and-paste workflows":request-schema=EmptyInput
+  cli.restore
+  -> system.cookbook
   -> cli.print
   -> cli.finish
 @end
@@ -175,7 +183,7 @@
   -> {
     content: "Available file types:\n" + join(map(sortBy(keys(.aliases), #, "asc"), let name = #;
       terminal.printf("  %-12s %s\n", name + ":", join(map(.aliases[name], "*." + #), ", ")
-      )), ""),
+      )), "") + "\nFilter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml\n",
     stream: output_stream.stdout
   }
   -> cli.print

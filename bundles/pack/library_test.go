@@ -63,3 +63,19 @@ func TestToIntInvalidAndOutOfRangeValuesUseZeroFallback(t *testing.T) {
 		}
 	}
 }
+
+func TestSelectorTargetKeyRemovesSupportedLineRanges(t *testing.T) {
+	t.Parallel()
+
+	want := selectorTargetKey("file.go", "/workspace")
+	for _, selector := range []string{
+		"file.go:4",
+		"file.go:4-12",
+		"file.go:4-",
+		"file.go:-12",
+	} {
+		if got := selectorTargetKey(selector, "/workspace"); got != want {
+			t.Errorf("selectorTargetKey(%q) = %q, want %q", selector, got, want)
+		}
+	}
+}

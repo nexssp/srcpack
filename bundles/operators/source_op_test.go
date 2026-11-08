@@ -127,6 +127,32 @@ func TestSource_ExtensionsFilter(t *testing.T) {
 	ktest.RequireEqual(t, included, []string{"a.go"})
 }
 
+func TestSource_LineRangeSelectors(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "snippet.go", "one\ntwo\nthree\nfour\nfive\n")
+	t.Chdir(dir)
+
+	for _, test := range []struct {
+		selector string
+		want     string
+	}{
+		{selector: "snippet.go:2-3", want: "two\nthree"},
+		{selector: "snippet.go:3-", want: "three\nfour\nfive\n"},
+		{selector: "snippet.go:-2", want: "one\ntwo"},
+		{selector: "snippet.go:4", want: "four"},
+	} {
+		t.Run(test.selector, func(t *testing.T) {
+			collected := collectSource(t, operators.PackConfig{Targets: []string{test.selector}})
+			if len(collected) != 1 {
+				t.Fatalf("source emitted %d records, want one", len(collected))
+			}
+			if got := string(collected[0].Content); got != test.want {
+				t.Fatalf("source content = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 func collectSource(t *testing.T, cfg operators.PackConfig) []operators.ParsedFile {

@@ -25,7 +25,7 @@ const (
 	defaultVersion = "dev"
 )
 
-//go:embed *.nflow help.txt
+//go:embed *.nflow help.txt cookbook.md
 var FS embed.FS
 
 type versionKey struct{}
@@ -63,6 +63,7 @@ func Bundle(_ map[string]string) compiler.Bundle {
 		}, Actions: []action.AnyAction{
 			action.New("system.dashboard.facts", dashboardFacts).Build(),
 			action.New("system.help", help).Build(),
+			action.New("system.cookbook", cookbook).Build(),
 			action.New("system.version", version).Build(),
 			action.New("system.profiles", profiles).Build(),
 			action.New("system.profile_info", profileInfo).Build(),
@@ -128,6 +129,14 @@ func dashboardFacts(_ context.Context, _ map[string]any) (map[string]any, error)
 
 func help(_ context.Context, _ map[string]any) (map[string]any, error) {
 	return printed(HelpText()), nil
+}
+
+func cookbook(_ context.Context, _ map[string]any) (map[string]any, error) {
+	content, err := FS.ReadFile("cookbook.md")
+	if err != nil {
+		return nil, fmt.Errorf("load srcpack cookbook: %w", err)
+	}
+	return printed(string(content)), nil
 }
 
 func version(ctx context.Context, _ map[string]any) (map[string]any, error) {
