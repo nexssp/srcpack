@@ -58,6 +58,25 @@ srcpack "internal/auth/service.go:-140#source" -o -
 srcpack "internal/auth/service.go:23#source" -o -
 ```
 
+## Include curated config and trace source lines
+
+`--include-config` is opt-in. It adds eligible build and tooling config as raw text, masking detected secret-like values on a best-effort basis. `.env` variants and common credential/private-key files remain excluded, even when explicitly selected; review output before sharing.
+
+```sh
+# Include eligible config files alongside the architecture map
+srcpack ".#arch" --include-config -o context.md
+
+# Keep original source coordinates for a line slice
+srcpack "internal/auth/service.go:80-140#source" -o -
+```
+
+Rendered file blocks start with a machine-readable location comment. `start_line` and `end_line` are 1-based, inclusive original-file lines. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
+
+```html
+<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->
+<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}]} -->
+```
+
 ## Add prompt text
 
 ```sh

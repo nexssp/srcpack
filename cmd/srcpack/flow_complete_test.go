@@ -120,6 +120,12 @@ func TestFlowCookbookPrintsPracticalExamples(t *testing.T) {
 		"--modified --diff-only",
 		"srcpack view list",
 		"srcpack target add auth internal/auth",
+		`srcpack ".#arch" --include-config -o context.md`,
+		"best-effort basis",
+		".env` variants and common credential/private-key files remain excluded",
+		`srcpack "internal/auth/service.go:80-140#source" -o -`,
+		`<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->`,
+		`"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}]`,
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("cookbook output omitted %q", want)
