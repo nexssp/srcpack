@@ -116,7 +116,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: srcpack-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/srcpack_*
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -126,6 +128,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -138,11 +143,11 @@ jobs:
         run: |
           set -euo pipefail
           version="${TAG#v}"
-          (cd dist && sha256sum srcpack_* > "srcpack_${version}_checksums.txt")
+          (cd dist && sha256sum srcpack_*.tar.gz srcpack_*.zip > "srcpack_${version}_checksums.txt")
           if [[ "$TAG" == *-* ]]; then
-            gh release create "$TAG" dist/* --verify-tag --generate-notes \
-              --title "$TAG" --prerelease
+            gh release create "$TAG" dist/* install.sh install.ps1 \
+              --verify-tag --generate-notes --title "$TAG" --prerelease
           else
-            gh release create "$TAG" dist/* --verify-tag --generate-notes \
-              --title "$TAG"
+            gh release create "$TAG" dist/* install.sh install.ps1 \
+              --verify-tag --generate-notes --title "$TAG"
           fi

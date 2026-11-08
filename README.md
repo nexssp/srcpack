@@ -12,6 +12,24 @@ Install with Go 1.27.3 or newer:
 go install github.com/nexssp/srcpack/cmd/srcpack@latest
 ```
 
+### Install a prebuilt release
+
+The release workflow attaches installers to new releases. Older releases do not contain these files, so use the Go install command above if the latest release does not yet offer them.
+
+Linux or macOS:
+
+```sh
+curl -fsSL https://github.com/nexssp/srcpack/releases/latest/download/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://github.com/nexssp/srcpack/releases/latest/download/install.ps1 | iex
+```
+
+The installers verify the downloaded archive against the release's SHA-256 checksum file, install without administrator privileges, and support a pinned version and custom install directory. The checksum detects download corruption; it is not a publisher signature.
+
 Make sure `srcpack` is on your `PATH`, then run it from any project you want to inspect. No config file or `srcpack init` is needed:
 
 ```sh
