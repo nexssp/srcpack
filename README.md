@@ -4,6 +4,8 @@
 
 `srcpack` turns selected source code into one focused, AI-ready context. It can combine local folders, files, and public GitHub source in a single command, with a different detail profile for each selection. Use it to map a project, prepare a code review, or give an AI a clean slice of code without copying files by hand. It reads source; it does not rewrite it.
 
+![Summary of the Nexss Srcpack nexssp/srcpack](https://github.com/user-attachments/assets/b04cefb3-d61d-4e19-9a50-cb88ad028516)
+
 ## Install and start using it
 
 Install with Go 1.27.3 or newer:
