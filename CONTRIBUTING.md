@@ -16,6 +16,26 @@ go vet ./...
 go test ./... -run '^$' -bench=. -benchmem -count=1
 ```
 
+Install Task and the upstream Flow CLI used by the workflow checks:
+
+```bash
+go install github.com/go-task/task/v3/cmd/task@latest
+go install github.com/nexssp/flow/cmd/nflow@main
+```
+
+For focused checks, use Task's package arguments after `--`:
+
+```bash
+task lint -- ./bundles/document ./cmd/srcpack
+task lint:nflow
+task nflow:fmt-check
+```
+
+`task lint` runs Go lint only, like the other Nexss repositories; the NFlow
+checks are separate because they validate registered workflow sources rather
+than Go packages. NFlow checks use the upstream `nflow` executable, not a
+srcpack-specific linter.
+
 ## Requirements
 
 - A change to a **public interface** requires a compatibility explanation and tests.

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/nexssp/flow/compiler"
-	flowtemplate "github.com/nexssp/flow/extensions/template"
 	"github.com/nexssp/flow/native"
 	"github.com/nexssp/flow/runner"
 )
@@ -45,5 +44,5 @@ func render(ctx context.Context, kind string, input map[string]any) (string, err
 }
 
 var formatterConfig = sync.OnceValues(func() (runner.Config, error) {
-	return runner.BuildConfig(append(native.Bundles(), flowtemplate.Bundle(nil), Bundle(nil)))
+	return runner.BuildConfig(append(native.Bundles(), Bundle(nil)))
 })

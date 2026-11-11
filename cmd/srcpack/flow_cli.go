@@ -134,15 +134,15 @@ func cliRunnerConfig(ctx context.Context, source string, transport *tcli.Transpo
 	}
 	for i := range requirements {
 		req := &requirements[i]
-		if seen[require.NormalizeID(req.Import)] && req.Alias == "" {
-			continue
-		}
 		selected, err := require.ResolveBundles([]require.Requirement{*req})
 		if err != nil {
 			return runner.Config{}, err
 		}
 		for i := range selected {
 			bundle := &selected[i]
+			if seen[bundle.ID] && req.Alias == "" {
+				continue
+			}
 			if bundle.ID == "tcli" {
 				bundle.Libraries[0] = tcliflow.LibraryWithTransport(transport)
 			}

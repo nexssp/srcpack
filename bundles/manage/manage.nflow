@@ -1,8 +1,8 @@
 @description "Flow-driven srcpack target, prompt, profile, editor, and saved-view administration"
-@require srcpack_manage
-@require srcpack_cli
-@require config_views
-@require terminal
+@require github.com/nexssp/srcpack/bundles/manage/nexssflow
+@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
+@require github.com/nexssp/srcpack/bundles/config_views/nexssflow
+@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
 @include "../config_views/config_views.nflow"
 @include "manage_reports.nflow"
 

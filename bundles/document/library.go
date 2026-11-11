@@ -22,7 +22,10 @@ const ID = "document"
 //go:embed document.nflow
 var FS embed.FS
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/document/nexssflow", Bundle)
+}
 
 // Bundle mounts the generic interpolation primitive, not the NFlow source.
 // Include document.nflow separately with Loader or a filesystem source loader.

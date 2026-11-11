@@ -1,5 +1,5 @@
 @description "Selector decisions: explicit targets, path/view precedence and profile selection"
-@require srcpack_pack
+@require github.com/nexssp/srcpack/bundles/pack/nexssflow
 @include "resolution.nflow"
 
 @symbols route {

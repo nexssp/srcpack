@@ -1,5 +1,5 @@
 @description "Reusable report-formatting policies for manage commands"
-@require terminal
+@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
 
 @pipeline target_list_report
   { content: len(keys(.config.targets)) == 0 ? "No targets defined.\n" : join(map(sort(keys(.config.targets)), terminal.printf("  %-20s %s\n", #, "[" + join(concat(concat(.config.targets[#].paths ?? [], map(.config.targets[#].dir ?? [], #.path)), concat(.config.targets[#].files ?? [], .config.targets[#].targets ?? [])), ", ") + "]")), "") }

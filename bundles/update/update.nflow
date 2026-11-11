@@ -1,13 +1,9 @@
 @description "Regenerate each configured srcpack target through the pack pipeline"
-@require srcpack_update
-@require srcpack_pack
-@require srcpack_cli
-@require srcpack_source
-@require srcpack_analysis
-@require srcpack_render
-@require srcpack_io
-@require nodes_distribute
-@require terminal
+@require github.com/nexssp/srcpack/bundles/update/nexssflow
+@require github.com/nexssp/srcpack/bundles/pack/nexssflow
+@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
+@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
 @include "update_item.nflow"
 @include "update_policy.nflow"
 
@@ -18,7 +14,9 @@
   quiet        bool  `cli:"quiet,q" usage:"Suppress per-target completion lines"`
 }
 
-@pipeline update:cli="update:Regenerate every configured target":request-schema=UpdateInput
+@pipeline update
+  :cli="update:Regenerate every configured target"
+  :request-schema=UpdateInput
   cli.restore
   -> updatecmd.targets
   -> update_policy.@update_target_plan()
@@ -52,7 +50,10 @@
   }
   -> cli.print
   -> match {
-    .summary.failed > 0 -> { kind: "update", message: string(.summary.failed) + " target(s) failed" } -> fail,
-    _ -> cli.finish
+    .summary.failed > 0
+      -> { kind: "update", message: string(.summary.failed) + " target(s) failed" }
+      -> fail,
+    _
+      -> cli.finish
   }
 @end

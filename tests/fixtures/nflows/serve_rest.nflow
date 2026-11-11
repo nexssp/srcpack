@@ -1,12 +1,14 @@
 @description "Srcpack REST API Server"
-@require github.com/nexssp/srcpack
+@require github.com/nexssp/srcpack/nexssflow
 @include "pack.nflow"
 
 @on event "http::8092"
 
-@pipeline pack:route="POST /api/v1/pack" :status=200
+@pipeline pack
+  :route="POST /api/v1/pack"
+  :status=200
   srcpack.source
     -> ast.parse
-    -> stats.collect:quiet=true
+    -> stats.collect :quiet=true
     -> srcpack.render
 @end

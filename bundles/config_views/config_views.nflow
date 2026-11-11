@@ -1,5 +1,6 @@
 @description "Configuration identity and legacy views adapter over generic CRUD"
-@require config_views
+@require github.com/nexssp/srcpack/bundles/config_views/nexssflow
+@require github.com/nexssp/srcpack/bundles/crud/nexssflow
 @include "../crud/crud.nflow"
 
 @macro config_views_invalid() {

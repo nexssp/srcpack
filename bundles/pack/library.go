@@ -45,7 +45,10 @@ func WithInvocation(ctx context.Context, command string, explicitPack bool, _ st
 	return context.WithValue(ctx, invocationKey{}, invocation{command: command, explicitPack: explicitPack})
 }
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/pack/nexssflow", Bundle)
+}
 
 func Bundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{ID: ID, Libraries: []action.Library{{Name: ID, Actions: []action.AnyAction{

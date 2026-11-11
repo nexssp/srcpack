@@ -53,7 +53,10 @@ func HelpText() string {
 	return strings.ReplaceAll(string(data), "{{TREE_DEPTH}}", strconv.Itoa(config.DefaultTreeDepth))
 }
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/system/nexssflow", Bundle)
+}
 
 func Bundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{

@@ -63,7 +63,11 @@ func WithStore(ctx context.Context, store Store) context.Context {
 // YAMLStore preserves unrelated YAML nodes and writes patches atomically.
 type YAMLStore struct{}
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/crud/nexssflow", Bundle)
+}
+
 func Bundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{ID: ID, Libraries: []action.Library{{Name: ID, Actions: []action.AnyAction{
 		action.New("crud.read", readAction).Description("Read a mapping and return its source token").Build(),

@@ -54,6 +54,7 @@ func TestCopiedBundleConsumer(t *testing.T) {
 			if err != nil {
 				return err
 			}
+			b = []byte(strings.ReplaceAll(string(b), "github.com/nexssp/srcpack/bundles/config_views", "example.com/copied-config-views"))
 			b = []byte(strings.ReplaceAll(string(b), "github.com/nexssp/srcpack/bundles/crud", "example.com/copied-config-views/crud"))
 			return destinationRoot.WriteFile(dst, b, 0o600)
 		}))

@@ -23,7 +23,10 @@ const ID = "srcpack_config"
 //go:embed *.nflow
 var FS embed.FS
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/config_cli/nexssflow", Bundle)
+}
 
 func Bundle(_ map[string]string) compiler.Bundle {
 	return compiler.Bundle{

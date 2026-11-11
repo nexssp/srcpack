@@ -19,16 +19,17 @@ import (
 	"github.com/nexssp/kernel/action"
 	tclinexssflow "github.com/nexssp/transport/tcli/nexssflow"
 
-	"github.com/nexssp/srcpack/bundles/cliinput"
-	configcmd "github.com/nexssp/srcpack/bundles/config_cli"
-	configviews "github.com/nexssp/srcpack/bundles/config_views"
-	"github.com/nexssp/srcpack/bundles/document"
-	initcmd "github.com/nexssp/srcpack/bundles/init"
-	managecmd "github.com/nexssp/srcpack/bundles/manage"
-	packcmd "github.com/nexssp/srcpack/bundles/pack"
-	systemcmd "github.com/nexssp/srcpack/bundles/system"
-	terminalfmt "github.com/nexssp/srcpack/bundles/terminal"
-	updatecmd "github.com/nexssp/srcpack/bundles/update"
+	_ "github.com/nexssp/srcpack/bundles/cliinput"
+	_ "github.com/nexssp/srcpack/bundles/config_cli"
+	_ "github.com/nexssp/srcpack/bundles/config_views"
+	_ "github.com/nexssp/srcpack/bundles/crud"
+	_ "github.com/nexssp/srcpack/bundles/document"
+	_ "github.com/nexssp/srcpack/bundles/init"
+	_ "github.com/nexssp/srcpack/bundles/manage"
+	_ "github.com/nexssp/srcpack/bundles/pack"
+	_ "github.com/nexssp/srcpack/bundles/system"
+	_ "github.com/nexssp/srcpack/bundles/terminal"
+	_ "github.com/nexssp/srcpack/bundles/update"
 	"github.com/nexssp/srcpack/nexssflow"
 )
 
@@ -46,6 +47,19 @@ func acceptanceRecordSource() action.AnyStreamAction {
 			}
 		}, nil
 	})
+}
+
+func srcpackAcceptanceBundle() compiler.Bundle {
+	bundle := compiler.Bundle{ID: "srcpack"}
+	for _, component := range []compiler.Bundle{
+		nexssflow.SourceBundle(nil),
+		nexssflow.AnalysisBundle(nil),
+		nexssflow.RenderBundle(nil),
+		nexssflow.IOBundle(nil),
+	} {
+		bundle.Libraries = append(bundle.Libraries, component.Libraries...)
+	}
+	return bundle
 }
 
 // TestFlowAcceptance runs the checked-in .nflow acceptance fixtures through
@@ -71,20 +85,7 @@ func TestFlowAcceptance(t *testing.T) {
 	t.Chdir(workspace)
 	bundles := []compiler.Bundle{
 		{ID: "srcpack_nflow_test_sources", Libraries: []action.Library{{Name: "srcpack_test", Sources: []action.AnyStreamAction{acceptanceRecordSource()}}}},
-		cliinput.Bundle(nil),
-		configcmd.Bundle(nil),
-		initcmd.Bundle(nil),
-		managecmd.Bundle(nil),
-		packcmd.Bundle(nil),
-		systemcmd.Bundle(nil),
-		updatecmd.Bundle(nil),
-		nexssflow.SourceBundle(nil),
-		nexssflow.AnalysisBundle(nil),
-		nexssflow.RenderBundle(nil),
-		nexssflow.IOBundle(nil),
-		configviews.FullBundle(nil),
-		document.Bundle(nil),
-		terminalfmt.Bundle(nil),
+		srcpackAcceptanceBundle(),
 		tclinexssflow.RoutingOnlyBundle(),
 	}
 	if code := flowcli.RunWithBundlesForRequirements([]string{"test", fixtureRoot}, bundles, nil); code != 0 {

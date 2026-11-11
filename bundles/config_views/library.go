@@ -29,7 +29,10 @@ var (
 //go:embed config_views.nflow
 var FS embed.FS
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/config_views/nexssflow", Bundle)
+}
 
 // Bundle exposes adapter errors only; CRUD is selected by its own @require.
 func Bundle(_ map[string]string) compiler.Bundle {

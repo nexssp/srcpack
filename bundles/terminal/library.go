@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nexssp/flow/compiler"
+	flowtemplate "github.com/nexssp/flow/extensions/template"
 	"github.com/nexssp/kernel/action"
 )
 
@@ -19,10 +20,14 @@ const ID = "terminal"
 //go:embed *.nflow *.tmpl
 var FS embed.FS
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/terminal/nexssflow", Bundle)
+}
 
+// Bundle exposes the upstream renderer used by the terminal NFlow modules.
 func Bundle(_ map[string]string) compiler.Bundle {
-	return compiler.Bundle{ID: ID, Libraries: []action.Library{{Name: ID}}, Symbols: []compiler.SymbolNamespace{{Name: ID, Symbols: map[string]any{
+	return compiler.Bundle{ID: ID, Libraries: []action.Library{{Name: ID}, flowtemplate.Library()}, Symbols: []compiler.SymbolNamespace{{Name: ID, Symbols: map[string]any{
 		"printf": fmt.Sprintf,
 		"width":  displayWidth, "tokens": humanTokens, "bytes": humanBytes,
 		"age": formatAge, "size": legacySize, "clean": clean,

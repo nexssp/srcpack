@@ -29,18 +29,32 @@
   -> {
     ...,
     options: fromPairs(concat(toPairs(.options), [["TreeDepth", .options.TreeDepth <= 0 ? .default_tree_depth : .options.TreeDepth]])),
-    output_path: .cli_output != "" ? (.dir_prefix ? .cli_output_prefixed : .cli_output) :
-      (len(.output_profiles) > 0 ? (.dir_prefix ? .output_profiles[0].output_prefixed : .output_profiles[0].output_path) :
-        (.global_output != "" ? (.dir_prefix ? .global_output_prefixed : .global_output) : "")),
-    prompt_choice: .cli_prompt != "" ? {name: "cli", value: .cli_prompt} :
-      (len(.prompt_profiles) > 0 ? {name: .prompt_profiles[0].prompt.Value, value: (.prompts[.prompt_profiles[0].prompt.Value] ?? .prompt_profiles[0].prompt.Value)} :
-        (.global_prompt.Set && !.global_prompt.Disabled && .global_prompt.Value != "" ? {name: .global_prompt.Value, value: (.prompts[.global_prompt.Value] ?? .global_prompt.Value)} : {name: "(none)", value: ""})),
     start: len(.start_profiles) > 0 ? (.start_profiles[0].start.Disabled ? "" : .start_profiles[0].start.Value) :
       (.global_start.Set && !.global_start.Disabled ? .global_start.Value : ""),
     end: len(.end_profiles) > 0 ? (.end_profiles[0].end.Disabled ? "" : .end_profiles[0].end.Value) :
       (.global_end.Set && !.global_end.Disabled ? .global_end.Value : ""),
     file_start: len(.file_start_profiles) > 0 ? .file_start_profiles[0].file_start : .editor_file_start,
     file_end: len(.file_end_profiles) > 0 ? .file_end_profiles[0].file_end : .editor_file_end
+  }
+  -> match {
+    .cli_output != ""
+      -> { ..., output_path: .dir_prefix ? .cli_output_prefixed : .cli_output },
+    len(.output_profiles) > 0
+      -> { ..., output_path: .dir_prefix ? .output_profiles[0].output_prefixed : .output_profiles[0].output_path },
+    .global_output != ""
+      -> { ..., output_path: .dir_prefix ? .global_output_prefixed : .global_output },
+    _
+      -> { ..., output_path: "" }
+  }
+  -> match {
+    .cli_prompt != ""
+      -> { ..., prompt_choice: {name: "cli", value: .cli_prompt} },
+    len(.prompt_profiles) > 0
+      -> { ..., prompt_choice: {name: .prompt_profiles[0].prompt.Value, value: (.prompts[.prompt_profiles[0].prompt.Value] ?? .prompt_profiles[0].prompt.Value)} },
+    .global_prompt.Set && !.global_prompt.Disabled && .global_prompt.Value != ""
+      -> { ..., prompt_choice: {name: .global_prompt.Value, value: (.prompts[.global_prompt.Value] ?? .global_prompt.Value)} },
+    _
+      -> { ..., prompt_choice: {name: "(none)", value: ""} }
   }
   -> {
     ...,
@@ -57,12 +71,16 @@
     paths: len(.paths) == 0 && len(.files) == 0 && len(.cli_files) == 0 ? ["."] : .paths,
     files: concat(.files, .cli_files)
   }
-  # Keep these branches compact; Flow v0.70.1 adds trailing spaces when it expands the continuations.
   -> match {
-    .has_remote && (.options.Changed || .options.Modified || .options.Staged || .options.Since != "" || .options.DiffOnly) ->
-      {message: "remote sources cannot be combined with --changed, --modified, --staged, --since or --diff-only; these flags describe the local workspace"} -> fail,
-    .has_remote && .options.FullTree ->
-      {message: "remote sources do not support --full-tree; use --tree to show the selected source tree"} -> fail,
-    _ -> noop
+    .has_remote && (.options.Changed || .options.Modified || .options.Staged || .options.Since != "" || .options.DiffOnly)
+      ->
+      {message: "remote sources cannot be combined with --changed, --modified, --staged, --since or --diff-only; these flags describe the local workspace"}
+        -> fail,
+    .has_remote && .options.FullTree
+      ->
+      {message: "remote sources do not support --full-tree; use --tree to show the selected source tree"}
+        -> fail,
+    _
+      -> noop
   }
 @end

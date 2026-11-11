@@ -1,5 +1,5 @@
 @description "srcpack — context engineering and code packaging for AI"
-@require tcli
+@require github.com/nexssp/transport/tcli/nexssflow v0.10.0
 @include "cli_invocation.nflow" AS cli_invocation
 
 # Command modules own their schemas, CLI routes, and implementation pipelines.
@@ -16,8 +16,10 @@
 # Routing and selector-first policy live in the included NFlow module.
 @pipeline command_entry
   match(._srcpack_cli_normalize ?? false) {
-    true -> cli_invocation.pipeline.normalize,
-    _ -> tcli.listen
+    true
+      -> cli_invocation.pipeline.normalize,
+    _
+      -> tcli.listen
   }
 @end
 

@@ -1,6 +1,6 @@
 @include "../bundles/document/document.nflow"
-@require srcpack_render
-@require terminal
+@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
 
 # The Go adapter supplies domain facts; this macro owns document-specific names,
 # aliases, defaults and numeric presentation. Content is only passed through.

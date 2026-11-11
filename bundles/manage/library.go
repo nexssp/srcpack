@@ -25,7 +25,10 @@ const ID = "srcpack_manage"
 //go:embed *.nflow
 var FS embed.FS
 
-func init() { compiler.Register(ID, Bundle) }
+func init() {
+	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/manage/nexssflow", Bundle)
+}
 
 // Bundle exposes only storage/data actions; the NFlow pipelines own all
 // command selection and operation semantics.

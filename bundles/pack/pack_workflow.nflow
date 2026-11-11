@@ -1,10 +1,7 @@
 @description "Shared Flow-owned pack resolution, execution, rendering and saved-view workflows"
-@require srcpack_source
-@require srcpack_analysis
-@require srcpack_render
-@require srcpack_io
-@require srcpack_pack
-@require srcpack_cli
+@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack/bundles/pack/nexssflow
+@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
 
 @include "selectors.nflow"
 @include "../../nflows/render.nflow"
