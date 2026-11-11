@@ -309,11 +309,12 @@ func sourceLocationComment(file *ParsedFile) []byte {
 		Path      string           `json:"path"`
 		StartLine int              `json:"start_line"`
 		EndLine   int              `json:"end_line"`
+		URL       string           `json:"url,omitempty"`
 		Symbols   []SymbolSpan     `json:"symbols,omitempty"`
 		LineSpans []SourceLineSpan `json:"line_spans,omitempty"`
 	}{
 		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
-		Symbols: file.SymbolSpans, LineSpans: file.LineSpans,
+		URL: file.SourceURL, Symbols: file.SymbolSpans, LineSpans: file.LineSpans,
 	})
 	if err != nil {
 		return nil

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"iter"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -131,6 +132,7 @@ func SourceOperator() action.AnyStreamAction {
 								return previous(ParsedFile{}, relErr)
 							}
 							file.RelPath = label + "/" + filepath.ToSlash(rel)
+							file.SourceURL = remoteSourceURL(label, filepath.ToSlash(rel), file.SourceStartLine, file.SourceEndLine)
 						}
 						return previous(file, err)
 					}
@@ -575,6 +577,24 @@ func stripTreeExpansion(path string) (string, bool) {
 		}
 	}
 	return path, false
+}
+
+// remoteSourceURL turns the stable label assigned during GitHub materialization
+// into a commit-pinned citation. It deliberately returns empty for local labels.
+func remoteSourceURL(label, relPath string, startLine, endLine int) string {
+	if startLine < 1 || endLine < startLine || !strings.HasPrefix(label, "github/") {
+		return ""
+	}
+	rest := strings.TrimPrefix(label, "github/")
+	repo, commit, ok := strings.Cut(rest, "@")
+	if !ok || repo == "" || commit == "" || relPath == "" {
+		return ""
+	}
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	for i := range parts {
+		parts[i] = url.PathEscape(parts[i])
+	}
+	return fmt.Sprintf("https://github.com/%s/blob/%s/%s#L%d-L%d", repo, url.PathEscape(commit), strings.Join(parts, "/"), startLine, endLine)
 }
 
 func targetOption(options map[string]string, path, selectorPath string) string {

@@ -18,6 +18,7 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 			Name: "Answer", Kind: "func", StartLine: 9, EndLine: 11,
 		}},
 		LineSpans: []SourceLineSpan{{OutputLine: 1, SourceStartLine: 9, SourceEndLine: 11}},
+		SourceURL: "https://github.com/nexssp/flow/blob/0123456789abcdef/pkg/example.go#L8-L12",
 	}
 
 	got := string(renderFileBlock(&file, "### ${REL_PATH}\n```go\n", "```\n"))
@@ -26,6 +27,7 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 		`"start_line":8`, `"end_line":12`, `"name":"Answer"`,
 		`"start_line":9`, `"end_line":11`, "package example",
 		`"line_spans":[{"output_line":1,"source_start_line":9,"source_end_line":11}]`,
+		`"url":"https://github.com/nexssp/flow/blob/0123456789abcdef/pkg/example.go#L8-L12"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("rendered block missing %q:\n%s", want, got)
@@ -67,4 +69,12 @@ func TestDocumentInputRetainsSourceLocationFacts(t *testing.T) {
 
 func sourceLocationTestMeta() fs.FileMeta {
 	return fs.FileMeta{Path: "pkg/example.go", RelPath: "pkg/example.go", Lang: "go"}
+}
+
+func TestRemoteSourceURLIsCommitPinned(t *testing.T) {
+	got := remoteSourceURL("github/nexssp/flow@0123456789abcdef", "pkg/example.go", 8, 12)
+	want := "https://github.com/nexssp/flow/blob/0123456789abcdef/pkg/example.go#L8-L12"
+	if got != want {
+		t.Fatalf("remote source URL = %q, want %q", got, want)
+	}
 }
