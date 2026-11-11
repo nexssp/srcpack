@@ -1,7 +1,7 @@
 @description "One target's Flow-driven pack update"
-@require github.com/nexssp/srcpack/bundles/update/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
-@require github.com/nexssp/srcpack/bundles/pack/nexssflow
+@require github.com/nexssp/srcpack/bundles/update
+@require github.com/nexssp/srcpack/bundles/cliinput
+@require github.com/nexssp/srcpack/bundles/pack
 @include "../pack/pack_workflow.nflow"
 
 @pipeline update_item

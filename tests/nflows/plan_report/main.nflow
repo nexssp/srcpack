@@ -1,5 +1,5 @@
 @description "Pack plan validation and report assembly"
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
+@require github.com/nexssp/srcpack/bundles/cliinput
 @include "../../../bundles/pack/plan_report.nflow"
 
 const @{

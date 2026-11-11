@@ -1,5 +1,5 @@
 @description "Copyable terminal tree formatting policy over flattened host facts"
-@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
+@require github.com/nexssp/srcpack/bundles/terminal
 @macro terminal_tree_format() {
   { ..., color: .color ?? false, rows: .rows ?? [], languages: .languages ?? {} }
   -> { ...,

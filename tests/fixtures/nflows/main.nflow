@@ -1,5 +1,5 @@
 @description "Srcpack local context pipeline"
-@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack
 
 srcpack.source
   -> ast.parse

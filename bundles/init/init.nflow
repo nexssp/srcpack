@@ -1,6 +1,6 @@
 @description "Scaffold workspace configuration and ignore file"
-@require github.com/nexssp/srcpack/bundles/init/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
+@require github.com/nexssp/srcpack/bundles/init
+@require github.com/nexssp/srcpack/bundles/cliinput
 @include "init_policy.nflow"
 
 @schema InitInput struct {

@@ -55,6 +55,7 @@ func HelpText() string {
 
 func init() {
 	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/system", Bundle)
 	compiler.Register("github.com/nexssp/srcpack/bundles/system/nexssflow", Bundle)
 }
 

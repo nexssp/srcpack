@@ -1,5 +1,5 @@
 @description "Srcpack REST API Server"
-@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack
 @include "pack.nflow"
 
 @on event "http::8092"

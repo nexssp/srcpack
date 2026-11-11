@@ -1,5 +1,5 @@
-@require github.com/nexssp/transport/tcli/nexssflow v0.10.0
-@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/transport/tcli v0.10.0
+@require github.com/nexssp/srcpack
 @schema PackDemoInput struct {
     targets    []string  `cli:"target,targets,t" usage:"workspace paths to include (repeatable)"`
     files      []string  `cli:"file,f" usage:"explicit files to include (repeatable)"`

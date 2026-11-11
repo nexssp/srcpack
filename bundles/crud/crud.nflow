@@ -1,5 +1,5 @@
 @description "Generic mapping CRUD; operation policy in NFlow and storage effects in Go"
-@require github.com/nexssp/srcpack/bundles/crud/nexssflow
+@require github.com/nexssp/srcpack/bundles/crud
 
 @symbols crud_operation {
   list: "list"

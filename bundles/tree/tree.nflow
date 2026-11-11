@@ -1,7 +1,7 @@
 @description "Tree CLI command backed by the shared pack workflow"
-@require github.com/nexssp/srcpack/bundles/pack/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
-@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack/bundles/pack
+@require github.com/nexssp/srcpack/bundles/cliinput
+@require github.com/nexssp/srcpack
 @symbols tree_command {
   tree: "tree"
 }

@@ -64,6 +64,7 @@ func WithInvocation(ctx context.Context, command string, explicitPack bool, mark
 
 func init() {
 	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/cliinput", Bundle)
 	compiler.Register("github.com/nexssp/srcpack/bundles/cliinput/nexssflow", Bundle)
 }
 

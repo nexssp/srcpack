@@ -1,5 +1,5 @@
 @description "Prepare terminal summary facts in NFlow and render the adjacent Go text template"
-@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
+@require github.com/nexssp/srcpack/bundles/terminal
 @macro terminal_summary_format() {
   { ..., config: .config ?? {}, stats: .stats ?? {}, elapsed: .elapsed ?? "0s", tree: .tree ?? "", color: .color ?? false, command: .command ?? "" }
   -> { ..., profile: trim(.config.profile ?? "") == "" ? "default" : .config.profile,

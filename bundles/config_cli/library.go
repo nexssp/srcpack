@@ -25,6 +25,7 @@ var FS embed.FS
 
 func init() {
 	compiler.Register(ID, Bundle)
+	compiler.Register("github.com/nexssp/srcpack/bundles/config_cli", Bundle)
 	compiler.Register("github.com/nexssp/srcpack/bundles/config_cli/nexssflow", Bundle)
 }
 

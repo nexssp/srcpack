@@ -1,9 +1,9 @@
 @description "Regenerate each configured srcpack target through the pack pipeline"
-@require github.com/nexssp/srcpack/bundles/update/nexssflow
-@require github.com/nexssp/srcpack/bundles/pack/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
-@require github.com/nexssp/srcpack/nexssflow
-@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
+@require github.com/nexssp/srcpack/bundles/update
+@require github.com/nexssp/srcpack/bundles/pack
+@require github.com/nexssp/srcpack/bundles/cliinput
+@require github.com/nexssp/srcpack
+@require github.com/nexssp/srcpack/bundles/terminal
 @include "update_item.nflow"
 @include "update_policy.nflow"
 

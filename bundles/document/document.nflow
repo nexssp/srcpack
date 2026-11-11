@@ -1,5 +1,5 @@
 @description "Copyable document formatting policy; no SRCPACK or I/O dependency"
-@require github.com/nexssp/srcpack/bundles/document/nexssflow
+@require github.com/nexssp/srcpack/bundles/document
 @symbols editor_format {
   zed: "zed"
   claude: "claude"

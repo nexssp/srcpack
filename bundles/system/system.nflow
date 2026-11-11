@@ -1,8 +1,8 @@
 @description "srcpack built-in commands and system status"
-@require github.com/nexssp/srcpack/bundles/system/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
-@require github.com/nexssp/srcpack/nexssflow
-@require github.com/nexssp/srcpack/bundles/terminal/nexssflow
+@require github.com/nexssp/srcpack/bundles/system
+@require github.com/nexssp/srcpack/bundles/cliinput
+@require github.com/nexssp/srcpack
+@require github.com/nexssp/srcpack/bundles/terminal
 @symbols output_stream {
   stdout
 }

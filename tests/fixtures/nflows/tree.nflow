@@ -1,5 +1,5 @@
 @description "Srcpack Tree Structure Pipeline"
-@require github.com/nexssp/srcpack/nexssflow
+@require github.com/nexssp/srcpack
 @include "models.nflow"
 @include "../../../nflows/render.nflow"
 

@@ -1,6 +1,6 @@
 @description "Pack CLI command; the shared implementation lives in pack_workflow.nflow"
-@require github.com/nexssp/srcpack/bundles/pack/nexssflow
-@require github.com/nexssp/srcpack/bundles/cliinput/nexssflow
+@require github.com/nexssp/srcpack/bundles/pack
+@require github.com/nexssp/srcpack/bundles/cliinput
 
 @include "pack_workflow.nflow"
 @include "plan_report.nflow"

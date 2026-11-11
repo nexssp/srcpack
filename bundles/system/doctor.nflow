@@ -1,5 +1,5 @@
 @description "Doctor audit policy: schemas, filesystem facts, findings and status"
-@require github.com/nexssp/srcpack/bundles/system/nexssflow
+@require github.com/nexssp/srcpack/bundles/system
 @include "doctor_schema.nflow"
 
 @symbols audit_severity {
