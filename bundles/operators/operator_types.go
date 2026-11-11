@@ -84,6 +84,7 @@ type ParsedFile struct {
 	IsFull          bool
 	Omitted         bool
 	OmitReason      string
+	ExpandTree      bool
 	Hash            string
 	AbsPath         string
 	Profile         string

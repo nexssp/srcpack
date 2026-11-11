@@ -74,6 +74,13 @@ github:OWNER/REPO[//PATH][?ref=REF]
 
 For a branch, tag, or commit, add `?ref=`. If you omit it, srcpack uses the repository’s current default revision. Remote source is fetched temporarily for the command; no separate clone is needed. Git must be installed, and remote repositories must be public. Private-repository credentials are not forwarded. Run `srcpack cookbook` for working remote examples and limitations.
 
+Directory selectors include files from that folder recursively, while the summary tree shows the selected folder as one top-level entry at the default depth. Increase `--tree-depth` to show additional levels under every selected folder, or append `/...` to expand just one folder recursively in the summary. This changes only the tree display, not which files are packed; Windows paths can use `\...` as the suffix.
+
+```sh
+srcpack "../flow#source" "../../nexss_ecosystem/kernel#arch" "../../nexss_ecosystem/transport#arch"
+srcpack "../../nexss_ecosystem/kernel/...#arch" "../flow#source"
+```
+
 ### Profiles
 
 Profiles control how much source goes into the package. These descriptions match the built-in definitions:

@@ -181,6 +181,7 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					Snippets:        finalSnippets,
 					FuncCount:       res.FuncCount,
 					Lines:           bytes.Count(file.Content, []byte{'\n'}) + 1,
+					ExpandTree:      file.ExpandTree,
 					SourceStartLine: file.SourceStartLine,
 					SourceEndLine:   file.SourceEndLine,
 					SymbolSpans:     symbolSpans,

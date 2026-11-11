@@ -30,6 +30,10 @@ srcpack "internal/auth#impl" -o -
 srcpack "cmd,internal#arch" -o -
 srcpack "internal/auth#api" "internal/store#with-tests" -o combined-context.md
 
+# Keep repo roots visible, then expand only the selected kernel branch in the summary
+srcpack "../flow#source" "../../nexss_ecosystem/kernel#arch" "../../nexss_ecosystem/transport#arch"
+srcpack "../../nexss_ecosystem/kernel/...#arch" "../flow#source"
+
 # Exclude matching files or folders (quote selectors so the shell keeps ~ and #)
 srcpack "internal/auth~*_test.go#impl" -o auth.md
 srcpack "internal~vendor,fixtures/**#source" -o source.md

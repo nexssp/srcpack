@@ -27,6 +27,7 @@ type treeNode struct {
 	paired     string
 	isExcluded bool
 	isTarget   bool
+	expanded   bool
 	children   map[string]*treeNode
 }
 
@@ -223,6 +224,9 @@ func insertOmitted(root *treeNode, file *ParsedFile) {
 			current.children[part] = child
 		}
 		current = child
+		if i == 0 && file.ExpandTree {
+			current.expanded = true
+		}
 		if isLast && !current.isDir && current.tokens == 0 && !current.isExcluded {
 			current.isExcluded = true
 			current.lang = file.Lang
@@ -356,7 +360,7 @@ func generateContextTreeContext(ctx context.Context, files []ParsedFile, maxDept
 	input["total_tokens"], input["raw_bytes"], input["packed_bytes"] = stats.totalTokens, stats.rawBytes, stats.packedBytes
 	input["languages"] = langs
 	rows := []map[string]any{}
-	if err := appendTreeRows(ctx, root, "", 1, maxDepth, showFiles, &rows); err != nil {
+	if err := appendTreeRows(ctx, root, "", 1, maxDepth, showFiles, false, &rows); err != nil {
 		return "", err
 	}
 	input["rows"] = rows
@@ -389,6 +393,9 @@ func buildContextTree(ctx context.Context, files []ParsedFile) (*treeNode, error
 				current.children[part] = newTreeNode(part, !last)
 			}
 			current = current.children[part]
+			if j == 0 && file.ExpandTree {
+				current.expanded = true
+			}
 			if last {
 				populateLeaf(current, file)
 			}
@@ -441,7 +448,7 @@ func GenerateContextTree(files []ParsedFile, depth int, color, showFiles bool) s
 	return result
 }
 
-func appendTreeRows(ctx context.Context, node *treeNode, prefix string, depth, maxDepth int, showFiles bool, rows *[]map[string]any) error {
+func appendTreeRows(ctx context.Context, node *treeNode, prefix string, depth, maxDepth int, showFiles, expandedAncestor bool, rows *[]map[string]any) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -470,8 +477,8 @@ func appendTreeRows(ctx context.Context, node *treeNode, prefix string, depth, m
 			row["tokens"], row["funcs"], row["lang"], row["role"], row["age"], row["lines"], row["paired"], row["excluded"], row["target"] = c.tokens, c.funcs, c.lang, c.role, age, c.lines, c.paired, c.isExcluded, c.isTarget
 		}
 		*rows = append(*rows, row)
-		if c.isDir && depth < maxDepth {
-			if err := appendTreeRows(ctx, c, prefix+subPrefix, depth+1, maxDepth, showFiles, rows); err != nil {
+		if c.isDir && (depth < maxDepth || expandedAncestor || c.expanded) {
+			if err := appendTreeRows(ctx, c, prefix+subPrefix, depth+1, maxDepth, showFiles, expandedAncestor || c.expanded, rows); err != nil {
 				return err
 			}
 		}
@@ -515,7 +522,7 @@ func generateFullProjectTreeContext(ctx context.Context, projectRoot string, fil
 	excluded := totalFiles - len(included)
 	_, _, _, langs := root.rollup()
 	rows := []map[string]any{}
-	if err := appendTreeRows(ctx, root, "", 1, maxDepth, showFiles, &rows); err != nil {
+	if err := appendTreeRows(ctx, root, "", 1, maxDepth, showFiles, false, &rows); err != nil {
 		return "", err
 	}
 	input := map[string]any{"empty": false, "full": true, "included": len(included), "excluded": excluded, "total_files": totalFiles, "total_tokens": totalTokens, "raw_bytes": totalTokens, "packed_bytes": totalTokens, "color": color, "languages": langs, "rows": rows}

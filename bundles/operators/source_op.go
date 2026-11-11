@@ -82,31 +82,57 @@ func SourceOperator() action.AnyStreamAction {
 					return
 				}
 				path, startLine, endLine := ParseLineRange(target)
-				if cfg.TargetRoots[target] != "" {
+				materialized := cfg.TargetRoots[target] != ""
+				if materialized {
 					// A materialized target is a literal filename, not another selector.
 					path, startLine, endLine = target, 0, 0
 				}
-				absPath, err := filepath.Abs(path)
+				rawPath := path
+				expandTree := false
+				if !materialized {
+					path, expandTree = stripTreeExpansion(path)
+				}
+				absSelectorPath, err := filepath.Abs(rawPath)
 				if err != nil {
 					var zero ParsedFile
 					yield(zero, fmt.Errorf("resolve target %q: %w", target, err))
 					return
 				}
-				absPath = filepath.Clean(absPath)
-				profile := cfg.TargetProfiles[absPath]
-				prompt := cfg.TargetPrompts[absPath]
+				absSelectorPath = filepath.Clean(absSelectorPath)
+				absPath := absSelectorPath
+				if expandTree {
+					absPath, err = filepath.Abs(path)
+					if err != nil {
+						var zero ParsedFile
+						yield(zero, fmt.Errorf("resolve target %q: %w", target, err))
+						return
+					}
+					absPath = filepath.Clean(absPath)
+				}
+				profile := targetOption(cfg.TargetProfiles, absPath, absSelectorPath)
+				prompt := targetOption(cfg.TargetPrompts, absPath, absSelectorPath)
 				remoteRoot := cfg.TargetRoots[absPath]
 				targetYield := yield
+				if expandTree {
+					previous := targetYield
+					targetYield = func(file ParsedFile, err error) bool {
+						if err == nil {
+							file.ExpandTree = true
+						}
+						return previous(file, err)
+					}
+				}
 				if label := cfg.TargetLabels[absPath]; label != "" {
+					previous := targetYield
 					targetYield = func(file ParsedFile, err error) bool {
 						if err == nil {
 							rel, relErr := filepath.Rel(remoteRoot, file.Path)
 							if relErr != nil {
-								return yield(ParsedFile{}, relErr)
+								return previous(ParsedFile{}, relErr)
 							}
 							file.RelPath = label + "/" + filepath.ToSlash(rel)
 						}
-						return yield(file, err)
+						return previous(file, err)
 					}
 				}
 				targetConfig := cfg
@@ -114,14 +140,14 @@ func SourceOperator() action.AnyStreamAction {
 					targetConfig.NoTests = false
 				}
 				targetMatcher := matcher
-				if targetExclude := cfg.TargetExcludes[absPath]; targetExclude != "" {
+				if targetExclude := targetOption(cfg.TargetExcludes, absPath, absSelectorPath); targetExclude != "" {
 					excludes := cfg.Exclude
 					if excludes != "" {
 						excludes += ","
 					}
 					targetMatcher = buildIgnoreMatcher(root, excludes+targetExclude)
 				}
-				key := fmt.Sprintf("%s:%d-%d:%s", absPath, startLine, endLine, profile)
+				key := fmt.Sprintf("%s:%d-%d:%s:expand=%t", absPath, startLine, endLine, profile, expandTree)
 				if seen[key] {
 					continue
 				}
@@ -147,7 +173,7 @@ func SourceOperator() action.AnyStreamAction {
 					walkMatcher := targetMatcher
 					if walkRoot != root {
 						excludes := targetConfig.Exclude
-						if extra := cfg.TargetExcludes[absPath]; extra != "" {
+						if extra := targetOption(cfg.TargetExcludes, absPath, absSelectorPath); extra != "" {
 							if excludes != "" {
 								excludes += ","
 							}
@@ -245,7 +271,7 @@ func SourceOperator() action.AnyStreamAction {
 				fileMatcher := targetMatcher
 				if fileRoot != root {
 					excludes := targetConfig.Exclude
-					if extra := cfg.TargetExcludes[absPath]; extra != "" {
+					if extra := targetOption(cfg.TargetExcludes, absPath, absSelectorPath); extra != "" {
 						if excludes != "" {
 							excludes += ","
 						}
@@ -539,6 +565,22 @@ func ParseLineRange(target string) (path string, start, end int) {
 		return target, 0, 0
 	}
 	return target[:idx], line, line
+}
+
+func stripTreeExpansion(path string) (string, bool) {
+	for _, suffix := range []string{"/...", `\...`} {
+		if trimmed, ok := strings.CutSuffix(path, suffix); ok {
+			return trimmed, true
+		}
+	}
+	return path, false
+}
+
+func targetOption(options map[string]string, path, selectorPath string) string {
+	if value, ok := options[path]; ok {
+		return value
+	}
+	return options[selectorPath]
 }
 
 func computeHash(data []byte) string {

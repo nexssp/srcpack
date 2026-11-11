@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/nexssp/kernel/xtest/ktest"
@@ -166,6 +167,49 @@ func TestSource_PreservesOriginalLineRange(t *testing.T) {
 	ktest.RequireEqual(t, file.SourceStartLine, 2)
 	ktest.RequireEqual(t, file.SourceEndLine, 4)
 	ktest.RequireEqual(t, string(file.Content), "two\nthree\nfour")
+}
+
+func TestSource_DirectorySummaryExpansionIsPerSelector(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "flow/compiler/parse/parse.go", "package parse\n")
+	writeFile(t, root, "kernel/action/action.go", "package action\n")
+	writeFile(t, root, "transport/thttp/http.go", "package thttp\n")
+	t.Chdir(root)
+
+	targetProfiles := map[string]string{filepath.Join(root, "flow", "..."): "source"}
+	plain := collectSource(t, operators.PackConfig{Targets: []string{"flow", "kernel", "transport"}})
+	plainTree := operators.GenerateContextTree(plain, 1, false, false)
+	for _, name := range []string{"flow/", "kernel/", "transport/"} {
+		if !strings.Contains(plainTree, name) {
+			t.Errorf("depth-1 tree does not show selected root %q:\n%s", name, plainTree)
+		}
+	}
+	for _, name := range []string{"compiler/", "action/", "thttp/"} {
+		if strings.Contains(plainTree, name) {
+			t.Errorf("plain selector unexpectedly expanded into %q:\n%s", name, plainTree)
+		}
+	}
+
+	expanded := collectSource(t, operators.PackConfig{
+		Targets:        []string{"flow/...", "kernel", "transport"},
+		TargetProfiles: targetProfiles,
+	})
+	expandedTree := operators.GenerateContextTree(expanded, 1, false, false)
+	for _, name := range []string{"flow/", "compiler/", "parse/", "kernel/", "transport/"} {
+		if !strings.Contains(expandedTree, name) {
+			t.Errorf("expanded tree does not show %q:\n%s", name, expandedTree)
+		}
+	}
+	for _, name := range []string{"action/", "thttp/"} {
+		if strings.Contains(expandedTree, name) {
+			t.Errorf("unexpanded sibling unexpectedly shows %q:\n%s", name, expandedTree)
+		}
+	}
+	for _, file := range expanded {
+		if strings.HasPrefix(filepath.ToSlash(file.RelPath), "flow/") && file.Profile != "source" {
+			t.Errorf("expanded selector lost its profile: got %q, want source", file.Profile)
+		}
+	}
 }
 
 func TestSource_ExcludesSensitiveFilesEvenWhenExplicit(t *testing.T) {

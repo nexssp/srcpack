@@ -9,6 +9,7 @@ path[,path...][~exclude[,exclude...]][#profile][@prompt]
 | Slot | Example |
 |---|---|
 | Path | `src`, `main.go`, `backend` |
+| Expand one folder in the summary tree | `src/...` |
 | Exclude | `~tests,vendor` |
 | Profile | `#arch`, `#impl`, `#source`, `#dense` |
 | Prompt | `@find auth bugs`, `@prompt.md` |
@@ -17,8 +18,11 @@ path[,path...][~exclude[,exclude...]][#profile][@prompt]
 Compose:
 ```sh
 srcpack "src#arch" "internal/auth#source@review" "cmd~tests#impl"
+srcpack "../flow#source" "../../nexss_ecosystem/kernel/...#arch"
 srcpack cookbook
 ```
+
+Folder selectors already include files recursively. The default summary tree shows each selected folder as a top-level entry; `--tree-depth N` reveals additional levels under every selected folder, while a trailing `/...` (or `\...` on Windows) recursively expands only that selector's branch in the summary.
 
 ## Profiles
 

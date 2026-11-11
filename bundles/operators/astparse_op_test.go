@@ -233,6 +233,18 @@ func TestASTParse_PassThroughCountsOnlyWhenRequested(t *testing.T) {
 	}
 }
 
+func TestASTParse_PreservesTreeExpansionMarker(t *testing.T) {
+	file := operators.ParsedFile{
+		FileMeta:   mustMeta("sample.go", "go"),
+		Content:    []byte("package sample\n"),
+		ExpandTree: true,
+	}
+	out := runASTParse(t, file)
+	if len(out) != 1 || !out[0].ExpandTree {
+		t.Fatalf("AST parse lost folder expansion metadata: %#v", out)
+	}
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 func runASTParse(t *testing.T, file operators.ParsedFile) []operators.ParsedFile {

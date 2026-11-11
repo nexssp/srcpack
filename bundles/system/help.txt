@@ -10,6 +10,7 @@ Usage:
 Selectors:
   <path[,path...]>[~exclude[,exclude...]][#profile][@prompt]
   github:owner/repo[//subpath][?ref=REF][#profile]
+  Append /... to one local folder path to expand only that summary branch (Windows: \...)
 
 Examples:
   srcpack arch
