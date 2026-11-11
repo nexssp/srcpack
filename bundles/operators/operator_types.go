@@ -77,9 +77,10 @@ type ParsedFile struct {
 	Snippets        []string
 	FuncCount       int
 	Lines           int
-	SourceStartLine int          `json:"source_start_line,omitempty"`
-	SourceEndLine   int          `json:"source_end_line,omitempty"`
-	SymbolSpans     []SymbolSpan `json:"symbol_spans,omitempty"`
+	SourceStartLine int              `json:"source_start_line,omitempty"`
+	SourceEndLine   int              `json:"source_end_line,omitempty"`
+	SymbolSpans     []SymbolSpan     `json:"symbol_spans,omitempty"`
+	LineSpans       []SourceLineSpan `json:"line_spans,omitempty"`
 	IsRaw           bool
 	IsFull          bool
 	Omitted         bool
@@ -99,6 +100,13 @@ type SymbolSpan struct {
 	Receiver  string `json:"receiver,omitempty"`
 	StartLine int    `json:"start_line"`
 	EndLine   int    `json:"end_line"`
+}
+
+// SourceLineSpan maps one nonblank rendered body line back to its original file range.
+type SourceLineSpan struct {
+	OutputLine      int `json:"output_line"`
+	SourceStartLine int `json:"source_start_line"`
+	SourceEndLine   int `json:"source_end_line"`
 }
 
 type ParseOptions struct {

@@ -204,6 +204,77 @@ func TestASTParse_GoSymbolSpansUseOriginalLines(t *testing.T) {
 	ktest.RequireEqual(t, span.EndLine, 44)
 }
 
+func TestASTParse_SourceLineSpansUseOriginalFileLines(t *testing.T) {
+	const source = "package sample\n\nfunc Public() int {\n\treturn 7\n}\n"
+	file := operators.ParsedFile{
+		FileMeta:        mustMeta("sample.go", "go"),
+		Content:         []byte(source),
+		SourceStartLine: 40,
+		SourceEndLine:   44,
+		ParseOptions:    operators.ParseOptions{Comments: true},
+		ParseOptionsSet: true,
+	}
+
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one", len(out))
+	}
+	if len(out[0].LineSpans) == 0 {
+		t.Fatal("ASTParse returned no source-line spans")
+	}
+	span := out[0].LineSpans[0]
+	ktest.RequireEqual(t, span.OutputLine, 1)
+	ktest.RequireEqual(t, span.SourceStartLine, 40)
+	ktest.RequireEqual(t, span.SourceEndLine, 40)
+}
+
+func TestASTParse_DenseSignatureLineSpanUsesOriginalDeclaration(t *testing.T) {
+	const source = "package sample\n\n// Public is visible.\nfunc Public(\n\tvalue int,\n) string {\n\treturn \"ok\"\n}\n"
+	file := operators.ParsedFile{
+		FileMeta:        mustMeta("sample.go", "go"),
+		Content:         []byte(source),
+		SourceStartLine: 1,
+		SourceEndLine:   8,
+		ParseOptions:    operators.ParseOptions{OnlySig: true, Dense: true, ExportedOnly: true},
+		ParseOptionsSet: true,
+	}
+
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one", len(out))
+	}
+	if len(out[0].LineSpans) != 1 {
+		t.Fatalf("dense line spans = %#v, want one declaration span", out[0].LineSpans)
+	}
+	span := out[0].LineSpans[0]
+	ktest.RequireEqual(t, span.OutputLine, 1)
+	ktest.RequireEqual(t, span.SourceStartLine, 4)
+	ktest.RequireEqual(t, span.SourceEndLine, 8)
+}
+
+func TestASTParse_DenseGroupedDeclarationsDoNotMisattributeReferences(t *testing.T) {
+	const source = "package sample\n\ntype (\n\tFirst struct{}\n\tShared struct{}\n)\n\nfunc Public(value Shared) {}\n"
+	file := operators.ParsedFile{
+		FileMeta:        mustMeta("sample.go", "go"),
+		Content:         []byte(source),
+		SourceStartLine: 1,
+		SourceEndLine:   8,
+		ParseOptions:    operators.ParseOptions{OnlySig: true, Dense: true, ExportedOnly: true},
+		ParseOptionsSet: true,
+	}
+
+	out := runASTParse(t, file)
+	if len(out) != 1 {
+		t.Fatalf("ASTParse returned %d records, want one", len(out))
+	}
+	for _, span := range out[0].LineSpans {
+		if span.SourceStartLine == 8 && span.SourceEndLine == 8 {
+			return
+		}
+	}
+	t.Fatalf("dense function line was not mapped to Public's original declaration: %#v", out[0].LineSpans)
+}
+
 func TestASTParse_PassThroughCountsOnlyWhenRequested(t *testing.T) {
 	source := []byte("package sample\nfunc One() {}\nfunc Two() {}\n")
 	for _, tc := range []struct {

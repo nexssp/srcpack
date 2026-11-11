@@ -74,11 +74,11 @@ srcpack ".#arch" --include-config -o context.md
 srcpack "internal/auth/service.go:80-140#source" -o -
 ```
 
-Rendered file blocks start with a machine-readable location comment. `start_line` and `end_line` are 1-based, inclusive original-file lines. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
+Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. `line_spans` maps 1-based `output_line` positions in that one rendered file body to original `source_start_line`/`source_end_line` ranges; it does not use line numbers from the concatenated pack. Blank, synthetic, ambiguous, and unmatched transformed lines have no entry. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
 
 ```html
 <!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->
-<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}]} -->
+<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}],"line_spans":[{"output_line":1,"source_start_line":12,"source_end_line":18}]} -->
 ```
 
 ## Add prompt text

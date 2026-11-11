@@ -2,6 +2,8 @@
 @include "../../../nflows/render.nflow"
 
 parallel {
+  source_prefix: const @{ config: {editor: "markdown"}, files: [{prefix: "<!-- srcpack-source -->", values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
+    -> document.pipeline.document_render,
   shape_default: const @{ config: {profile_name: "", targets: "", prompt_name: "", editor: "", dirs: "", output_file: "", current_date: "", git_commit: "", git_tag: "", git_branch: ""}, tree: "", stats: {file_count: 0, func_count: 0, packed_bytes: 0, raw_bytes: 0, estimated_tokens: 0}, files: [] } -> render.@shape_document(),
   shape_populated: const @{ config: {profile_name: "${TARGETS}", targets: "a,b", prompt_name: "review", editor: " ZED ", dirs: "src,cmd", output_file: "out.md", current_date: "2026-10-20", git_commit: "abc", git_tag: "v1", git_branch: "main"}, tree: "TREE", stats: {file_count: 2, func_count: 7, packed_bytes: 123, raw_bytes: 1024, estimated_tokens: 35}, files: [
     {content: "source", snippets: nil, omitted: false, rel_path: "café.go", abs_path: "/abs/café.go", lang: "go", lines: 99, size: 1024},
@@ -13,7 +15,7 @@ parallel {
     -> document.pipeline.document_render,
   zed: const @{ config: {editor: " ZED ", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
     -> document.pipeline.document_render,
-  raw_mode: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
+  raw_mode: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{prefix: "<!-- source -->", values: {REL_PATH: "a.go", LANG: "go"}, content: "package a", snippets: [], omitted: false}] }
     -> document.pipeline.document_render,
   snippets: const @{ config: {editor: "raw", prompt: "", start: "", end: "", file_start: "", file_end: "", diff_content: "", no_header: false, no_prompt: false, no_start: false, no_end: false}, values: {}, tree: "", files: [{values: {REL_PATH: "snippets.go", LANG: "go"}, content: "", snippets: [" one ", "two", "three", "  ", "four"], omitted: false}] }
     -> { ..., files: map(.files, let file = #; { values: file.values, content: file.content, snippets: [file.snippets[0], file.snippets[1], "three" + "\n" + "line", file.snippets[3], file.snippets[4]], omitted: file.omitted }) }
@@ -48,7 +50,8 @@ parallel {
     -> document.pipeline.document_render
 }
 -> {
-  defaults: .shape_default.values,
+  source_prefix: .source_prefix.content,
+	defaults: .shape_default.values,
   populated: {values: .shape_populated.values, file_values: .shape_populated.files[0].values, files: .shape_populated.files},
   markdown: {content: .markdown.content, items: .markdown.items},
   zed: .zed.content,
@@ -67,9 +70,10 @@ parallel {
   tree_placeholder_no_start: .tree_placeholder_no_start.content,
   empty_expansion: {content: .empty_expansion.content, items: .empty_expansion.items},
   whitespace_prompt: .whitespace_prompt.content,
-  custom_interpolation: .custom_interpolation.content
+	custom_interpolation: .custom_interpolation.content
 }
 
+@test: result.source_prefix == "<!-- srcpack-source -->\n### a.go (go)\n```go\npackage a\n```\n\n"
 @test: result.defaults.TARGET == "all" && result.defaults.OUTPUT_FILE == "stdout" && result.defaults.PROFILE == ""
 @test: result.populated.values.PROFILE == "${TARGETS}" && result.populated.values.PROFILE_NAME == "${TARGETS}" && result.populated.values.TARGETS == "a,b" && result.populated.values.EDITOR == " ZED " && result.populated.values.TREE == "TREE"
 @test: result.populated.values.FILE_COUNT == "2" && result.populated.values.TOTAL_SIZE_BYTES == "123" && result.populated.values.RAW_SIZE_KBYTES == "1.0" && result.populated.values.SAVED_PERCENT == "88.0"

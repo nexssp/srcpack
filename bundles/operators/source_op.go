@@ -323,7 +323,7 @@ func visitFile(
 		return yield(zero, fmt.Errorf("read %q: %w", path, readErr))
 	}
 
-	sourceStartLine, sourceEndLine := 1, bytes.Count(content, []byte{'\n'})+1
+	sourceStartLine, sourceEndLine := 1, sourceLineCount(content)
 	if startLine > 0 {
 		content, sourceStartLine, sourceEndLine = sliceLinesWithSpan(content, startLine, endLine)
 	}
@@ -352,8 +352,9 @@ func visitFile(
 // their original line range. When end is 0 it runs to EOF.
 func sliceLinesWithSpan(data []byte, start, end int) ([]byte, int, int) {
 	lines := bytes.Split(data, []byte("\n"))
-	if start < 1 || start > len(lines) {
-		return data, 1, len(lines)
+	lineCount := sourceLineCount(data)
+	if start < 1 || start > lineCount {
+		return data, 1, lineCount
 	}
 	from := start - 1
 	to := end
@@ -361,9 +362,9 @@ func sliceLinesWithSpan(data []byte, start, end int) ([]byte, int, int) {
 		to = len(lines)
 	}
 	if to < from {
-		return data, 1, len(lines)
+		return data, 1, lineCount
 	}
-	return bytes.Join(lines[from:to], []byte("\n")), start, to
+	return bytes.Join(lines[from:to], []byte("\n")), start, min(to, lineCount)
 }
 
 func skipReason(path, relPath string, cfg PackConfig, extensions map[string]bool, examples []string) string {

@@ -50,16 +50,18 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					file.SourceStartLine = 1
 				}
 				if file.SourceEndLine < file.SourceStartLine {
-					file.SourceEndLine = file.SourceStartLine + bytes.Count(file.Content, []byte{'\n'})
+					file.SourceEndLine = file.SourceStartLine + sourceLineCount(file.Content) - 1
 				}
 				if file.Lines < 1 {
 					file.Lines = bytes.Count(file.Content, []byte{'\n'}) + 1
 				}
 
 				if fileOptions.IncludeConfig && isConfigContextFile(sourceContextPath(file)) {
+					sourceContent := file.Content
 					if fileOptions.Mask {
 						file.Content = maskSourceBytes(file.Content)
 					}
+					file.LineSpans = sourceLineSpans(sourceContent, file.Content, file.SourceStartLine, true)
 					file.Snippets = nil
 					file.FuncCount = 0
 					file.ParseOptions = fileOptions
@@ -79,6 +81,7 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					!fileOptions.TrimBlankLines &&
 					!fileOptions.ExportedOnly
 				if passThrough || len(file.Content) == 0 {
+					file.LineSpans = sourceLineSpans(file.Content, file.Content, file.SourceStartLine, true)
 					if passThrough && len(file.Content) > 0 && file.FuncCount == 0 && (cfg.NeedFuncCount || fileOptions.NeedFuncCount) {
 						// Parse only for metadata; retain the original bytes on this fast path.
 						if result, parseErr := extract.Parse(file.Path, file.Content, file.Lang, extract.Options{}); parseErr == nil {
@@ -175,6 +178,19 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					maskBufPool.Put(buf)
 				}
 
+				var lineSpans []SourceLineSpan
+				if fileOptions.OnlySig && len(symbolSpans) > 0 {
+					if fileOptions.Dense {
+						lineSpans = sourceLineSpansForSnippets(res.Snippets, symbolSpans, file.Lang, true)
+					} else {
+						lineSpans = sourceLineSpansForSnippets(finalSnippets, symbolSpans, file.Lang, false)
+					}
+				} else {
+					preservesPositions := !fileOptions.OnlySig && !fileOptions.Dense && fileOptions.Comments &&
+						fileOptions.MaxLines <= 0 && !fileOptions.TrimIndent && !fileOptions.TrimBlankLines
+					lineSpans = sourceLineSpans(file.Content, finalContent, file.SourceStartLine, preservesPositions)
+				}
+
 				item := ParsedFile{
 					FileMeta:        file.FileMeta,
 					Content:         finalContent,
@@ -185,6 +201,7 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					SourceStartLine: file.SourceStartLine,
 					SourceEndLine:   file.SourceEndLine,
 					SymbolSpans:     symbolSpans,
+					LineSpans:       lineSpans,
 					Hash:            file.Hash,
 					Profile:         file.Profile,
 					Prompt:          file.Prompt,

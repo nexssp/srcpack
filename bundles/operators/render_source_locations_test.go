@@ -17,6 +17,7 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 		SymbolSpans: []SymbolSpan{{
 			Name: "Answer", Kind: "func", StartLine: 9, EndLine: 11,
 		}},
+		LineSpans: []SourceLineSpan{{OutputLine: 1, SourceStartLine: 9, SourceEndLine: 11}},
 	}
 
 	got := string(renderFileBlock(&file, "### ${REL_PATH}\n```go\n", "```\n"))
@@ -24,6 +25,7 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 		"<!-- srcpack-source:", `"path":"pkg/example.go"`,
 		`"start_line":8`, `"end_line":12`, `"name":"Answer"`,
 		`"start_line":9`, `"end_line":11`, "package example",
+		`"line_spans":[{"output_line":1,"source_start_line":9,"source_end_line":11}]`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("rendered block missing %q:\n%s", want, got)
@@ -40,6 +42,7 @@ func TestDocumentInputRetainsSourceLocationFacts(t *testing.T) {
 		SymbolSpans: []SymbolSpan{{
 			Name: "Answer", Kind: "func", StartLine: 20, EndLine: 20,
 		}},
+		LineSpans: []SourceLineSpan{{OutputLine: 1, SourceStartLine: 20, SourceEndLine: 20}},
 	}
 	result, err := documentInput(context.Background(), RenderConfig{}, []ParsedFile{file}, PackStats{})
 	if err != nil {
@@ -51,6 +54,10 @@ func TestDocumentInputRetainsSourceLocationFacts(t *testing.T) {
 	}
 	if files[0]["source_start_line"] != 20 || files[0]["source_end_line"] != 20 {
 		t.Fatalf("document location fields = %#v", files[0])
+	}
+	location, ok := files[0]["source_location"].(string)
+	if !ok || !strings.Contains(location, `"source_start_line":20`) {
+		t.Fatalf("document source_location = %#v", files[0]["source_location"])
 	}
 	spans, ok := files[0]["symbol_spans"].([]SymbolSpan)
 	if !ok || len(spans) != 1 || spans[0].Name != "Answer" {

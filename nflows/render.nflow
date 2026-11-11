@@ -36,6 +36,7 @@
     files: map(.files,
       let file = #;
       {
+        prefix: file.source_location ?? "",
         content: file.content,
         snippets: file.snippets ?? [],
         omitted: file.omitted,

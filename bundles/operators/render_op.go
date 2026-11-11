@@ -306,13 +306,14 @@ func sourceLocationComment(file *ParsedFile) []byte {
 		return nil
 	}
 	metadata, err := json.Marshal(struct {
-		Path      string       `json:"path"`
-		StartLine int          `json:"start_line"`
-		EndLine   int          `json:"end_line"`
-		Symbols   []SymbolSpan `json:"symbols,omitempty"`
+		Path      string           `json:"path"`
+		StartLine int              `json:"start_line"`
+		EndLine   int              `json:"end_line"`
+		Symbols   []SymbolSpan     `json:"symbols,omitempty"`
+		LineSpans []SourceLineSpan `json:"line_spans,omitempty"`
 	}{
 		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
-		Symbols: file.SymbolSpans,
+		Symbols: file.SymbolSpans, LineSpans: file.LineSpans,
 	})
 	if err != nil {
 		return nil

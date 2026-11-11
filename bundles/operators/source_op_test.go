@@ -169,6 +169,26 @@ func TestSource_PreservesOriginalLineRange(t *testing.T) {
 	ktest.RequireEqual(t, string(file.Content), "two\nthree\nfour")
 }
 
+func TestSource_UsesPhysicalLineCoordinatesAtEOF(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "sample.txt", "one\ntwo\nthree\n")
+	t.Chdir(dir)
+
+	full := collectSource(t, operators.PackConfig{Targets: []string{"sample.txt"}})
+	if len(full) != 1 {
+		t.Fatalf("full-file source emitted %d records, want one", len(full))
+	}
+	ktest.RequireEqual(t, full[0].SourceEndLine, 3)
+
+	sliced := collectSource(t, operators.PackConfig{Targets: []string{"sample.txt:2-"}})
+	if len(sliced) != 1 {
+		t.Fatalf("sliced source emitted %d records, want one", len(sliced))
+	}
+	ktest.RequireEqual(t, sliced[0].SourceStartLine, 2)
+	ktest.RequireEqual(t, sliced[0].SourceEndLine, 3)
+	ktest.RequireEqual(t, string(sliced[0].Content), "two\nthree\n")
+}
+
 func TestSource_DirectorySummaryExpansionIsPerSelector(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "flow/compiler/parse/parse.go", "package parse\n")

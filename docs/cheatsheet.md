@@ -200,7 +200,7 @@ srcpack clean --dry-run          # preview cleanup
     --save-view NAME
 ```
 
-Rendered file blocks include a machine-readable `srcpack-source` comment with the original line range. Go signature profiles also include per-symbol line spans; symbol selection is not yet supported.
+Formatted file blocks include a machine-readable `srcpack-source` comment with the original line range; `raw`, `none`, and `text` modes remain unmodified. Its optional `line_spans` maps 1-based lines in that file's rendered body to original-file line ranges; it never numbers positions in the concatenated pack, and blank, synthetic, ambiguous, or unmatched lines may be unmapped. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
 
 ## Config file shape
 

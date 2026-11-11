@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -220,6 +221,81 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFlowCLIPackCarriesOriginalSourceLineProvenance(t *testing.T) {
+	t.Run("line slices reset for each file", func(t *testing.T) {
+		output := runFlowCLI(t, map[string]string{
+			"first.go":  "package first\n\nfunc First() {}\n",
+			"second.go": "package second\n\nfunc Second() {}\n",
+		}, "--target", "first.go:3-3", "--target", "second.go:3-3")
+
+		locations := parseSourceLocationRecords(t, output)
+		if len(locations) != 2 {
+			t.Fatalf("got %d source locations, want two:\n%s", len(locations), output)
+		}
+		for i, path := range []string{"first.go", "second.go"} {
+			location := locations[i]
+			if location.Path != path || location.StartLine != 3 || location.EndLine != 3 {
+				t.Errorf("source location %d = %#v, want %s lines 3-3", i, location, path)
+			}
+			if len(location.LineSpans) != 1 || location.LineSpans[0].OutputLine != 1 ||
+				location.LineSpans[0].SourceStartLine != 3 || location.LineSpans[0].SourceEndLine != 3 {
+				t.Errorf("line spans for %s = %#v, want body line 1 -> original line 3", path, location.LineSpans)
+			}
+		}
+		if strings.Index(output, "<!-- srcpack-source:") > strings.Index(output, "### first.go") {
+			t.Fatalf("source metadata is not outside/before the file block:\n%s", output)
+		}
+	})
+
+	t.Run("dense signature points to original declaration", func(t *testing.T) {
+		output := runFlowCLI(t, map[string]string{
+			"api.go": "package api\n\n// Public is visible.\nfunc Public(\n\tvalue int,\n) string {\n\treturn \"ok\"\n}\n",
+		}, "--file", "api.go", "--only-sig", "--dense")
+
+		locations := parseSourceLocationRecords(t, output)
+		if len(locations) != 1 {
+			t.Fatalf("got %d source locations, want one:\n%s", len(locations), output)
+		}
+		location := locations[0]
+		if len(location.LineSpans) != 1 {
+			t.Fatalf("dense signature line spans = %#v, want one declaration span", location.LineSpans)
+		}
+		span := location.LineSpans[0]
+		if span.OutputLine != 1 || span.SourceStartLine != 4 || span.SourceEndLine != 8 {
+			t.Fatalf("dense signature span = %#v, want body line 1 -> original lines 4-8", span)
+		}
+	})
+}
+
+type sourceLocationRecord struct {
+	Path      string `json:"path"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+	LineSpans []struct {
+		OutputLine      int `json:"output_line"`
+		SourceStartLine int `json:"source_start_line"`
+		SourceEndLine   int `json:"source_end_line"`
+	} `json:"line_spans"`
+}
+
+func parseSourceLocationRecords(t *testing.T, output string) []sourceLocationRecord {
+	t.Helper()
+	const prefix = "<!-- srcpack-source: "
+	var records []sourceLocationRecord
+	for line := range strings.SplitSeq(output, "\n") {
+		if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, " -->") {
+			continue
+		}
+		payload := strings.TrimSuffix(strings.TrimPrefix(line, prefix), " -->")
+		var record sourceLocationRecord
+		if err := json.Unmarshal([]byte(payload), &record); err != nil {
+			t.Fatalf("parse source-location metadata %q: %v", line, err)
+		}
+		records = append(records, record)
+	}
+	return records
 }
 
 func runFlowCLI(t *testing.T, workspace map[string]string, args ...string) string {

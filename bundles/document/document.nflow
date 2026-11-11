@@ -50,6 +50,7 @@
     files: map(.included,
       let file = #;
       {
+        prefix: (.editor == editor_format.raw || .editor == editor_format.none || .editor == editor_format.text) ? "" : (file.prefix ?? ""),
         values: file.values,
         body: len(file.content) > 0 ? file.content : reduce(filter(map(file.snippets, trim(#)), # != ""),
           let acc = #acc;
@@ -69,6 +70,7 @@
     map(root.files,
       let file = #;
       { parts: [
+        { text: file.prefix, newline: true },
         { text: root.file_start, values: file.values, expand: true, newline: true },
         { text: file.body, newline: true },
         { text: root.file_end, values: file.values, expand: true }
