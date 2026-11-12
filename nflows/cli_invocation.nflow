@@ -21,9 +21,10 @@
   doctor: "doctor"
   types: "types"
   health: "health"
-	  demo: "demo"
-	  cookbook: "cookbook"
-	  find: "find"
+  demo: "demo"
+  cookbook: "cookbook"
+  skill: "skill"
+  find: "find"
 }
 @symbols alias {
   pack_short: "p"
@@ -129,11 +130,13 @@
         -> { args: concat([cmd.health], .rest), command: cmd.health, explicit_pack: false },
       cmd.demo
         -> { args: concat([cmd.demo], .rest), command: cmd.demo, explicit_pack: false },
-	      cmd.cookbook
-	        -> { args: concat([cmd.cookbook], .rest), command: cmd.cookbook, explicit_pack: false },
-	      cmd.find
-	        -> { args: concat([cmd.find], .rest), command: cmd.find, explicit_pack: false },
-	      _
+      cmd.cookbook
+        -> { args: concat([cmd.cookbook], .rest), command: cmd.cookbook, explicit_pack: false },
+      cmd.skill
+        -> { args: concat([cmd.skill], .rest), command: cmd.skill, explicit_pack: false },
+      cmd.find
+        -> { args: concat([cmd.find], .rest), command: cmd.find, explicit_pack: false },
+      _
         -> { args: concat([cmd.pack], .args), command: cmd.pack, explicit_pack: false }
     }
   }

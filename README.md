@@ -8,7 +8,7 @@
 
 ## Install and start using it
 
-Install with Go 1.27.3 or newer:
+Install with Go 1.27.4 or newer, as required by this release's `go.mod`:
 
 ```sh
 go install github.com/nexssp/srcpack/cmd/srcpack@latest
@@ -16,7 +16,7 @@ go install github.com/nexssp/srcpack/cmd/srcpack@latest
 
 ### Install a prebuilt release
 
-The release workflow attaches installers to new releases. Older releases do not contain these files, so use the Go install command above if the latest release does not yet offer them.
+Tagged releases include prebuilt archives and installers. If a tag does not have release assets yet, use the Go install command above.
 
 Linux or macOS:
 
@@ -31,6 +31,10 @@ irm https://github.com/nexssp/srcpack/releases/latest/download/install.ps1 | iex
 ```
 
 The installers verify the downloaded archive against the release's SHA-256 checksum file, install without administrator privileges, and support a pinned version and custom install directory. The checksum detects download corruption; it is not a publisher signature.
+
+### Optional skill for AI agents
+
+The binary installers install the `srcpack` CLI, not agent-specific instructions. Run `srcpack skill` for the view and download links matching your CLI version. If your AI agent supports Agent Skills, add the [v0.6.0 srcpack skill](https://github.com/nexssp/srcpack/blob/v0.6.0/skills/srcpack/SKILL.md) according to that agent's instructions; [download the raw Markdown](https://raw.githubusercontent.com/nexssp/srcpack/v0.6.0/skills/srcpack/SKILL.md) if needed. The skill is optional and separate from the CLI.
 
 Make sure `srcpack` is on your `PATH`, then run it from any project you want to inspect. No config file or `srcpack init` is needed:
 

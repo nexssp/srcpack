@@ -28,6 +28,34 @@ func TestWithVersionIsContextScoped(t *testing.T) {
 	}
 }
 
+func TestSkillLinksMatchCLIReleaseOrDevelopmentBranch(t *testing.T) {
+	for _, test := range []struct {
+		version string
+		ref     string
+	}{
+		{version: "v0.6.0", ref: "v0.6.0"},
+		{version: "dev", ref: "main"},
+	} {
+		out, err := skill(WithVersion(context.Background(), test.version), nil)
+		if err != nil {
+			t.Fatalf("skill(%q) error = %v", test.version, err)
+		}
+		text, ok := out["content"].(string)
+		if !ok {
+			t.Fatalf("skill(%q) content type = %T", test.version, out["content"])
+		}
+		for _, want := range []string{
+			"binary installs the srcpack CLI, not this optional agent instruction file",
+			"https://github.com/nexssp/srcpack/blob/" + test.ref + "/skills/srcpack/SKILL.md",
+			"https://raw.githubusercontent.com/nexssp/srcpack/" + test.ref + "/skills/srcpack/SKILL.md",
+		} {
+			if !strings.Contains(text, want) {
+				t.Errorf("skill(%q) omitted %q: %s", test.version, want, text)
+			}
+		}
+	}
+}
+
 func TestHealthInspectReturnsFactsForMissingConfig(t *testing.T) {
 	t.Chdir(t.TempDir())
 	out, err := healthInspect(WithVersion(context.Background(), "1.2.3"), nil)

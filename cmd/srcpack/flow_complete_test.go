@@ -49,7 +49,7 @@ func TestEveryCommandIsDeclaredInNFlowSourceModules(t *testing.T) {
 	}
 	collectCommands(prepared.Metadata())
 
-	for _, name := range []string{"init", "pack", "tree", "update", "config", "target", "prompt", "profile", "editor", "view", "dashboard", "usage", "version", "list", "info", "clean", "doctor", "types", "health", "demo", "cookbook"} {
+	for _, name := range []string{"init", "pack", "tree", "update", "config", "target", "prompt", "profile", "editor", "view", "dashboard", "usage", "version", "list", "info", "clean", "doctor", "types", "health", "demo", "cookbook", "skill"} {
 		if !commands[name] {
 			t.Errorf("command %s is not declared in the NFlow source modules", name)
 		}
@@ -140,13 +140,16 @@ func TestFlowSystemCommandsAndSafeClean(t *testing.T) {
 	if err := execute(ctx, []string{"help", "target"}); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{nil, {"help"}, {"--version"}, {"list"}, {"info"}, {"info", "sources"}, {"types"}, {"health"}, {"demo"}, {"cookbook"}} {
+	for _, args := range [][]string{nil, {"help"}, {"--version"}, {"list"}, {"info"}, {"info", "sources"}, {"types"}, {"health"}, {"demo"}, {"cookbook"}, {"skill"}} {
 		text, err := capturePolicyStdout(t, func() error { return execute(ctx, args) })
 		if err != nil || text == "" {
 			t.Fatalf("%v: %v output=%q", args, err, text)
 		}
 		if len(args) > 0 && args[0] == "demo" && (!strings.Contains(text, "Add(") || strings.Contains(text, "return a + b") || strings.Contains(text, "internal")) {
 			t.Fatalf("demo did not apply the requested AST policy: %q", text)
+		}
+		if len(args) > 0 && args[0] == "skill" && !strings.Contains(text, "https://raw.githubusercontent.com/nexssp/srcpack/main/skills/srcpack/SKILL.md") {
+			t.Fatalf("skill command did not print the development skill URL: %q", text)
 		}
 		if strings.HasSuffix(strings.TrimSpace(text), "\nnull") {
 			t.Fatalf("internal JSON leaked for %v: %q", args, text)

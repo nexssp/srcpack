@@ -90,6 +90,7 @@
       "    srcpack arch --check                       Single-target preview\n" +
       "    srcpack impl --modified                   Only changed + untracked files\n" +
       "    srcpack cookbook                           Copy-and-paste workflows and selector examples\n" +
+      "    srcpack skill                              Find the Agent Skill for this CLI version\n" +
       "    srcpack doctor                             Validate config\n" +
       "    srcpack clean --dry-run                    Preview what would be removed\n\n" +
       "  Full reference: srcpack help\n\n",
@@ -111,6 +112,15 @@
   :request-schema=CookbookInput
   cli.restore
   -> system.cookbook
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline skill
+  :cli="skill:Show the version-matched srcpack Agent Skill"
+  :request-schema=EmptyInput
+  cli.restore
+  -> system.skill
   -> cli.print
   -> cli.finish
 @end

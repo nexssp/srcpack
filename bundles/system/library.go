@@ -69,6 +69,7 @@ func Bundle(_ map[string]string) compiler.Bundle {
 			action.New("system.dashboard.facts", dashboardFacts).Build(),
 			action.New("system.help", help).Build(),
 			action.New("system.cookbook", cookbook).Build(),
+			action.New("system.skill", skill).Build(),
 			action.New("system.version", version).Build(),
 			action.New("system.profiles", profiles).Build(),
 			action.New("system.profile_info", profileInfo).Build(),
@@ -146,6 +147,18 @@ func cookbook(_ context.Context, in map[string]any) (map[string]any, error) {
 	}
 	colorMode, _ := in["color"].(string)
 	return printed(terminal.RenderMarkdown(string(content), terminal.ColorEnabled(colorMode, os.Stdout))), nil
+}
+
+func skill(ctx context.Context, _ map[string]any) (map[string]any, error) {
+	ref := Version(ctx)
+	if ref == "" || ref == defaultVersion {
+		ref = "main"
+	}
+	const path = "skills/srcpack/SKILL.md"
+	return printed(fmt.Sprintf(
+		"srcpack Agent Skill\n\nThe binary installs the srcpack CLI, not this optional agent instruction file.\nUse the skill revision matching this CLI version:\n\nView: https://github.com/nexssp/srcpack/blob/%s/%s\nDownload: https://raw.githubusercontent.com/nexssp/srcpack/%s/%s\n\nCopy SKILL.md into the skill location used by your AI agent, following that agent's instructions.\n",
+		ref, path, ref, path,
+	)), nil
 }
 
 func version(ctx context.Context, _ map[string]any) (map[string]any, error) {

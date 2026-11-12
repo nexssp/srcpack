@@ -6,6 +6,7 @@ Usage:
   srcpack tree [selector ...] [options]          Tree-only output
   srcpack find NAME [options]                    Find declarations or matching text
   srcpack cookbook [--md] [--color MODE]         Show cookbook; --md prints pure Markdown
+  srcpack skill                                  Show links to the Agent Skill for this version
   srcpack update [profile] [--check]             Regenerate every configured target
 
 Selectors:
@@ -91,6 +92,7 @@ Management:
   srcpack prompt <list|show|add|delete>
   srcpack profile <list|show>
   srcpack editor <list|show>
+  srcpack skill                                  Show links to the version-matched Agent Skill
   srcpack types            List file-type aliases
   srcpack cookbook [--md]  Print selector examples; --md outputs pure Markdown
   srcpack health           Service health check

@@ -185,6 +185,7 @@ func TestCommandInvocationNormalizesOnlyCommandSyntax(t *testing.T) {
 		{[]string{"validate"}, []string{"doctor"}, "doctor", false, true},
 		{[]string{"type-list"}, []string{"types"}, "types", false, true},
 		{[]string{"cookbook"}, []string{"cookbook"}, "cookbook", false, true},
+		{[]string{"skill"}, []string{"skill"}, "skill", false, true},
 	}
 	for _, tc := range tests {
 		got, cmd, explicit, err := commandInvocation(context.Background(), tc.args)
