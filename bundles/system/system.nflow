@@ -46,9 +46,9 @@
   dry_run  bool  `cli:"dry-run,check" usage:"Preview files without removing them"`
 }
 @schema FindInput struct {
-  query  string  `cli:"positional" usage:"Function, type, pipeline, or macro name"`
+  query  string  `cli:"positional" usage:"Declaration name or text to find"`
   root   string  `cli:"root,r" usage:"Directory to search (default: current directory)"`
-  kind   string  `cli:"kind,k" usage:"Filter by language declaration kind (func, class, type, struct, enum, trait, pipeline, macro, heading, ...)"`
+  kind   string  `cli:"kind,k" usage:"Filter by declaration kind, or text for line matches"`
   json   bool    `cli:"json" usage:"Emit machine-readable JSON"`
 }
 
@@ -256,7 +256,7 @@
 @end
 
 @pipeline find
-  :cli="find:Find Go and NFlow declarations by name"
+  :cli="find:Find declarations or matching text in packable files"
   :request-schema=FindInput
   cli.restore
   -> system.find

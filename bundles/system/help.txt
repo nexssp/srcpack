@@ -4,7 +4,7 @@ Usage:
   srcpack                                        Show dashboard and examples
   srcpack [pack] [selector ...] [options]        Package codebase
   srcpack tree [selector ...] [options]          Tree-only output
-  srcpack find NAME [options]                    Find Go and NFlow declarations
+  srcpack find NAME [options]                    Find declarations or matching text
   srcpack cookbook                               Print practical copy-and-paste workflows
   srcpack update [profile] [--check]             Regenerate every configured target
 
@@ -78,7 +78,7 @@ Options:
   -v, --version            Show version
 
 Management:
-  srcpack find NAME            Find functions, types, pipelines, and macros
+  srcpack find NAME            Find declarations or matching text in packable files
   srcpack init             Create starter nexss.srcpack.yml
   srcpack update           Regenerate every configured target
   update masking uses options.mask_secrets from nexss.srcpack.yml; it has no per-run mask override

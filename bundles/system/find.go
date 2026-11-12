@@ -13,6 +13,9 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
+
+	"github.com/nexssp/srcpack/bundles/operators"
 )
 
 type findMatch struct {
@@ -64,49 +67,66 @@ func find(ctx context.Context, in map[string]any) (map[string]any, error) {
 		fmt.Fprintf(&b, "  %-7s %-32s %s:%d-%d\n", match.Kind, match.Name, match.Path, match.StartLine, match.EndLine)
 	}
 	if len(matches) == 0 {
-		b.WriteString("Try a broader name, --kind func|class|type|struct|enum|trait|pipeline|macro|heading, or --root PATH.\n")
+		b.WriteString("Try a broader name, --kind func|class|type|struct|enum|trait|pipeline|macro|heading|text, or --root PATH.\n")
 	}
 	return printed(b.String()), nil
 }
 
 func findDeclarations(ctx context.Context, root, query, kind string) ([]findMatch, error) {
 	needle := strings.ToLower(query)
+	policy := operators.NewSourceFilePolicy(root, operators.PackConfig{})
+	guardrails := operators.NewGuardrails(0, 0)
+	sourceRoot, rootErr := os.OpenRoot(root)
+	if rootErr != nil {
+		return nil, fmt.Errorf("open find root %q: %w", root, rootErr)
+	}
 	var matches []findMatch
-	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+	walkErr := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if entry.IsDir() {
-			switch entry.Name() {
-			case ".git", "node_modules", "vendor", "_srcpack":
+		relPath, relErr := filepath.Rel(root, path)
+		if relErr != nil {
+			return relErr
+		}
+		relPath = filepath.ToSlash(relPath)
+		if !policy.Includes(path, relPath) {
+			if entry.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		ext := strings.ToLower(filepath.Ext(path))
-		if !supportedFindExtension(ext) {
+		if entry.IsDir() {
 			return nil
 		}
-		if ext == ".go" {
-			matches = append(matches, findGoDeclarations(path, root, needle, kind)...)
-			return nil
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return infoErr
 		}
-		found, readErr := os.ReadFile(path)
+		if err := guardrails.CheckFile(path, info); err != nil {
+			return err
+		}
+		found, readErr := sourceRoot.ReadFile(filepath.FromSlash(relPath))
 		if readErr != nil {
 			return readErr
 		}
-		if ext == ".nflow" {
-			matches = append(matches, findNFlowDeclarations(path, root, string(found), needle, kind)...)
-		} else {
-			matches = append(matches, findLanguageDeclarations(path, root, string(found), ext, needle, kind)...)
+		source := string(found)
+		if !utf8.ValidString(source) || strings.IndexByte(source, 0) >= 0 {
+			return nil
 		}
+		ext := strings.ToLower(filepath.Ext(path))
+		matches = append(matches, findFileMatches(path, relPath, source, ext, needle, kind)...)
 		return nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("find declarations: %w", err)
+	closeErr := sourceRoot.Close()
+	if walkErr != nil {
+		return nil, fmt.Errorf("find declarations: %w", walkErr)
+	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("close find root: %w", closeErr)
 	}
 	sort.Slice(matches, func(i, j int) bool {
 		if matches[i].Path != matches[j].Path {
@@ -117,22 +137,58 @@ func findDeclarations(ctx context.Context, root, query, kind string) ([]findMatc
 	return matches, nil
 }
 
-func findGoDeclarations(path, root, needle, kind string) []findMatch {
+func findFileMatches(path, relPath, source, ext, needle, kind string) []findMatch {
+	var matches []findMatch
+	if kind != "text" {
+		switch ext {
+		case ".go":
+			matches = findGoDeclarations(path, relPath, source, needle, kind)
+		case ".nflow":
+			matches = findNFlowDeclarations(relPath, source, needle, kind)
+		default:
+			if _, ok := findPatterns[ext]; ok {
+				matches = findLanguageDeclarations(relPath, source, ext, needle, kind)
+			}
+		}
+		if len(matches) > 0 || kind != "" {
+			return matches
+		}
+	}
+	return findTextMatches(relPath, source, needle)
+}
+
+func findTextMatches(relPath, source, needle string) []findMatch {
+	var matches []findMatch
+	for index, line := range strings.Split(source, "\n") {
+		if !strings.Contains(strings.ToLower(line), needle) {
+			continue
+		}
+		matches = append(matches, findMatch{
+			Name:      strings.TrimSpace(line),
+			Kind:      "text",
+			Path:      relPath,
+			StartLine: index + 1,
+			EndLine:   index + 1,
+		})
+	}
+	return matches
+}
+
+func findGoDeclarations(path, relPath, source, needle, kind string) []findMatch {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, path, nil, 0)
+	file, err := parser.ParseFile(fset, path, source, 0)
 	if err != nil {
 		return nil
 	}
-	rel, _ := filepath.Rel(root, path)
 	var matches []findMatch
 	add := func(name, itemKind string, start, end token.Pos) {
-		if kind != "" && kind != itemKind && !(kind == "function" && itemKind == "func") {
+		if !kindMatches(kind, itemKind) {
 			return
 		}
 		if !strings.Contains(strings.ToLower(name), needle) {
 			return
 		}
-		matches = append(matches, findMatch{Name: name, Kind: itemKind, Path: filepath.ToSlash(rel), StartLine: fset.Position(start).Line, EndLine: fset.Position(end).Line})
+		matches = append(matches, findMatch{Name: name, Kind: itemKind, Path: filepath.ToSlash(relPath), StartLine: fset.Position(start).Line, EndLine: fset.Position(end).Line})
 	}
 	for _, decl := range file.Decls {
 		switch decl := decl.(type) {
@@ -155,8 +211,7 @@ func findGoDeclarations(path, root, needle, kind string) []findMatch {
 	return matches
 }
 
-func findNFlowDeclarations(path, root, source, needle, kind string) []findMatch {
-	rel, _ := filepath.Rel(root, path)
+func findNFlowDeclarations(relPath, source, needle, kind string) []findMatch {
 	lines := strings.Split(source, "\n")
 	var matches []findMatch
 	for _, match := range nflowDeclaration.FindAllStringSubmatchIndex(source, -1) {
@@ -177,7 +232,7 @@ func findNFlowDeclarations(path, root, source, needle, kind string) []findMatch 
 			}
 			end = i + 1
 		}
-		matches = append(matches, findMatch{Name: name, Kind: declKind, Path: filepath.ToSlash(rel), StartLine: start, EndLine: end})
+		matches = append(matches, findMatch{Name: name, Kind: declKind, Path: filepath.ToSlash(relPath), StartLine: start, EndLine: end})
 	}
 	return matches
 }
@@ -187,23 +242,28 @@ type findPattern struct {
 	re   *regexp.Regexp
 }
 
+const (
+	findKindClass = "class"
+	findKindConst = "const"
+)
+
 var findPatterns = map[string][]findPattern{
 	".ts": {
 		{kind: "func", re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+|async\s+)*function\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
-		{kind: "class", re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
+		{kind: findKindClass, re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
 		{kind: "interface", re: regexp.MustCompile(`^\s*(?:export\s+)?interface\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
 		{kind: "type", re: regexp.MustCompile(`^\s*(?:export\s+)?type\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
 		{kind: "enum", re: regexp.MustCompile(`^\s*(?:export\s+)?enum\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
-		{kind: "const", re: regexp.MustCompile(`^\s*(?:export\s+)?const\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
+		{kind: findKindConst, re: regexp.MustCompile(`^\s*(?:export\s+)?const\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
 	},
 	".tsx": {}, ".js": {}, ".jsx": {}, ".mjs": {}, ".cjs": {},
 	".py": {
 		{kind: "func", re: regexp.MustCompile(`^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)`)},
-		{kind: "class", re: regexp.MustCompile(`^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
+		{kind: findKindClass, re: regexp.MustCompile(`^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 	},
 	".pyi": {
 		{kind: "func", re: regexp.MustCompile(`^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)`)},
-		{kind: "class", re: regexp.MustCompile(`^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
+		{kind: findKindClass, re: regexp.MustCompile(`^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 	},
 	".rs": {
 		{kind: "func", re: regexp.MustCompile(`^\s*(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)`)},
@@ -211,11 +271,11 @@ var findPatterns = map[string][]findPattern{
 		{kind: "enum", re: regexp.MustCompile(`^\s*(?:pub\s+)?enum\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "trait", re: regexp.MustCompile(`^\s*(?:pub\s+)?trait\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "impl", re: regexp.MustCompile(`^\s*impl(?:<[^>]+>)?\s+([A-Za-z_][A-Za-z0-9_]*)`)},
-		{kind: "const", re: regexp.MustCompile(`^\s*(?:pub\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)`)},
+		{kind: findKindConst, re: regexp.MustCompile(`^\s*(?:pub\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 	},
 	".php": {
 		{kind: "func", re: regexp.MustCompile(`^\s*(?:public\s+|protected\s+|private\s+|static\s+|final\s+|abstract\s+)*function\s+([A-Za-z_][A-Za-z0-9_]*)`)},
-		{kind: "class", re: regexp.MustCompile(`^\s*(?:abstract\s+|final\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
+		{kind: findKindClass, re: regexp.MustCompile(`^\s*(?:abstract\s+|final\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "interface", re: regexp.MustCompile(`^\s*interface\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "trait", re: regexp.MustCompile(`^\s*trait\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "enum", re: regexp.MustCompile(`^\s*enum\s+([A-Za-z_][A-Za-z0-9_]*)`)},
@@ -224,7 +284,7 @@ var findPatterns = map[string][]findPattern{
 		{kind: "func", re: regexp.MustCompile(`^\s*pub\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)|^\s*fn\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "struct", re: regexp.MustCompile(`^\s*const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*struct`)},
 		{kind: "enum", re: regexp.MustCompile(`^\s*const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*enum`)},
-		{kind: "const", re: regexp.MustCompile(`^\s*pub\s+const\s+([A-Za-z_][A-Za-z0-9_]*)|^\s*const\s+([A-Za-z_][A-Za-z0-9_]*)`)},
+		{kind: findKindConst, re: regexp.MustCompile(`^\s*pub\s+const\s+([A-Za-z_][A-Za-z0-9_]*)|^\s*const\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 		{kind: "var", re: regexp.MustCompile(`^\s*pub\s+var\s+([A-Za-z_][A-Za-z0-9_]*)|^\s*var\s+([A-Za-z_][A-Za-z0-9_]*)`)},
 	},
 	".md":       {{kind: "heading", re: regexp.MustCompile(`^\s{0,3}#{1,6}\s+(.+?)\s*$`)}},
@@ -247,15 +307,7 @@ var findPatterns = map[string][]findPattern{
 	},
 }
 
-func supportedFindExtension(ext string) bool {
-	if ext == ".go" || ext == ".nflow" || ext == ".md" || ext == ".mdx" || ext == ".markdown" {
-		return true
-	}
-	_, ok := findPatterns[ext]
-	return ok
-}
-
-func findLanguageDeclarations(path, root, source, ext, needle, kind string) []findMatch {
+func findLanguageDeclarations(relPath, source, ext, needle, kind string) []findMatch {
 	patterns := findPatterns[ext]
 	if ext == ".tsx" || ext == ".svelte" || ext == ".vue" {
 		patterns = findPatterns[".ts"]
@@ -263,12 +315,11 @@ func findLanguageDeclarations(path, root, source, ext, needle, kind string) []fi
 	if ext == ".js" || ext == ".jsx" || ext == ".mjs" || ext == ".cjs" {
 		patterns = []findPattern{
 			{kind: "func", re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+|async\s+)*function\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
-			{kind: "class", re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
-			{kind: "const", re: regexp.MustCompile(`^\s*(?:export\s+)?const\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
+			{kind: findKindClass, re: regexp.MustCompile(`^\s*(?:export\s+default\s+|export\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
+			{kind: findKindConst, re: regexp.MustCompile(`^\s*(?:export\s+)?const\s+([A-Za-z_$][A-Za-z0-9_$]*)`)},
 		}
 	}
 	lines := strings.Split(source, "\n")
-	rel, _ := filepath.Rel(root, path)
 	var matches []findMatch
 	for index, line := range lines {
 		for _, pattern := range patterns {
@@ -284,7 +335,7 @@ func findLanguageDeclarations(path, root, source, ext, needle, kind string) []fi
 				continue
 			}
 			start := index + 1
-			matches = append(matches, findMatch{Name: name, Kind: pattern.kind, Path: filepath.ToSlash(rel), StartLine: start, EndLine: declarationEnd(lines, start, ext)})
+			matches = append(matches, findMatch{Name: name, Kind: pattern.kind, Path: filepath.ToSlash(relPath), StartLine: start, EndLine: declarationEnd(lines, start, ext)})
 			break
 		}
 	}

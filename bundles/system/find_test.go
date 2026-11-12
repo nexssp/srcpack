@@ -45,7 +45,11 @@ func TestFindJSONIncludesQueryAndMatches(t *testing.T) {
 		Query   string      `json:"query"`
 		Matches []findMatch `json:"matches"`
 	}
-	if err := json.Unmarshal([]byte(result["content"].(string)), &payload); err != nil {
+	content, ok := result["content"].(string)
+	if !ok {
+		t.Fatalf("find result content = %T, want string", result["content"])
+	}
+	if err := json.Unmarshal([]byte(content), &payload); err != nil {
 		t.Fatal(err)
 	}
 	if payload.Query != "Lookup" || len(payload.Matches) != 1 || !strings.HasSuffix(payload.Matches[0].Path, "sample.go") {
@@ -93,5 +97,93 @@ func TestFindDeclarationsSupportsAllSourceLanguages(t *testing.T) {
 				t.Fatalf("matches = %#v, want one %s declaration", matches, tc.kind)
 			}
 		})
+	}
+}
+
+func TestFindFallsBackToTextAndKeepsDeclarationMatches(t *testing.T) {
+	root := t.TempDir()
+	for path, source := range map[string]string{
+		"Makefile":      "build:\n\t@echo needle\n",
+		"guide.md":      "# Guide\nThe needle is in the body.\n",
+		"reference.md":  "# Needle\nNeedle appears again.\n",
+		"settings.yaml": "service:\n  name: Needle\n",
+		"source.go":     "package sample\n// needle in a comment\nfunc Run() {}\n",
+	} {
+		writeFindFile(t, root, path, source)
+	}
+
+	matches, err := findDeclarations(context.Background(), root, "NEEDLE", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]findMatch{
+		"Makefile":      {Name: "@echo needle", Kind: "text", Path: "Makefile", StartLine: 2, EndLine: 2},
+		"guide.md":      {Name: "The needle is in the body.", Kind: "text", Path: "guide.md", StartLine: 2, EndLine: 2},
+		"reference.md":  {Name: "Needle", Kind: "heading", Path: "reference.md", StartLine: 1, EndLine: 1},
+		"settings.yaml": {Name: "name: Needle", Kind: "text", Path: "settings.yaml", StartLine: 2, EndLine: 2},
+		"source.go":     {Name: "// needle in a comment", Kind: "text", Path: "source.go", StartLine: 2, EndLine: 2},
+	}
+	if len(matches) != len(want) {
+		t.Fatalf("matches = %#v, want one result per file: %#v", matches, want)
+	}
+	for _, match := range matches {
+		if expected, ok := want[match.Path]; !ok || expected != match {
+			t.Errorf("match = %#v, want %#v", match, expected)
+		}
+	}
+
+	textMatches, err := findDeclarations(context.Background(), root, "needle", "text")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var referenceLines []int
+	for _, match := range textMatches {
+		if match.Path == "reference.md" {
+			referenceLines = append(referenceLines, match.StartLine)
+		}
+	}
+	if len(referenceLines) != 2 || referenceLines[0] != 1 || referenceLines[1] != 2 {
+		t.Fatalf("text-kind matches in reference.md = %v, want lines 1 and 2", referenceLines)
+	}
+}
+
+func TestFindHonorsPackerIgnoresAndFileExclusions(t *testing.T) {
+	root := t.TempDir()
+	for path, source := range map[string]string{
+		".gitignore":                  "ignored.yaml\nignored-dir/\n",
+		"nexss.srcpack.ignore":        "srcpack.txt\n",
+		"config.yaml":                 "needle: keep\n",
+		"ignored.yaml":                "needle: ignore\n",
+		"ignored-dir/child.txt":       "needle: ignore\n",
+		"srcpack.txt":                 "needle: ignore\n",
+		"dist/generated.txt":          "needle: ignore\n",
+		"node_modules/dependency.txt": "needle: ignore\n",
+		"vendor/library.txt":          "needle: ignore\n",
+		"_srcpack/output.txt":         "needle: ignore\n",
+		"credentials.json":            "needle: ignore\n",
+		"private.pem":                 "needle: ignore\n",
+		"package-lock.json":           "needle: ignore\n",
+		"image.png":                   "needle: ignore\n",
+	} {
+		writeFindFile(t, root, path, source)
+	}
+
+	matches, err := findDeclarations(context.Background(), root, "needle", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 || matches[0].Path != "config.yaml" || matches[0].Kind != "text" {
+		t.Fatalf("matches = %#v, want only config.yaml text match", matches)
+	}
+}
+
+func writeFindFile(t *testing.T, root, relPath, content string) {
+	t.Helper()
+	path := filepath.Join(root, relPath)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
 	}
 }

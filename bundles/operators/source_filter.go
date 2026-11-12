@@ -50,6 +50,34 @@ type sourceFileFilter struct {
 	changes    *changeFilter
 }
 
+// SourceFilePolicy applies the packer's ignore and file-exclusion rules for one root.
+type SourceFilePolicy struct {
+	matcher    *ignore.GitIgnore
+	cfg        PackConfig
+	extensions map[string]bool
+	examples   []string
+}
+
+// NewSourceFilePolicy builds the packer's path policy for a root and pack configuration.
+func NewSourceFilePolicy(root string, cfg PackConfig) SourceFilePolicy {
+	examples := cfg.Examples
+	if len(examples) == 0 {
+		examples = defaultExampleFolders
+	}
+	return SourceFilePolicy{
+		matcher:    buildIgnoreMatcher(root, cfg.Exclude),
+		cfg:        cfg,
+		extensions: parseExtensions(cfg.Ext),
+		examples:   examples,
+	}
+}
+
+// Includes reports whether a candidate passes the packer's ignore and file exclusions.
+func (p SourceFilePolicy) Includes(path, relPath string) bool {
+	relPath = filepath.ToSlash(relPath)
+	return !p.matcher.MatchesPath(relPath) && skipReason(path, relPath, p.cfg, p.extensions, p.examples) == ""
+}
+
 // Decide applies the exact same filters to any source candidate. keepGoing is
 // false only when an emitted error or omission marker asks the stream to stop.
 func (f sourceFileFilter) Decide(
