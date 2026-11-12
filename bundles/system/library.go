@@ -81,6 +81,7 @@ func Bundle(_ map[string]string) compiler.Bundle {
 			DoctorRawAction(),
 			action.New("system.health.inspect", healthInspect).Build(),
 			action.New("system.demo.report", demoReport).Build(),
+			action.New("system.find", find).Build(),
 		}}},
 	}
 }

@@ -4,6 +4,7 @@ Usage:
   srcpack                                        Show dashboard and examples
   srcpack [pack] [selector ...] [options]        Package codebase
   srcpack tree [selector ...] [options]          Tree-only output
+  srcpack find NAME [options]                    Find Go and NFlow declarations
   srcpack cookbook                               Print practical copy-and-paste workflows
   srcpack update [profile] [--check]             Regenerate every configured target
 
@@ -19,6 +20,8 @@ Examples:
   srcpack "auth~tests#impl@find auth bypasses"
   srcpack "github:nexssp/flow,nexssp/kernel#sources" "folder#arch"
   srcpack "github:nexssp/flow//compiler#arch" -o flow-compiler.md
+  srcpack find remoteSourceURL --root bundles/operators --kind func
+  srcpack find pack --kind pipeline --json
   srcpack update arch
 
 Options:
@@ -75,6 +78,7 @@ Options:
   -v, --version            Show version
 
 Management:
+  srcpack find NAME            Find functions, types, pipelines, and macros
   srcpack init             Create starter nexss.srcpack.yml
   srcpack update           Regenerate every configured target
   update masking uses options.mask_secrets from nexss.srcpack.yml; it has no per-run mask override

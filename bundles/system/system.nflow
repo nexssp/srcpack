@@ -45,6 +45,12 @@
   output   string  `cli:"output,o" usage:"Generated output directory"`
   dry_run  bool  `cli:"dry-run,check" usage:"Preview files without removing them"`
 }
+@schema FindInput struct {
+  query  string  `cli:"positional" usage:"Function, type, pipeline, or macro name"`
+  root   string  `cli:"root,r" usage:"Directory to search (default: current directory)"`
+  kind   string  `cli:"kind,k" usage:"Filter by language declaration kind (func, class, type, struct, enum, trait, pipeline, macro, heading, ...)"`
+  json   bool    `cli:"json" usage:"Emit machine-readable JSON"`
+}
 
 @pipeline dashboard
   :cli="dashboard:Show the current srcpack workspace dashboard"
@@ -245,6 +251,15 @@
   cli.restore
   -> pipeline.demo_scan
   -> system.demo.report
+  -> cli.print
+  -> cli.finish
+@end
+
+@pipeline find
+  :cli="find:Find Go and NFlow declarations by name"
+  :request-schema=FindInput
+  cli.restore
+  -> system.find
   -> cli.print
   -> cli.finish
 @end
