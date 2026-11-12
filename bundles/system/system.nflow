@@ -40,6 +40,10 @@
 @schema InfoInput struct {
   name  string  `cli:"positional" usage:"Built-in profile name"`
 }
+@schema CookbookInput struct {
+  md     bool    `cli:"md" usage:"Print raw Markdown without terminal formatting"`
+  color  string  `cli:"color" usage:"Terminal colors: auto, always, never (default: auto)"`
+}
 @schema CleanInput struct {
   path     string  `cli:"positional" usage:"Generated output directory (default: _srcpack)"`
   output   string  `cli:"output,o" usage:"Generated output directory"`
@@ -104,7 +108,7 @@
 
 @pipeline cookbook
   :cli="cookbook:Print practical copy-and-paste workflows"
-  :request-schema=EmptyInput
+  :request-schema=CookbookInput
   cli.restore
   -> system.cookbook
   -> cli.print

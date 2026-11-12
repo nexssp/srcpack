@@ -41,7 +41,7 @@ srcpack cookbook
 ```
 
 That creates a quick architecture map and copies it to the clipboard. Use `-o -` to print the result in your terminal or `-o FILE` to save it.
-`srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration.
+`srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration in a colorized terminal layout. Use `srcpack cookbook --md` to print the cookbook as pure Markdown without terminal styling or banners.
 
 ## Combine local and remote code in one command
 

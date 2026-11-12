@@ -5,7 +5,7 @@ Usage:
   srcpack [pack] [selector ...] [options]        Package codebase
   srcpack tree [selector ...] [options]          Tree-only output
   srcpack find NAME [options]                    Find declarations or matching text
-  srcpack cookbook                               Print practical copy-and-paste workflows
+  srcpack cookbook [--md] [--color MODE]         Show cookbook; --md prints pure Markdown
   srcpack update [profile] [--check]             Regenerate every configured target
 
 Selectors:
@@ -91,7 +91,7 @@ Management:
   srcpack profile <list|show>
   srcpack editor <list|show>
   srcpack types            List file-type aliases
-  srcpack cookbook         Print practical selector and workflow examples
+  srcpack cookbook [--md]  Print selector examples; --md outputs pure Markdown
   srcpack health           Service health check
   srcpack demo             Run a small AST demo
   srcpack doctor           Validate configuration

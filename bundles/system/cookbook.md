@@ -1,6 +1,6 @@
 # srcpack cookbook
 
-Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. Use `-o -` to print results in the terminal; use `-o FILE` to save them.
+Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. Use `-o -` to print results in the terminal; use `-o FILE` to save them.
 
 ## Get oriented
 

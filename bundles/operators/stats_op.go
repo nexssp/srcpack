@@ -76,7 +76,7 @@ func StatsCollectWithContext(ctx context.Context, cfg StatsCollectConfig) action
 				depth = 0
 			}
 			depth = config.ResolveTreeDepth(depth)
-			color := colorEnabled(cfg.Color)
+			color := terminal.ColorEnabled(cfg.Color, os.Stderr)
 
 			var tree string
 			if cfg.FullTree {
@@ -189,18 +189,4 @@ func terminalSummaryInput(cfg StatsCollectConfig, stats PackStats, elapsed strin
 		"clipboard_requested": clipboard, "elapsed": elapsed, "color": color, "tree": tree,
 		"command": cfg.CommandLine,
 	}
-}
-
-func colorEnabled(mode string) bool {
-	switch mode {
-	case "never":
-		return false
-	case "always":
-		return true
-	}
-	if _, disabled := os.LookupEnv("NO_COLOR"); disabled || os.Getenv("TERM") == "dumb" {
-		return false
-	}
-	info, err := os.Stderr.Stat()
-	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }

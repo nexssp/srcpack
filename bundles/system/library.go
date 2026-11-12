@@ -18,6 +18,7 @@ import (
 
 	"github.com/nexssp/srcpack/bundles/config"
 	"github.com/nexssp/srcpack/bundles/operators"
+	"github.com/nexssp/srcpack/bundles/terminal"
 )
 
 const (
@@ -135,12 +136,16 @@ func help(_ context.Context, _ map[string]any) (map[string]any, error) {
 	return printed(HelpText()), nil
 }
 
-func cookbook(_ context.Context, _ map[string]any) (map[string]any, error) {
+func cookbook(_ context.Context, in map[string]any) (map[string]any, error) {
 	content, err := FS.ReadFile("cookbook.md")
 	if err != nil {
 		return nil, fmt.Errorf("load srcpack cookbook: %w", err)
 	}
-	return printed(string(content)), nil
+	if md, _ := in["md"].(bool); md {
+		return printed(string(content)), nil
+	}
+	colorMode, _ := in["color"].(string)
+	return printed(terminal.RenderMarkdown(string(content), terminal.ColorEnabled(colorMode, os.Stdout))), nil
 }
 
 func version(ctx context.Context, _ map[string]any) (map[string]any, error) {
