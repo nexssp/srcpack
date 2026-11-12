@@ -93,7 +93,7 @@ func resolutionFacts(cli cliOptions, cfg config.Config, chain []config.Profile, 
 		"editor_file_start": editorFormat.FileStart, "editor_file_end": editorFormat.FileEnd,
 		"dir_prefix": cli.DirPrefix, "default_tree_depth": config.DefaultTreeDepth,
 		"paths": paths, "files": files, "cli_files": cli.Config.Files,
-		"target_names": cli.Config.Targets, "copy": cli.Config.Copy, "copy_explicit": cli.CopyExplicit, "explicit_output": cli.Config.Output,
+		"target_names": cli.Config.Targets, "copy": cli.Config.Copy, "copy_explicit": cli.CopyExplicit, "explicit_output": cli.Config.Output, "stdout": cli.Stdout,
 		"has_remote": hasRemoteTargets(paths, files, cli.Config.Files),
 	}, nil
 }

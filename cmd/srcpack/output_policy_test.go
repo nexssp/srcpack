@@ -115,6 +115,8 @@ func TestOutputPolicyNoCopyAndExplicitDestinations(t *testing.T) {
 	}{
 		{"no-copy shorthand uses stdout", []string{"-f", "main.go", "--no-copy", "-q"}, true, ""},
 		{"no-copy explicit pack uses stdout", []string{"pack", "-f", "main.go", "--no-copy", "-q"}, true, ""},
+		{"stdout flag prints the full package", []string{"pack", "-f", "main.go", "--stdout", "-q"}, true, ""},
+		{"stdout flag accepts output sentinel", []string{"pack", "-f", "main.go", "--stdout", "-o", "-", "-q"}, true, ""},
 		{"explicit output writes file", []string{"pack", "-f", "main.go", "-o", "out.md", "-q"}, false, "out.md"},
 		{"stdout sentinel", []string{"pack", "-f", "main.go", "-o", "-", "-q"}, true, ""},
 	} {
@@ -133,6 +135,28 @@ func TestOutputPolicyNoCopyAndExplicitDestinations(t *testing.T) {
 			} else {
 				_, err = os.Stat("_srcpack/context.md")
 				ktest.RequireCondition(t, os.IsNotExist(err), "implicit output created a file")
+			}
+		})
+	}
+}
+
+func TestOutputStdoutRejectsFileDestination(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"stdout before file", []string{"pack", "-f", "main.go", "--stdout", "-o", "out.md", "-q"}},
+		{"file before stdout", []string{"pack", "-f", "main.go", "-o", "out.md", "--stdout", "-q"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc ExactlyOnce() {}\n"})
+			t.Chdir(root)
+			err := execute(context.Background(), tc.args)
+			if err == nil || !strings.Contains(err.Error(), "--stdout conflicts with -o FILE") {
+				t.Fatalf("execute() error = %v, want stdout/file conflict", err)
+			}
+			if _, err := os.Stat("out.md"); !os.IsNotExist(err) {
+				t.Fatalf("conflicting output created out.md: %v", err)
 			}
 		})
 	}

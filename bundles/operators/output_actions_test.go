@@ -132,7 +132,7 @@ func TestOutputActionsComposeThroughFlow(t *testing.T) {
 		{"raw\x00bytes\xff", 1, 1}, {"", 0, 1}, {"", 1, 2},
 	} {
 		_, err := runner.Execute(ctx, cfg, "@include \"output.nflow\"\noutput.pipeline.emit_output", "compose_output.nflow", map[string]any{
-			"policy":  map[string]any{"mode": "file", "path": path, "copy": true, "quiet": true, "started_at": int64(0), "trailing_newline": false},
+			"policy":  map[string]any{"mode": "file", "path": path, "copy": true, "quiet": true, "color": "", "started_at": int64(0), "trailing_newline": false},
 			"content": tc.content, "rendered_items": tc.items,
 		})
 		ktest.RequireNoError(t, err)

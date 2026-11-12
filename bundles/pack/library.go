@@ -67,21 +67,23 @@ func Bundle(_ map[string]string) compiler.Bundle {
 }
 
 type cliOptions struct {
-	ExplicitPack bool
-	Command      string
-	CommandLine  string
-	Plan         bool
-	JSON         bool
-	Profile      string
-	Cwd          string
-	ConfigPath   string
-	Config       operators.PackConfig
-	Overrides    config.ConfigOptions
-	RawSelectors []string
-	SaveView     string
-	Check        bool
-	DirPrefix    bool
-	CopyExplicit bool
+	ExplicitPack   bool
+	Command        string
+	CommandLine    string
+	Plan           bool
+	JSON           bool
+	Profile        string
+	Cwd            string
+	ConfigPath     string
+	Config         operators.PackConfig
+	Overrides      config.ConfigOptions
+	RawSelectors   []string
+	SaveView       string
+	Check          bool
+	DirPrefix      bool
+	CopyExplicit   bool
+	Stdout         bool
+	OutputExplicit bool
 }
 type selector struct {
 	Targets  []string
@@ -118,6 +120,11 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.Files = stringSliceField(in["files"])
 	cli.Config.Ext = stringField(in, "ext", "")
 	cli.Config.Output = stringField(normalized, "output", "")
+	cli.Stdout = boolField(in, "stdout")
+	cli.OutputExplicit = cliinput.HasFlag(ctx, "output", "o")
+	if cli.Stdout && cli.OutputExplicit && cli.Config.Output != "" && cli.Config.Output != "-" {
+		return nil, errors.New("--stdout conflicts with -o FILE; use either --stdout or -o - for stdout, or -o FILE to save")
+	}
 	cli.Config.Copy = boolField(in, "copy")
 	cli.CopyExplicit = boolField(in, "copy_explicit")
 	cli.Config.Quiet = boolField(in, "quiet")
@@ -310,7 +317,11 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 		return nil, err
 	}
 	check := cli.Check
-	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": run.OutputPath, "explicit_output": cli.Config.Output, "config_path": cli.ConfigPath}
+	outputPath := run.OutputPath
+	if cli.Stdout {
+		outputPath = "-"
+	}
+	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
 	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", "")}, nil
 }
 

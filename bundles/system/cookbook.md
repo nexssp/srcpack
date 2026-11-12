@@ -1,12 +1,15 @@
 # srcpack cookbook
 
-Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. Use `-o -` to print results in the terminal; use `-o FILE` to save them.
+Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. A normal pack copies the full result to the clipboard and shows a bounded preview. Use `--stdout` to print the full result, or `-o FILE` to save it; do not combine `--stdout` with `-o FILE`. With no destination, `--no-copy` sends the full result to stdout. Only the terminal preview may be shortened; the clipboard, stdout, and file destinations receive the complete output.
 
 ## Get oriented
 
 ```sh
-# Quick architecture map of the current project
-srcpack ".#arch" -o -
+# Quick architecture map of the current project (copy to clipboard)
+srcpack ".#arch"
+
+# Print the full rendered package to stdout
+srcpack ".#arch" --stdout
 
 # Save the selected source to a Markdown file
 srcpack ".#source" -o project-context.md
@@ -23,11 +26,11 @@ srcpack types
 
 ```sh
 # One file or one folder
-srcpack "internal/auth/service.go#source" -o -
-srcpack "internal/auth#impl" -o -
+srcpack "internal/auth/service.go#source" --stdout
+srcpack "internal/auth#impl" --stdout
 
 # Several paths in one selector, or several selectors in one command
-srcpack "cmd,internal#arch" -o -
+srcpack "cmd,internal#arch" --stdout
 srcpack "internal/auth#api" "internal/store#with-tests" -o combined-context.md
 
 # Keep repo roots visible, then expand only the selected kernel branch in the summary
@@ -50,16 +53,16 @@ Line numbers are 1-based and inclusive. These forms apply to local files:
 
 ```sh
 # Lines 80 through 140
-srcpack "internal/auth/service.go:80-140#source" -o -
+srcpack "internal/auth/service.go:80-140#source" --stdout
 
 # From line 80 through the end of the file
-srcpack "internal/auth/service.go:80-#source" -o -
+srcpack "internal/auth/service.go:80-#source" --stdout
 
 # From the start of the file through line 140
-srcpack "internal/auth/service.go:-140#source" -o -
+srcpack "internal/auth/service.go:-140#source" --stdout
 
 # One line (same behavior as before)
-srcpack "internal/auth/service.go:23#source" -o -
+srcpack "internal/auth/service.go:23#source" --stdout
 ```
 
 ## Include curated config and trace source lines
@@ -71,7 +74,7 @@ srcpack "internal/auth/service.go:23#source" -o -
 srcpack ".#arch" --include-config -o context.md
 
 # Keep original source coordinates for a line slice
-srcpack "internal/auth/service.go:80-140#source" -o -
+srcpack "internal/auth/service.go:80-140#source" --stdout
 ```
 
 Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. `line_spans` maps 1-based `output_line` positions in that one rendered file body to original `source_start_line`/`source_end_line` ranges; it does not use line numbers from the concatenated pack. Blank, synthetic, ambiguous, and unmatched transformed lines have no entry. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
@@ -137,8 +140,8 @@ Git must be installed. Percent-encode special characters in a remote path or ref
 ## Print, save, preview, and browse a tree
 
 ```sh
-# Print to the terminal, or write to a file
-srcpack "internal/auth#api" -o -
+# Print the full result to the terminal, or write to a file
+srcpack "internal/auth#api" --stdout
 srcpack "internal/auth#api" -o auth-api.md
 
 # Preview the resolved selection without scanning or writing output

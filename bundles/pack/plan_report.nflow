@@ -29,7 +29,8 @@
     .io.explicit_copy
       -> { message: "--plan cannot be combined with --copy" }
       -> fail,
-    (.io.explicit_output ?? "") != ""
+    ((.io.stdout ?? false) && (.io.output_explicit ?? false)) ||
+      (!(.io.stdout ?? false) && (.io.explicit_output ?? "") != "")
       -> { message: "--plan cannot be combined with --output; plan output is always printed to stdout" }
       -> fail,
     (.save_view ?? "") != ""
@@ -52,6 +53,8 @@
       editor: .render.editor ?? "markdown",
       prompt_source: .render.prompt_name ?? "(none)",
       normal_output_mode: match {
+        (.io.stdout ?? false)
+          -> const @{ value: output_mode.stdout },
         (.io.copy ?? false) && (.io.explicit_output ?? "") == ""
           -> const @{ value: output_mode.clipboard },
         (.io.explicit_pack ?? false) && !(.io.check ?? false) && (.io.explicit_output ?? "") == "" && (.io.config_path ?? "") == ""

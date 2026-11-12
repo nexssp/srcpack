@@ -9,14 +9,17 @@
 
 @pipeline output_policy
   {
-    path: .io.output_path,
+    path: (.io.stdout ?? false) ? "-" : .io.output_path,
     save_state: !.io.check,
     copy: .io.copy,
     quiet: .io.quiet || .io.json,
     json: .io.json,
+    color: .io.color ?? "auto",
     started_at: .io.started_at,
     trailing_newline: .io.explicit_pack && !.io.check,
     mode: match {
+      (.io.stdout ?? false)
+        -> const @{ value: output_mode.stdout },
       .io.copy && .io.explicit_output == ""
         -> const @{ value: output_mode.clipboard },
       .io.explicit_pack && !.io.check && .io.explicit_output == "" && .io.config_path == ""

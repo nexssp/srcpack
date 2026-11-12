@@ -22,9 +22,10 @@
   prompt            string  `cli:"prompt" config:"true" usage:"prompt text or path to a prompt file"`
   editor            string  `cli:"editor,e,format" config:"true" usage:"output format (markdown, raw, zed, claude, fold)"`
   output            string  `cli:"output,o" config:"true" usage:"write to a file instead of clipboard (- for stdout)"`
+  stdout            bool  `cli:"stdout" usage:"print the full rendered result to stdout (alias: -o -; cannot combine with -o FILE)"`
   color             string  `cli:"color" config:"true" usage:"terminal colors (auto, always, never)"`
   copy              bool  `cli:"copy,c" config:"true" usage:"copy rendered output to clipboard"`
-  no_copy           bool  `cli:"no-copy" config:"true" usage:"disable clipboard output"`
+  no_copy           bool  `cli:"no-copy" config:"true" usage:"disable clipboard output (without a destination, print full result to stdout)"`
   cwd               string  `cli:"cwd,C" config:"true" usage:"change working directory before resolving paths"`
   config_path       string  `cli:"config" config:"true" usage:"use a specific config file"`
   dir_prefix        bool  `cli:"dir-prefix,pfx" config:"true" usage:"prefix output filename with workspace name"`

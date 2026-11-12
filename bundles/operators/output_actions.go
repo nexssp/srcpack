@@ -11,9 +11,14 @@ import (
 
 	"github.com/nexssp/flow/extensions/fs"
 	"github.com/nexssp/kernel/action"
+
+	"github.com/nexssp/srcpack/bundles/terminal"
 )
 
-const outputFieldContent = "content"
+const (
+	outputFieldContent = "content"
+	outputFieldColor   = "color"
+)
 
 // OutputPolicy describes the already-resolved output behavior. Actions execute
 // the selected operation; they do not choose which operations are appropriate.
@@ -23,6 +28,7 @@ type OutputPolicy struct {
 	Path            string `json:"path"`
 	Copy            bool   `json:"copy"`
 	Quiet           bool   `json:"quiet"`
+	Color           string `json:"color"`
 	JSON            bool   `json:"json"`
 	TrailingNewline bool   `json:"trailing_newline"`
 	StartedAt       int64  `json:"started_at"`
@@ -55,7 +61,7 @@ func outputEffect(name string, effect func(context.Context, OutputEnvelope) (Out
 			outputFieldContent: out.Content, "rendered_items": out.RenderedItems, "status": out.Status,
 			"policy": map[string]any{
 				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
-				"quiet": out.Policy.Quiet, "trailing_newline": out.Policy.TrailingNewline,
+				"quiet": out.Policy.Quiet, outputFieldColor: out.Policy.Color, "trailing_newline": out.Policy.TrailingNewline,
 				"started_at": out.Policy.StartedAt,
 			},
 			"report_prefix": out.ReportPrefix, "report_suffix": out.ReportSuffix,
@@ -151,6 +157,27 @@ func reportOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvel
 		return envelope, nil
 	}
 	duration := time.Since(time.Unix(0, envelope.Policy.StartedAt)).Round(time.Millisecond).String()
-	fmt.Fprint(os.Stderr, envelope.ReportPrefix, duration, envelope.ReportSuffix)
+	status := envelope.ReportPrefix + duration
+	color := terminal.ColorEnabled(envelope.Policy.Color, os.Stderr)
+	if envelope.Policy.Copy && color {
+		status = "\x1b[1;32m" + status + "\x1b[0m"
+	}
+	fmt.Fprint(os.Stderr, status, envelope.ReportSuffix)
+	if envelope.Policy.Copy && envelope.RenderedItems > 0 {
+		heading := "Preview:"
+		if color {
+			heading = "\x1b[1;36m" + heading + "\x1b[0m"
+		}
+		preview, truncated := boundedOutputPreview(envelope.Content)
+		fmt.Fprintln(os.Stderr, heading)
+		if preview == "" {
+			fmt.Fprintln(os.Stderr, "(empty package)")
+		} else {
+			fmt.Fprintln(os.Stderr, preview)
+		}
+		if truncated {
+			fmt.Fprintln(os.Stderr, "… preview truncated; only the preview is shortened, not the full destination output.")
+		}
+	}
 	return envelope, nil
 }

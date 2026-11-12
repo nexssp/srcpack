@@ -40,7 +40,7 @@ srcpack ".#arch"
 srcpack cookbook
 ```
 
-That creates a quick architecture map and copies it to the clipboard. Use `-o -` to print the result in your terminal or `-o FILE` to save it.
+That creates a quick architecture map, copies the full package to the clipboard, and shows a compact summary with a bounded preview. Only the terminal preview may be shortened; clipboard, stdout, and file output stay complete. Use `--stdout` (or `-o -`) to print the full rendered package, or `-o FILE` to save it. Do not combine `--stdout` with `-o FILE`; with no destination, `--no-copy` prints the full package to stdout.
 `srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration in a colorized terminal layout. Use `srcpack cookbook --md` to print the cookbook as pure Markdown without terminal styling or banners.
 
 ## Combine local and remote code in one command
@@ -122,7 +122,7 @@ Run these from a local srcpack checkout. Replace local folders with the ones in 
 | 15 | `srcpack ".#arch" --since HEAD~3` | Select local changes since a Git ref. |
 | 16 | `srcpack ".#impl" --modified --diff-only` | Add the local diff to changed source. |
 | 17 | `srcpack "nflows#source" -o nflows-context.md` | Save the result to a file. |
-| 18 | `srcpack "bundles/pack#arch" -o -` | Print the result to stdout. |
+| 18 | `srcpack "bundles/pack#arch" --stdout` | Print the full rendered result to stdout (`-o -` is an alias). |
 | 19 | `srcpack pack "bundles/pack#arch" --plan` | Preview selectors and destination before scanning. |
 | 20 | `srcpack "./bundles/pack#impl" "../flow/compiler#api" "github:nexssp/flow//compiler?ref=v0.70.0#arch" "github:nexssp/kernel//action?ref=v0.37.0#api" -o combined-context.md` | Combine current, parent, and remote project code. |
 

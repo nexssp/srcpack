@@ -167,7 +167,9 @@ srcpack clean --dry-run          # preview cleanup
 
 # Output
 -e, --editor NAME     markdown|zed|claude|fold|raw
--o, --output PATH     - for stdout
+-o, --output PATH     save to a file; - prints the full result to stdout
+    --stdout          print the full result to stdout (same as -o -; conflicts with -o FILE)
+    --no-copy         disable clipboard output; without a destination, use stdout
     --dir-prefix
     --color auto|always|never
 -q, --quiet
