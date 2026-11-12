@@ -172,7 +172,7 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 		{
 			name:       "include-config adds masked raw manifests to signatures",
 			args:       []string{"--only-sig", "--include-config", "--mask"},
-			wantSubstr: []string{"config.yml", "key: value", "[REDACTED_SECRET]"},
+			wantSubstr: []string{"config.yml", "key: value", "[REDACTED_CREDENTIAL]"},
 			dropSubstr: []string{`return "hi"`, fakeCredential},
 		},
 		{
@@ -190,7 +190,7 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 		{
 			name:       "mask replaces secrets",
 			args:       []string{"--include-config", "--mask"},
-			wantSubstr: []string{"[REDACTED_SECRET]"},
+			wantSubstr: []string{"[REDACTED_CREDENTIAL]"},
 			dropSubstr: []string{fakeCredential},
 		},
 		{

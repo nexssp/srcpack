@@ -145,8 +145,9 @@ func TestASTParse_IncludeConfigIsOptInAndMasked(t *testing.T) {
 		t.Fatalf("ASTParse returned %d records, want one config record", len(out))
 	}
 	got := string(out[0].Content)
-	ktest.RequireStringContains(t, got, `api_key: "[REDACTED_CREDENTIAL]"`)
-	ktest.RequireStringNotContains(t, got, "test-secret-value-123")
+	if !strings.Contains(got, `api_key: "[REDACTED_CREDENTIAL]"`) || strings.Contains(got, "test-secret-value-123") {
+		t.Fatal("included config credential was not redacted")
+	}
 
 	file.ParseOptions.IncludeConfig = false
 	out = runASTParse(t, file)
@@ -173,7 +174,7 @@ func TestASTParse_IncludeConfigHonorsDisabledMasking(t *testing.T) {
 	}
 	got := string(out[0].Content)
 	if !strings.Contains(got, secret) || strings.Contains(got, "[REDACTED_SECRET]") {
-		t.Fatalf("disabled masking changed config content: %q", got)
+		t.Fatal("disabled masking changed config content")
 	}
 }
 

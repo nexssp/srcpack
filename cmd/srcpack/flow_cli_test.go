@@ -63,6 +63,25 @@ func TestFlowCLIPackSummaryStartsWithOriginalCommand(t *testing.T) {
 	}
 }
 
+func TestFlowCLIPackMasksSecretsByDefault(t *testing.T) {
+	secret := "sk-proj-" + strings.Repeat("R", 40)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "config.yml"), []byte("api_token: \""+secret+"\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+
+	stdout, _, err := captureFlowCLIStreams(t, func() error {
+		return execute(context.Background(), []string{"pack", "--include-config", "--output", "-"})
+	})
+	if err != nil {
+		t.Fatal("srcpack pack failed")
+	}
+	if !strings.Contains(stdout, "[REDACTED_CREDENTIAL]") || strings.Contains(stdout, secret) {
+		t.Fatal("default masking did not redact the included config value")
+	}
+}
+
 func TestFlowCLINoMaskPreservesIncludedConfigSecret(t *testing.T) {
 	const secret = "ghp_0123456789abcdefghijklmnopqrstuvwxyz"
 	root := t.TempDir()
@@ -75,13 +94,13 @@ func TestFlowCLINoMaskPreservesIncludedConfigSecret(t *testing.T) {
 		return execute(context.Background(), []string{"pack", "--include-config", "--no-mask", "--output", "-"})
 	})
 	if err != nil {
-		t.Fatalf("srcpack --no-mask failed: %v", err)
+		t.Fatal("srcpack --no-mask failed")
 	}
 	if !strings.Contains(stdout, "config.yml") || !strings.Contains(stdout, secret) {
-		t.Fatalf("unmasked config content missing from output:\n%s", stdout)
+		t.Fatal("unmasked config content missing from output")
 	}
 	if strings.Contains(stdout, "[REDACTED_SECRET]") {
-		t.Fatalf("--no-mask unexpectedly redacted config content:\n%s", stdout)
+		t.Fatal("--no-mask unexpectedly redacted config content")
 	}
 }
 
