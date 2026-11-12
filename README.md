@@ -8,15 +8,9 @@
 
 ## Install and start using it
 
-Install with Go 1.27.4 or newer, as required by this release's `go.mod`:
+### Install a prebuilt release (recommended)
 
-```sh
-go install github.com/nexssp/srcpack/cmd/srcpack@latest
-```
-
-### Install a prebuilt release
-
-Tagged releases include prebuilt archives and installers. If a tag does not have release assets yet, use the Go install command above.
+Tagged releases include prebuilt archives and installers. If a tag does not have release assets yet, use the Go install fallback below.
 
 Linux or macOS:
 
@@ -34,7 +28,20 @@ The installers verify the downloaded archive against the release's SHA-256 check
 
 ### Optional skill for AI agents
 
-The binary installers install the `srcpack` CLI, not agent-specific instructions. Run `srcpack skill` for the view and download links matching your CLI version. If your AI agent supports Agent Skills, add the [v0.6.0 srcpack skill](https://github.com/nexssp/srcpack/blob/v0.6.0/skills/srcpack/SKILL.md) according to that agent's instructions; [download the raw Markdown](https://raw.githubusercontent.com/nexssp/srcpack/v0.6.0/skills/srcpack/SKILL.md) if needed. The skill is optional and separate from the CLI.
+The binary installers install the `srcpack` CLI, not agent-specific instructions. If your AI agent supports Agent Skills, use either option:
+
+- Run `srcpack skill` (if supported by your installed CLI) to get links matching that CLI version.
+- [View the current skill on GitHub](https://github.com/nexssp/srcpack/blob/main/skills/srcpack/SKILL.md) or [download the raw `SKILL.md`](https://raw.githubusercontent.com/nexssp/srcpack/main/skills/srcpack/SKILL.md) directly. These URLs follow `main`; use the command when you need a version-matched skill and your CLI supports it.
+
+Add the downloaded `SKILL.md` according to your AI agent's instructions. The skill is optional and separate from the CLI.
+
+### Install with Go (fallback)
+
+If you prefer to install from source, or a release does not offer a prebuilt installer for your platform, use Go 1.27.4 or newer, as required by this release's `go.mod`:
+
+```sh
+go install github.com/nexssp/srcpack/cmd/srcpack@latest
+```
 
 Make sure `srcpack` is on your `PATH`, then run it from any project you want to inspect. No config file or `srcpack init` is needed:
 
@@ -44,7 +51,8 @@ srcpack ".#arch"
 srcpack cookbook
 ```
 
-That creates a quick architecture map, copies the full package to the clipboard, and shows a compact summary with a bounded preview. Only the terminal preview may be shortened; clipboard, stdout, and file output stay complete. Use `--stdout` to print the full rendered package, or `-o FILE` to save it. Do not combine `--stdout` with `-o FILE`; with no destination, `--no-copy` prints the full package to stdout.
+`srcpack ".#arch"` creates a quick architecture map. With no destination, it copies the full package to the clipboard and shows a compact summary with a bounded preview; only the terminal preview may be shortened. Use `--stdout` to print the full rendered package, or `-o FILE` to save it. Do not combine `--stdout` with `-o FILE`; with no destination, `--no-copy` prints the full package to stdout.
+
 `srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration in a colorized terminal layout. Use `srcpack cookbook --md` to print the cookbook as pure Markdown without terminal styling or banners.
 
 ## Combine local and remote code in one command

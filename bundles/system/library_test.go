@@ -30,19 +30,21 @@ func TestWithVersionIsContextScoped(t *testing.T) {
 
 func TestSkillLinksMatchCLIReleaseOrDevelopmentBranch(t *testing.T) {
 	for _, test := range []struct {
-		version string
-		ref     string
+		name string
+		ctx  context.Context
+		ref  string
 	}{
-		{version: "v0.6.0", ref: "v0.6.0"},
-		{version: "dev", ref: "main"},
+		{name: "tagged release", ctx: WithVersion(context.Background(), "v0.6.0"), ref: "v0.6.0"},
+		{name: "explicit development version", ctx: WithVersion(context.Background(), "dev"), ref: "main"},
+		{name: "default build version", ctx: context.Background(), ref: "main"},
 	} {
-		out, err := skill(WithVersion(context.Background(), test.version), nil)
+		out, err := skill(test.ctx, nil)
 		if err != nil {
-			t.Fatalf("skill(%q) error = %v", test.version, err)
+			t.Fatalf("skill(%s) error = %v", test.name, err)
 		}
 		text, ok := out["content"].(string)
 		if !ok {
-			t.Fatalf("skill(%q) content type = %T", test.version, out["content"])
+			t.Fatalf("skill(%s) content type = %T", test.name, out["content"])
 		}
 		for _, want := range []string{
 			"binary installs the srcpack CLI, not this optional agent instruction file",
@@ -50,7 +52,7 @@ func TestSkillLinksMatchCLIReleaseOrDevelopmentBranch(t *testing.T) {
 			"https://raw.githubusercontent.com/nexssp/srcpack/" + test.ref + "/skills/srcpack/SKILL.md",
 		} {
 			if !strings.Contains(text, want) {
-				t.Errorf("skill(%q) omitted %q: %s", test.version, want, text)
+				t.Errorf("skill(%s) omitted %q: %s", test.name, want, text)
 			}
 		}
 	}
