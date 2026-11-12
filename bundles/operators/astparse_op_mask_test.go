@@ -22,8 +22,10 @@ func TestMaskSecretsRecognizedCredentialShapes(t *testing.T) {
 		{name: "google api", secret: "AIzaSy" + repeat("C", 35), placeholder: "[REDACTED_SECRET]"},
 		{name: "github ghu", secret: "ghu_" + repeat("D", 36), placeholder: "[REDACTED_SECRET]"},
 		{name: "github ghs", secret: "ghs_" + repeat("E", 36), placeholder: "[REDACTED_SECRET]"},
+		{name: "github ghr refresh", secret: "ghr_" + repeat("R", 36), placeholder: "[REDACTED_SECRET]"},
 		{name: "github existing ghp", secret: "ghp_" + repeat("Q", 36), placeholder: "[REDACTED_SECRET]"},
 		{name: "stripe live", secret: "sk_live_" + repeat("G", 24), placeholder: "[REDACTED_SECRET]"},
+		{name: "stripe test", secret: "sk_test_" + repeat("T", 24), placeholder: "[REDACTED_SECRET]"},
 		{name: "npm token", secret: "npm_" + repeat("H", 36), placeholder: "[REDACTED_SECRET]"},
 		{name: "hugging face token", secret: "hf_" + repeat("J", 34), placeholder: "[REDACTED_SECRET]"},
 		{name: "gitlab personal token", secret: "glpat-" + repeat("K", 20), placeholder: "[REDACTED_SECRET]"},
@@ -62,6 +64,10 @@ func TestMaskSecretsLeavesNearMissesAndImportPaths(t *testing.T) {
 		{name: "short github value", input: "ghu_" + repeat("D", 35)},
 		{name: "ordinary token assignment", input: `token: "short"`},
 		{name: "key with token suffix", input: `my_token: "` + repeat("m", 24) + `"`},
+		{name: "token assigned from function call", input: "token = getAuthTokenFromRequestContext(request)"},
+		{name: "password assigned from validator call", input: "password = ValidatePasswordStrength(user)"},
+		{name: "secret assigned from derivation call", input: "secret = deriveSecretFromConfig(cfg)"},
+		{name: "token assigned from member reference", input: "token = userInfo.AccessToken"},
 	}
 
 	for _, tc := range tests {

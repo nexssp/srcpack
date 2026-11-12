@@ -55,6 +55,33 @@ func TestASTParse_ArchFiltersUnexported(t *testing.T) {
 	}
 }
 
+func TestASTParse_PythonArchUsesStubSyntax(t *testing.T) {
+	file := operators.ParsedFile{
+		FileMeta: mustMeta("example.py", "python"),
+		Content:  []byte("def load_config(path: str) -> dict:\n    return {}\n\nclass UserService:\n    def get_user(self, user_id: int) -> dict:\n        return {}\n"),
+		ParseOptions: operators.ParseOptions{
+			OnlySig:        true,
+			Comments:       false,
+			ExportedOnly:   true,
+			TrimBlankLines: true,
+		},
+		ParseOptionsSet: true,
+	}
+
+	combined := combinedContent(runASTParse(t, file))
+	for _, want := range []string{
+		"def load_config(path: str) -> dict: ...",
+		"class UserService:\n    def get_user(self, user_id: int) -> dict: ...",
+	} {
+		if !strings.Contains(combined, want) {
+			t.Errorf("Python architecture output missing %q:\n%s", want, combined)
+		}
+	}
+	if strings.Contains(combined, "::") || strings.Contains(combined, "{}") {
+		t.Errorf("Python architecture output contains synthetic parser artifacts:\n%s", combined)
+	}
+}
+
 func TestASTParse_ImplKeepsUnexported(t *testing.T) {
 	file := operators.ParsedFile{
 		FileMeta: mustMeta("sample.go", "go"),

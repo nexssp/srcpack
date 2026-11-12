@@ -4,7 +4,8 @@ Usage:
   srcpack                                        Show dashboard and examples
   srcpack [pack] [selector ...] [options]        Package codebase
   srcpack tree [selector ...] [options]          Tree-only output
-  srcpack find NAME [options]                    Find declarations or matching text
+  srcpack find NAME [--root PATH] [--kind KIND] [--json] [--stdout]
+                                                Find declarations or matching text (stdout is the default)
   srcpack cookbook [--md] [--color MODE]         Show cookbook; --md prints pure Markdown
   srcpack skill                                  Show links to the Agent Skill for this version
   srcpack update [profile] [--check]             Regenerate every configured target
@@ -80,7 +81,7 @@ Options:
   -v, --version            Show version
 
 Management:
-  srcpack find NAME            Find declarations or matching text in packable files
+  srcpack find NAME [--stdout] Find declarations or matching text; output is stdout by default
   srcpack init             Create starter nexss.srcpack.yml
   srcpack update           Regenerate every configured target
   update masking uses options.mask_secrets from nexss.srcpack.yml; it has no per-run mask override

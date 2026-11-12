@@ -3,6 +3,7 @@ package operators
 import (
 	"bytes"
 	"iter"
+	"strings"
 	"sync"
 
 	"github.com/nexssp/kernel/action"
@@ -112,6 +113,9 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					// the file from the pack.
 					res = extract.Result{Content: string(file.Content)}
 				}
+				if parseErr == nil && fileOptions.OnlySig && file.Lang == "python" {
+					res.Snippets = normalizePythonSignatures(res.Snippets)
+				}
 				var symbolSpans []SymbolSpan
 				if fileOptions.OnlySig && file.Lang == "go" {
 					symbolSpans = extractGoSymbolSpans(file.Path, file.Content, fileOptions.ExportedOnly, file.SourceStartLine)
@@ -215,6 +219,25 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 			}
 		}
 	}
+}
+
+func normalizePythonSignatures(snippets []string) []string {
+	normalized := make([]string, len(snippets))
+	for i, snippet := range snippets {
+		lines := strings.Split(snippet, "\n")
+		for j, line := range lines {
+			indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+			trimmed := strings.TrimSpace(line)
+			switch {
+			case strings.HasSuffix(trimmed, " {}"):
+				lines[j] = indent + strings.TrimSuffix(trimmed, " {}") + " ..."
+			case strings.HasSuffix(trimmed, "::"):
+				lines[j] = indent + strings.TrimSuffix(trimmed, ":")
+			}
+		}
+		normalized[i] = strings.Join(lines, "\n")
+	}
+	return normalized
 }
 
 func maskSourceBytes(source []byte) []byte {

@@ -54,6 +54,7 @@
   root   string  `cli:"root,r" usage:"Directory to search (default: current directory)"`
   kind   string  `cli:"kind,k" usage:"Filter by declaration kind, or text for line matches"`
   json   bool    `cli:"json" usage:"Emit machine-readable JSON"`
+  stdout bool    `cli:"stdout" usage:"Accepted for output-flag consistency; find results already go to stdout"`
 }
 
 @pipeline dashboard

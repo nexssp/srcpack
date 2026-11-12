@@ -104,6 +104,20 @@ func TestFlowCLINoMaskPreservesIncludedConfigSecret(t *testing.T) {
 	}
 }
 
+func TestFlowCLIFindAcceptsStdoutFlag(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{"sample.go": "package sample\ntype UserService struct{}\n"})
+	t.Chdir(root)
+	stdout, _, err := captureFlowCLIStreams(t, func() error {
+		return execute(context.Background(), []string{"find", "UserService", "--stdout"})
+	})
+	if err != nil {
+		t.Fatalf("srcpack find --stdout failed: %v", err)
+	}
+	if !strings.Contains(stdout, "UserService") || !strings.Contains(stdout, "Found 1 match") {
+		t.Fatalf("find stdout result = %q", stdout)
+	}
+}
+
 func TestFlowCLIPackJSONOutputIsValidJSONWithoutHumanSummary(t *testing.T) {
 	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
 	t.Chdir(root)

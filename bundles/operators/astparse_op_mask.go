@@ -8,7 +8,7 @@ import (
 
 var compositeSecretRegex = regexp.MustCompile(
 	`(?s:(?P<privkey>-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----))` +
-		`|(?P<token>\b(?:AKIA[0-9A-Z]{16}|gh[posu]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{82}|xox[baprs]-[0-9a-zA-Z]{10,48}|sk-ant-(?:api0[0-9]|oat01)-[a-zA-Z0-9_-]{80,}|sk-proj-[a-zA-Z0-9_]{32,}|sk-[a-zA-Z0-9]{32,}|AIzaSy[a-zA-Z0-9_-]{30,}|sk_live_[a-zA-Z0-9]{20,}|npm_[a-zA-Z0-9]{20,}|hf_[a-zA-Z0-9]{20,}|glpat-[a-zA-Z0-9_-]{20,}|eyJ[a-zA-Z0-9_-]{5,}\.eyJ[a-zA-Z0-9_-]{5,}\.[a-zA-Z0-9_-]{5,})\b)` +
+		`|(?P<token>\b(?:AKIA[0-9A-Z]{16}|gh[posur]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{82}|xox[baprs]-[0-9a-zA-Z]{10,48}|sk-ant-(?:api0[0-9]|oat01)-[a-zA-Z0-9_-]{80,}|sk-proj-[a-zA-Z0-9_]{32,}|sk-[a-zA-Z0-9]{32,}|AIzaSy[a-zA-Z0-9_-]{30,}|sk_(?:live|test)_[a-zA-Z0-9]{20,}|npm_[a-zA-Z0-9]{20,}|hf_[a-zA-Z0-9]{20,}|glpat-[a-zA-Z0-9_-]{20,}|eyJ[a-zA-Z0-9_-]{5,}\.eyJ[a-zA-Z0-9_-]{5,}\.[a-zA-Z0-9_-]{5,})\b)` +
 		`|(?i:(?P<bearer>bearer\s+)(?P<bearertok>[a-zA-Z0-9_\-\.]{25,}))` +
 		`|(?P<assign_prefix>(?m:^|[^a-zA-Z0-9_-]))(?P<assign_key_open>["']?)(?i:(?P<assign_key>api[_-]?key|secret|password|passwd|auth[_-]?token|token|api[_-]?token|access[_-]?token))(?P<assign_key_close>["']?)(?:(?P<assign_sep>\s*[:=]\s*["'])(?P<assign_val>[^"'\s]{8,})(?P<assign_quote>["'])|(?P<assign_unquoted_sep>\s*[:=]\s*)(?P<assign_unquoted_val>[a-zA-Z0-9_./+=:-]{20,}))` +
 		`|(?P<url_user>://[^:\s/@]+:)(?P<url_pass>[^@\s/]+)(?P<url_host>@[^/\s:]+)`,
@@ -26,6 +26,7 @@ var (
 	assignValIdx         = compositeSecretRegex.SubexpIndex("assign_val")
 	assignQuoteIdx       = compositeSecretRegex.SubexpIndex("assign_quote")
 	assignUnquotedSepIdx = compositeSecretRegex.SubexpIndex("assign_unquoted_sep")
+	assignUnquotedValIdx = compositeSecretRegex.SubexpIndex("assign_unquoted_val")
 	urlUserIdx           = compositeSecretRegex.SubexpIndex("url_user")
 	urlPassIdx           = compositeSecretRegex.SubexpIndex("url_pass")
 	urlHostIdx           = compositeSecretRegex.SubexpIndex("url_host")
@@ -38,6 +39,9 @@ func MaskSecretsFast(src []byte, dst *bytes.Buffer) {
 	matches := compositeSecretRegex.FindAllSubmatchIndex(src, -1)
 	for _, m := range matches {
 		if m[2*tokenIdx] >= 0 && !hasSecretTokenBoundaries(src, m[2*tokenIdx], m[2*tokenIdx+1]) {
+			continue
+		}
+		if m[2*assignUnquotedValIdx] >= 0 && isCodeLikeUnquotedValue(src, m[2*assignUnquotedValIdx], m[2*assignUnquotedValIdx+1]) {
 			continue
 		}
 		dst.Write(src[lastIdx:m[0]])
@@ -73,6 +77,43 @@ func MaskSecretsFast(src []byte, dst *bytes.Buffer) {
 		lastIdx = m[1]
 	}
 	dst.Write(src[lastIdx:])
+}
+
+func isCodeLikeUnquotedValue(src []byte, start, end int) bool {
+	for i := end; i < len(src); i++ {
+		switch src[i] {
+		case ' ', '\t', '\r', '\n':
+			continue
+		case '(':
+			return true
+		default:
+			i = len(src)
+		}
+	}
+
+	value := src[start:end]
+	if !bytes.Contains(value, []byte(".")) {
+		return false
+	}
+	for part := range bytes.SplitSeq(value, []byte(".")) {
+		if len(part) == 0 || !isIdentifierStart(part[0]) {
+			return false
+		}
+		for _, ch := range part[1:] {
+			if !isIdentifierContinue(ch) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func isIdentifierStart(ch byte) bool {
+	return ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z'
+}
+
+func isIdentifierContinue(ch byte) bool {
+	return isIdentifierStart(ch) || ch >= '0' && ch <= '9'
 }
 
 func hasSecretTokenBoundaries(src []byte, start, end int) bool {
