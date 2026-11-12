@@ -100,14 +100,15 @@ func TestFindDeclarationsSupportsAllSourceLanguages(t *testing.T) {
 	}
 }
 
-func TestFindFallsBackToTextAndKeepsDeclarationMatches(t *testing.T) {
+func TestFindCombinesTextAndDeclarationMatches(t *testing.T) {
 	root := t.TempDir()
 	for path, source := range map[string]string{
 		"Makefile":      "build:\n\t@echo needle\n",
 		"guide.md":      "# Guide\nThe needle is in the body.\n",
 		"reference.md":  "# Needle\nNeedle appears again.\n",
 		"settings.yaml": "service:\n  name: Needle\n",
-		"source.go":     "package sample\n// needle in a comment\nfunc Run() {}\n",
+		"notes.custom":  "Needle appears in an unknown text extension.\n",
+		"source.go":     "package sample\n// needle in a comment\nfunc NeedleRun() {}\n// another needle line\n",
 	} {
 		writeFindFile(t, root, path, source)
 	}
@@ -116,19 +117,23 @@ func TestFindFallsBackToTextAndKeepsDeclarationMatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]findMatch{
-		"Makefile":      {Name: "@echo needle", Kind: "text", Path: "Makefile", StartLine: 2, EndLine: 2},
-		"guide.md":      {Name: "The needle is in the body.", Kind: "text", Path: "guide.md", StartLine: 2, EndLine: 2},
-		"reference.md":  {Name: "Needle", Kind: "heading", Path: "reference.md", StartLine: 1, EndLine: 1},
-		"settings.yaml": {Name: "name: Needle", Kind: "text", Path: "settings.yaml", StartLine: 2, EndLine: 2},
-		"source.go":     {Name: "// needle in a comment", Kind: "text", Path: "source.go", StartLine: 2, EndLine: 2},
+	want := []findMatch{
+		{Name: "@echo needle", Kind: "text", Path: "Makefile", StartLine: 2, EndLine: 2},
+		{Name: "The needle is in the body.", Kind: "text", Path: "guide.md", StartLine: 2, EndLine: 2},
+		{Name: "Needle appears in an unknown text extension.", Kind: "text", Path: "notes.custom", StartLine: 1, EndLine: 1},
+		{Name: "Needle", Kind: "heading", Path: "reference.md", StartLine: 1, EndLine: 1},
+		{Name: "Needle appears again.", Kind: "text", Path: "reference.md", StartLine: 2, EndLine: 2},
+		{Name: "name: Needle", Kind: "text", Path: "settings.yaml", StartLine: 2, EndLine: 2},
+		{Name: "// needle in a comment", Kind: "text", Path: "source.go", StartLine: 2, EndLine: 2},
+		{Name: "NeedleRun", Kind: "func", Path: "source.go", StartLine: 3, EndLine: 3},
+		{Name: "// another needle line", Kind: "text", Path: "source.go", StartLine: 4, EndLine: 4},
 	}
 	if len(matches) != len(want) {
-		t.Fatalf("matches = %#v, want one result per file: %#v", matches, want)
+		t.Fatalf("matches = %#v, want %#v", matches, want)
 	}
-	for _, match := range matches {
-		if expected, ok := want[match.Path]; !ok || expected != match {
-			t.Errorf("match = %#v, want %#v", match, expected)
+	for index, match := range matches {
+		if match != want[index] {
+			t.Errorf("matches[%d] = %#v, want %#v", index, match, want[index])
 		}
 	}
 
@@ -136,14 +141,29 @@ func TestFindFallsBackToTextAndKeepsDeclarationMatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var referenceLines []int
+	var referenceMatches []findMatch
+	var declarationLineIsText bool
 	for _, match := range textMatches {
 		if match.Path == "reference.md" {
-			referenceLines = append(referenceLines, match.StartLine)
+			referenceMatches = append(referenceMatches, match)
+		}
+		if match.Path == "source.go" && match.StartLine == 3 {
+			declarationLineIsText = match.Name == "func NeedleRun() {}" && match.Kind == "text"
 		}
 	}
-	if len(referenceLines) != 2 || referenceLines[0] != 1 || referenceLines[1] != 2 {
-		t.Fatalf("text-kind matches in reference.md = %v, want lines 1 and 2", referenceLines)
+	if len(referenceMatches) != 2 || referenceMatches[0] != (findMatch{Name: "# Needle", Kind: "text", Path: "reference.md", StartLine: 1, EndLine: 1}) || referenceMatches[1] != (findMatch{Name: "Needle appears again.", Kind: "text", Path: "reference.md", StartLine: 2, EndLine: 2}) {
+		t.Fatalf("text-kind matches in reference.md = %#v, want both literal lines", referenceMatches)
+	}
+	if !declarationLineIsText {
+		t.Fatal("text kind should return the declaration line as a literal text match")
+	}
+
+	funcMatches, err := findDeclarations(context.Background(), root, "needle", "func")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(funcMatches) != 1 || funcMatches[0] != (findMatch{Name: "NeedleRun", Kind: "func", Path: "source.go", StartLine: 3, EndLine: 3}) {
+		t.Fatalf("func-kind matches = %#v, want only the Go declaration", funcMatches)
 	}
 }
 
@@ -164,6 +184,7 @@ func TestFindHonorsPackerIgnoresAndFileExclusions(t *testing.T) {
 		"private.pem":                 "needle: ignore\n",
 		"package-lock.json":           "needle: ignore\n",
 		"image.png":                   "needle: ignore\n",
+		"binary.txt":                  "needle\x00 ignore\n",
 	} {
 		writeFindFile(t, root, path, source)
 	}

@@ -138,23 +138,35 @@ func findDeclarations(ctx context.Context, root, query, kind string) ([]findMatc
 }
 
 func findFileMatches(path, relPath, source, ext, needle, kind string) []findMatch {
+	if kind == "text" {
+		return findTextMatches(relPath, source, needle)
+	}
+
 	var matches []findMatch
-	if kind != "text" {
-		switch ext {
-		case ".go":
-			matches = findGoDeclarations(path, relPath, source, needle, kind)
-		case ".nflow":
-			matches = findNFlowDeclarations(relPath, source, needle, kind)
-		default:
-			if _, ok := findPatterns[ext]; ok {
-				matches = findLanguageDeclarations(relPath, source, ext, needle, kind)
-			}
-		}
-		if len(matches) > 0 || kind != "" {
-			return matches
+	switch ext {
+	case ".go":
+		matches = findGoDeclarations(path, relPath, source, needle, kind)
+	case ".nflow":
+		matches = findNFlowDeclarations(relPath, source, needle, kind)
+	default:
+		if _, ok := findPatterns[ext]; ok {
+			matches = findLanguageDeclarations(relPath, source, ext, needle, kind)
 		}
 	}
-	return findTextMatches(relPath, source, needle)
+	if kind != "" {
+		return matches
+	}
+
+	declarationLines := make(map[int]struct{}, len(matches))
+	for _, match := range matches {
+		declarationLines[match.StartLine] = struct{}{}
+	}
+	for _, match := range findTextMatches(relPath, source, needle) {
+		if _, isDeclaration := declarationLines[match.StartLine]; !isDeclaration {
+			matches = append(matches, match)
+		}
+	}
+	return matches
 }
 
 func findTextMatches(relPath, source, needle string) []findMatch {
