@@ -107,7 +107,7 @@ func TestFlowAdministrativeResourcesRoundTrip(t *testing.T) {
 
 func TestFlowCookbookPrintsPracticalExamples(t *testing.T) {
 	t.Chdir(t.TempDir())
-	text, err := capturePolicyStdout(t, func() error { return execute(context.Background(), []string{"cookbook"}) })
+	text, err := capturePolicyStdout(t, func() error { return execute(context.Background(), []string{"cookbook", "--md"}) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestFlowCookbookPrintsPracticalExamples(t *testing.T) {
 		`srcpack ".#arch" --include-config -o context.md`,
 		"best-effort basis",
 		".env` variants and common credential/private-key files remain excluded",
-		`srcpack "internal/auth/service.go:80-140#source" -o -`,
+		`srcpack "internal/auth/service.go:80-140#source" --stdout`,
 		`<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->`,
 		`"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}]`,
 	} {

@@ -74,7 +74,7 @@ func TestSrcpackNflowDeclaresIncludedCommandSchemas(t *testing.T) {
 		{"system", "types", "types:", "EmptyInput"},
 		{"system", "health", "health:", "EmptyInput"},
 		{"system", "demo", "demo:", "EmptyInput"},
-		{"system", "cookbook", "cookbook:", "EmptyInput"},
+		{"system", "cookbook", "cookbook:", "CookbookInput"},
 		{"system", "find", "find:", "FindInput"},
 	}
 	for _, command := range commands {

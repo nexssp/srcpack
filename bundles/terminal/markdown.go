@@ -34,8 +34,8 @@ func RenderMarkdown(markdown string, color bool) string {
 	for i, line := range lines {
 		content := line
 		ending := ""
-		if strings.HasSuffix(content, "\r") {
-			content = strings.TrimSuffix(content, "\r")
+		if before, found := strings.CutSuffix(content, "\r"); found {
+			content = before
 			ending = "\r"
 		}
 		trimmed := strings.TrimSpace(content)
@@ -88,22 +88,21 @@ func renderMarkdownLine(line string, color bool) string {
 
 func renderInlineCode(line string, color bool) string {
 	var rendered strings.Builder
-	for len(line) > 0 {
+	for line != "" {
 		start := strings.IndexByte(line, '`')
 		if start < 0 {
 			rendered.WriteString(line)
 			break
 		}
 		rendered.WriteString(line[:start])
-		remainder := line[start+1:]
-		end := strings.IndexByte(remainder, '`')
-		if end < 0 {
+		code, remainder, found := strings.Cut(line[start+1:], "`")
+		if !found {
 			rendered.WriteByte('`')
 			rendered.WriteString(remainder)
 			break
 		}
-		rendered.WriteString(paint(remainder[:end], "33", color))
-		line = remainder[end+1:]
+		rendered.WriteString(paint(code, "33", color))
+		line = remainder
 	}
 	return rendered.String()
 }
