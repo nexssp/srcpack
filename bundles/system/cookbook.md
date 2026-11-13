@@ -1,6 +1,6 @@
 # srcpack cookbook
 
-Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. A normal pack prints the complete rendered result to stdout. Use `--copy` to copy the full result to the clipboard instead, and add `--preview` only when you want a short terminal preview of that copied output; previews are off by default. Use `-o FILE` to save the result. `--stdout` explicitly selects stdout and cannot be combined with `-o FILE`.
+Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. With no destination, a normal pack copies the complete rendered result to the clipboard by default. Use `--stdout` or `--no-copy` to print the full result to stdout, and add `--preview` only when you want a short terminal preview of copied output; previews are off by default. Use `-o FILE` to save the result. `--stdout` explicitly selects stdout and cannot be combined with `-o FILE`.
 
 ## Get oriented
 
