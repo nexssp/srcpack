@@ -314,19 +314,25 @@ func sourceLocationCommentWithMap(file *ParsedFile, omitRedundantMap bool) []byt
 		return nil
 	}
 	lineSpans := file.LineSpans
-	if omitRedundantMap && len(lineSpans) >= 8 && identitySourceLineMap(file) {
-		lineSpans = nil
+	var lineRanges string
+	if omitRedundantMap && len(lineSpans) > 0 {
+		if identitySourceLineMap(file) {
+			lineSpans = nil
+		} else if lineRanges = compactSourceLineRanges(lineSpans); lineRanges != "" {
+			lineSpans = nil
+		}
 	}
 	metadata, err := json.Marshal(struct {
-		Path      string           `json:"path"`
-		StartLine int              `json:"start_line"`
-		EndLine   int              `json:"end_line"`
-		URL       string           `json:"url,omitempty"`
-		Symbols   []SymbolSpan     `json:"symbols,omitempty"`
-		LineSpans []SourceLineSpan `json:"line_spans,omitempty"`
+		Path       string           `json:"path"`
+		StartLine  int              `json:"start_line"`
+		EndLine    int              `json:"end_line"`
+		URL        string           `json:"url,omitempty"`
+		Symbols    []SymbolSpan     `json:"symbols,omitempty"`
+		LineRanges string           `json:"line_ranges,omitempty"`
+		LineSpans  []SourceLineSpan `json:"line_spans,omitempty"`
 	}{
 		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
-		URL: file.SourceURL, Symbols: file.SymbolSpans, LineSpans: lineSpans,
+		URL: file.SourceURL, Symbols: file.SymbolSpans, LineRanges: lineRanges, LineSpans: lineSpans,
 	})
 	if err != nil {
 		return nil
@@ -369,6 +375,55 @@ func identitySourceLineMap(file *ParsedFile) bool {
 		spanIndex++
 	}
 	return spanIndex == len(file.LineSpans)
+}
+
+// compactSourceLineRanges encodes contiguous body-to-source mappings as
+// output-range:source-range pairs, e.g. "1-3:52-54,5:60-62". Consecutive
+// single-line mappings and repeated declaration spans are collapsed.
+func compactSourceLineRanges(spans []SourceLineSpan) string {
+	if len(spans) == 0 {
+		return ""
+	}
+	type rangeGroup struct {
+		outputStart int
+		outputEnd   int
+		sourceStart int
+		sourceEnd   int
+		last        SourceLineSpan
+	}
+	groups := make([]rangeGroup, 0, len(spans))
+	for _, span := range spans {
+		if len(groups) == 0 {
+			groups = append(groups, rangeGroup{span.OutputLine, span.OutputLine, span.SourceStartLine, span.SourceEndLine, span})
+			continue
+		}
+		group := &groups[len(groups)-1]
+		sameSourceRange := span.SourceStartLine == group.last.SourceStartLine && span.SourceEndLine == group.last.SourceEndLine
+		adjacentSourceLines := group.last.SourceStartLine == group.last.SourceEndLine &&
+			span.SourceStartLine == span.SourceEndLine && span.SourceStartLine == group.last.SourceEndLine+1
+		if span.OutputLine != group.last.OutputLine+1 || (!sameSourceRange && !adjacentSourceLines) {
+			groups = append(groups, rangeGroup{span.OutputLine, span.OutputLine, span.SourceStartLine, span.SourceEndLine, span})
+			continue
+		}
+		group.outputEnd = span.OutputLine
+		if adjacentSourceLines {
+			group.sourceEnd = span.SourceEndLine
+		}
+		group.last = span
+	}
+	ranges := make([]string, len(groups))
+	for i, group := range groups {
+		ranges[i] = formatCompactLineRange(group.outputStart, group.outputEnd) + ":" +
+			formatCompactLineRange(group.sourceStart, group.sourceEnd)
+	}
+	return strings.Join(ranges, ",")
+}
+
+func formatCompactLineRange(start, end int) string {
+	if start == end {
+		return strconv.Itoa(start)
+	}
+	return strconv.Itoa(start) + "-" + strconv.Itoa(end)
 }
 
 // writeSnippets packs consecutive single-line declarations tightly and

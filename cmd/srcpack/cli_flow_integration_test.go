@@ -239,9 +239,8 @@ func TestFlowCLIPackCarriesOriginalSourceLineProvenance(t *testing.T) {
 			if location.Path != path || location.StartLine != 3 || location.EndLine != 3 {
 				t.Errorf("source location %d = %#v, want %s lines 3-3", i, location, path)
 			}
-			if len(location.LineSpans) != 1 || location.LineSpans[0].OutputLine != 1 ||
-				location.LineSpans[0].SourceStartLine != 3 || location.LineSpans[0].SourceEndLine != 3 {
-				t.Errorf("line spans for %s = %#v, want body line 1 -> original line 3", path, location.LineSpans)
+			if location.LineRanges != "" {
+				t.Errorf("derivable line ranges for %s = %q, want no extra mapping", path, location.LineRanges)
 			}
 		}
 		if strings.Index(output, "<!-- srcpack-source:") > strings.Index(output, "### first.go") {
@@ -259,25 +258,17 @@ func TestFlowCLIPackCarriesOriginalSourceLineProvenance(t *testing.T) {
 			t.Fatalf("got %d source locations, want one:\n%s", len(locations), output)
 		}
 		location := locations[0]
-		if len(location.LineSpans) != 1 {
-			t.Fatalf("dense signature line spans = %#v, want one declaration span", location.LineSpans)
-		}
-		span := location.LineSpans[0]
-		if span.OutputLine != 1 || span.SourceStartLine != 4 || span.SourceEndLine != 8 {
-			t.Fatalf("dense signature span = %#v, want body line 1 -> original lines 4-8", span)
+		if location.LineRanges != "1:4-8" {
+			t.Fatalf("dense signature line ranges = %q, want body line 1 -> original lines 4-8", location.LineRanges)
 		}
 	})
 }
 
 type sourceLocationRecord struct {
-	Path      string `json:"path"`
-	StartLine int    `json:"start_line"`
-	EndLine   int    `json:"end_line"`
-	LineSpans []struct {
-		OutputLine      int `json:"output_line"`
-		SourceStartLine int `json:"source_start_line"`
-		SourceEndLine   int `json:"source_end_line"`
-	} `json:"line_spans"`
+	Path       string `json:"path"`
+	StartLine  int    `json:"start_line"`
+	EndLine    int    `json:"end_line"`
+	LineRanges string `json:"line_ranges"`
 }
 
 func parseSourceLocationRecords(t *testing.T, output string) []sourceLocationRecord {

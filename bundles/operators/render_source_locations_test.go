@@ -26,7 +26,7 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 		"<!-- srcpack-source:", `"path":"pkg/example.go"`,
 		`"start_line":8`, `"end_line":12`, `"name":"Answer"`,
 		`"start_line":9`, `"end_line":11`, "package example",
-		`"line_spans":[{"output_line":1,"source_start_line":9,"source_end_line":11}]`,
+		`"line_ranges":"1:9-11"`,
 		`"url":"https://github.com/nexssp/flow/blob/0123456789abcdef/pkg/example.go#L8-L12"`,
 	} {
 		if !strings.Contains(got, want) {
@@ -36,24 +36,46 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 }
 
 func TestRenderFileBlockOmitsRedundantIdentityLineSpans(t *testing.T) {
-	lineSpans := make([]SourceLineSpan, 12)
-	for i := range lineSpans {
-		lineSpans[i] = SourceLineSpan{OutputLine: i + 1, SourceStartLine: 52 + i, SourceEndLine: 52 + i}
-	}
 	file := ParsedFile{
 		FileMeta:        sourceLocationTestMeta(),
-		Content:         []byte(strings.Repeat("source line\n", len(lineSpans))),
+		Content:         []byte("source line\n\nsource line\n"),
 		SourceStartLine: 52,
-		SourceEndLine:   63,
-		LineSpans:       lineSpans,
+		SourceEndLine:   54,
+		LineSpans: []SourceLineSpan{
+			{OutputLine: 1, SourceStartLine: 52, SourceEndLine: 52},
+			{OutputLine: 3, SourceStartLine: 54, SourceEndLine: 54},
+		},
 	}
 
 	got := string(renderFileBlock(&file, "### ${REL_PATH}\n", ""))
-	if strings.Contains(got, `"line_spans"`) {
+	if strings.Contains(got, `"line_spans"`) || strings.Contains(got, `"line_ranges"`) {
 		t.Fatalf("redundant identity line map was rendered:\n%s", got)
 	}
 	if !strings.Contains(got, `"start_line":52`) {
 		t.Fatalf("source range was lost when omitting the redundant map:\n%s", got)
+	}
+}
+
+func TestRenderFileBlockCompactsNonlinearLineSpans(t *testing.T) {
+	file := ParsedFile{
+		FileMeta:        sourceLocationTestMeta(),
+		Content:         []byte("first\nsecond\n\nthird\nfourth\n"),
+		SourceStartLine: 52,
+		SourceEndLine:   62,
+		LineSpans: []SourceLineSpan{
+			{OutputLine: 1, SourceStartLine: 52, SourceEndLine: 52},
+			{OutputLine: 2, SourceStartLine: 53, SourceEndLine: 53},
+			{OutputLine: 4, SourceStartLine: 60, SourceEndLine: 62},
+			{OutputLine: 5, SourceStartLine: 60, SourceEndLine: 62},
+		},
+	}
+
+	got := string(renderFileBlock(&file, "### ${REL_PATH}\n", ""))
+	if !strings.Contains(got, `"line_ranges":"1-2:52-53,4-5:60-62"`) {
+		t.Fatalf("compact body-to-source ranges missing:\n%s", got)
+	}
+	if strings.Contains(got, `"line_spans"`) {
+		t.Fatalf("verbose line-span JSON was rendered:\n%s", got)
 	}
 }
 
@@ -67,8 +89,8 @@ func TestRenderFileBlockKeepsIncompleteIdentityLikeLineSpans(t *testing.T) {
 	}
 
 	got := string(renderFileBlock(&file, "### ${REL_PATH}\n", ""))
-	if !strings.Contains(got, `"line_spans":[{"output_line":1,"source_start_line":52,"source_end_line":52}]`) {
-		t.Fatalf("incomplete line map was incorrectly omitted:\n%s", got)
+	if !strings.Contains(got, `"line_ranges":"1:52"`) || strings.Contains(got, `"line_spans"`) {
+		t.Fatalf("incomplete line map was not compactly preserved:\n%s", got)
 	}
 }
 

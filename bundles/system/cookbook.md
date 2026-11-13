@@ -77,11 +77,11 @@ srcpack ".#arch" --include-config -o context.md
 srcpack "internal/auth/service.go:80-140#source" --stdout
 ```
 
-Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. `line_spans` maps rendered-body line positions to original-file ranges when a transformation makes the mapping non-linear. Large direct, continuous source bodies omit the repetitive map from rendered Markdown, while structured source records keep complete provenance. Coordinates are per-file, not positions in the concatenated pack. Blank, synthetic, ambiguous, and otherwise unmapped lines have no entry. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
+Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. Rendered Markdown omits line mappings derivable from the body's starting line. Otherwise, `line_ranges` compactly maps rendered-body lines to original lines: `1-3:52-54,5:60-62` means body lines 1–3 map to source lines 52–54, and body line 5 maps to source lines 60–62. Structured source records retain complete `line_spans` provenance. Coordinates are per-file, not positions in the concatenated pack. Blank, synthetic, ambiguous, and otherwise unmapped lines have no entry. GitHub URLs keep their required `#Lx-Ly` anchor syntax. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
 
 ```html
 <!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->
-<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}],"line_spans":[{"output_line":1,"source_start_line":12,"source_end_line":18}]} -->
+<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}],"line_ranges":"1:12-18"} -->
 ```
 
 ## Add prompt text
