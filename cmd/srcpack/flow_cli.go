@@ -3,14 +3,17 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/nexssp/flow/compiler"
 	"github.com/nexssp/flow/extensions/require"
 	"github.com/nexssp/flow/native"
 	"github.com/nexssp/flow/runner"
+	"github.com/nexssp/kernel/xerr"
 	"github.com/nexssp/transport/tcli"
 	tcliflow "github.com/nexssp/transport/tcli/nexssflow"
 
@@ -107,8 +110,28 @@ func runCommandEntrypoint(ctx context.Context, args []string) (bool, error) {
 		return true, fmt.Errorf("build CLI runner: %w", err)
 	}
 	_, err = runner.Execute(ctx, cfg, string(source), "srcpack.nflow", nil)
+	if err != nil {
+		err = withSelectorOrderHint(args, err)
+	}
 	flushTransportDiagnostics(os.Stderr, transportDiagnostics.String(), err)
 	return true, err
+}
+
+const selectorOrderHint = "Selector parts are ordered path~exclude#profile; move '~exclude' before '#profile' (for example: ../flow~*.nflow#arch)."
+
+func withSelectorOrderHint(args []string, err error) error {
+	var appErr *xerr.AppError
+	if !errors.As(err, &appErr) || appErr == nil || !strings.HasPrefix(appErr.Message, "unknown profile ") {
+		return err
+	}
+	for _, arg := range args {
+		profileAt := strings.IndexByte(arg, '#')
+		excludeAt := strings.IndexByte(arg, '~')
+		if profileAt >= 0 && excludeAt > profileAt {
+			return runner.WithDiagnosticHint(err, selectorOrderHint)
+		}
+	}
+	return err
 }
 
 // cliRunnerConfig mounts only the capabilities declared by the source. Imports

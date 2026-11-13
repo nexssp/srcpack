@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/expr-lang/expr/file"
+	"github.com/nexssp/flow/runner"
 	"github.com/nexssp/kernel/xerr"
 )
 
@@ -20,7 +21,19 @@ func writeCLIError(w io.Writer, err error, debug bool) {
 		fmt.Fprintf(w, "srcpack: %v\n", err)
 		return
 	}
+	diagnostic, hasDiagnostic := runner.DiagnosticOf(err)
 	summary := conciseCLIError(err)
+	if hasDiagnostic {
+		if hint := strings.TrimSpace(diagnostic.Hint); hint != "" {
+			if message := strings.TrimSpace(diagnostic.Message); message != "" {
+				summary = message
+			}
+			if stage := strings.TrimSpace(diagnostic.Stage); stage != "" {
+				summary += " (stage: " + stage + ")"
+			}
+			summary += "\n  hint: " + hint
+		}
+	}
 	fmt.Fprintf(w, "srcpack: %s\n", summary)
 	if summary != err.Error() {
 		fmt.Fprintln(w, "  Full diagnostics: set SRCPACK_DEBUG=1 and rerun the command.")
@@ -52,6 +65,9 @@ func conciseCLIError(err error) string {
 				err = cause
 				continue
 			}
+		case *runner.DiagnosticError:
+			err = cause
+			continue
 		}
 		message := err.Error()
 		prefix, ok := strings.CutSuffix(message, cause.Error())
