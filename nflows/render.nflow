@@ -36,16 +36,24 @@
     files: map(.files,
       let file = #;
       {
-        prefix: file.source_location ?? "",
+        prefix: "",
         content: file.content,
         snippets: file.snippets ?? [],
         omitted: file.omitted,
+        source_start_line: file.source_start_line ?? 0,
+        source_end_line: file.source_end_line ?? 0,
+        source_range: file.source_range ?? "",
+        source_url: file.source_url ?? "",
+        line_spans: file.line_spans ?? [],
+        symbol_spans: file.symbol_spans ?? [],
         values: {
           REL_PATH: file.rel_path,
           ABS_PATH: file.abs_path,
           LANG: file.lang,
           LINES: string(file.lines),
-          SIZE_KB: terminal.printf("%.1f", float(file.size) / 1024)
+          SIZE_KB: terminal.printf("%.1f", float(file.size) / 1024),
+          SOURCE_RANGE: file.source_range ?? "",
+          SOURCE_URL: file.source_url ?? ""
         }
       })
   }

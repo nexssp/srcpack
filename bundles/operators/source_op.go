@@ -325,9 +325,12 @@ func visitFile(
 		return yield(zero, fmt.Errorf("read %q: %w", path, readErr))
 	}
 
-	sourceStartLine, sourceEndLine := 1, sourceLineCount(content)
+	fullLineCount := sourceLineCount(content)
+	sourceStartLine, sourceEndLine := 1, fullLineCount
+	sliced := false
 	if startLine > 0 {
 		content, sourceStartLine, sourceEndLine = sliceLinesWithSpan(content, startLine, endLine)
+		sliced = sourceStartLine != 1 || sourceEndLine != fullLineCount
 	}
 
 	hash := computeHash(content)
@@ -342,6 +345,7 @@ func visitFile(
 		Lines:           bytes.Count(content, []byte{'\n'}) + 1,
 		SourceStartLine: sourceStartLine,
 		SourceEndLine:   sourceEndLine,
+		Sliced:          sliced,
 		Profile:         profile,
 		Prompt:          prompt,
 		ParseOptions:    effectiveParseOptions(cfg, profile),

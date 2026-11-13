@@ -28,14 +28,14 @@
   } }
   -> { ..., editor: lower(trim(.config.editor)) }
   -> { ..., preset: match(.editor) {
-    editor_format.zed -> { start: "", end: "", file_start: "```${LANG} ${REL_PATH}\n", file_end: "```\n\n" },
-    editor_format.claude -> { start: "", end: "", file_start: "<file path=\"${REL_PATH}\" language=\"${LANG}\">\n```${LANG}\n", file_end: "```\n</file>\n\n" },
-    editor_format.fold -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
-    editor_format.details -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
+    editor_format.zed -> { start: "", end: "", file_start: "```${LANG} ${REL_PATH}${SOURCE_RANGE}\n", file_end: "```\n\n" },
+    editor_format.claude -> { start: "", end: "", file_start: "<file path=\"${REL_PATH}${SOURCE_RANGE}\" language=\"${LANG}\">\n```${LANG}\n", file_end: "```\n</file>\n\n" },
+    editor_format.fold -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
+    editor_format.details -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
     editor_format.raw -> { start: "", end: "", file_start: "", file_end: "" },
     editor_format.none -> { start: "", end: "", file_start: "", file_end: "" },
     editor_format.text -> { start: "", end: "", file_start: "", file_end: "" },
-    _ -> { start: "", end: "", file_start: "### ${REL_PATH} (${LANG})\n```${LANG}\n", file_end: "```\n\n" }
+    _ -> { start: "", end: "", file_start: "### ${REL_PATH}${SOURCE_RANGE} (${LANG})\n```${LANG}\n", file_end: "```\n\n" }
   } }
   -> {
     ...,

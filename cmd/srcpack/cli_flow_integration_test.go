@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -223,28 +222,20 @@ func TestFlowCLIFlagMatrix(t *testing.T) {
 	}
 }
 
-func TestFlowCLIPackCarriesOriginalSourceLineProvenance(t *testing.T) {
+func TestFlowCLIPackInlinesSlicedSourceRanges(t *testing.T) {
 	t.Run("line slices reset for each file", func(t *testing.T) {
 		output := runFlowCLI(t, map[string]string{
 			"first.go":  "package first\n\nfunc First() {}\n",
 			"second.go": "package second\n\nfunc Second() {}\n",
 		}, "--target", "first.go:3-3", "--target", "second.go:3-3")
 
-		locations := parseSourceLocationRecords(t, output)
-		if len(locations) != 2 {
-			t.Fatalf("got %d source locations, want two:\n%s", len(locations), output)
-		}
-		for i, path := range []string{"first.go", "second.go"} {
-			location := locations[i]
-			if location.Path != path || location.StartLine != 3 || location.EndLine != 3 {
-				t.Errorf("source location %d = %#v, want %s lines 3-3", i, location, path)
-			}
-			if location.LineRanges != "" {
-				t.Errorf("derivable line ranges for %s = %q, want no extra mapping", path, location.LineRanges)
+		for _, want := range []string{"## first.go:3", "## second.go:3"} {
+			if !strings.Contains(output, want) {
+				t.Errorf("output missing inline source header %q:\n%s", want, output)
 			}
 		}
-		if strings.Index(output, "<!-- srcpack-source:") > strings.Index(output, "### first.go") {
-			t.Fatalf("source metadata is not outside/before the file block:\n%s", output)
+		if strings.Contains(output, "<!--") {
+			t.Fatalf("output still contains a separate source-location comment:\n%s", output)
 		}
 	})
 
@@ -253,40 +244,16 @@ func TestFlowCLIPackCarriesOriginalSourceLineProvenance(t *testing.T) {
 			"api.go": "package api\n\n// Public is visible.\nfunc Public(\n\tvalue int,\n) string {\n\treturn \"ok\"\n}\n",
 		}, "--file", "api.go", "--only-sig", "--dense")
 
-		locations := parseSourceLocationRecords(t, output)
-		if len(locations) != 1 {
-			t.Fatalf("got %d source locations, want one:\n%s", len(locations), output)
+		if !strings.Contains(output, "## api.go") {
+			t.Fatalf("whole-file header missing:\n%s", output)
 		}
-		location := locations[0]
-		if location.LineRanges != "1:4-8" {
-			t.Fatalf("dense signature line ranges = %q, want body line 1 -> original lines 4-8", location.LineRanges)
+		if strings.Contains(output, "api.go:") || strings.Contains(output, "<!--") {
+			t.Fatalf("whole-file source gained an inline range or separate comment:\n%s", output)
+		}
+		if !strings.Contains(output, "Public") {
+			t.Fatalf("dense signature missing from output:\n%s", output)
 		}
 	})
-}
-
-type sourceLocationRecord struct {
-	Path       string `json:"path"`
-	StartLine  int    `json:"start_line"`
-	EndLine    int    `json:"end_line"`
-	LineRanges string `json:"line_ranges"`
-}
-
-func parseSourceLocationRecords(t *testing.T, output string) []sourceLocationRecord {
-	t.Helper()
-	const prefix = "<!-- srcpack-source: "
-	var records []sourceLocationRecord
-	for line := range strings.SplitSeq(output, "\n") {
-		if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, " -->") {
-			continue
-		}
-		payload := strings.TrimSuffix(strings.TrimPrefix(line, prefix), " -->")
-		var record sourceLocationRecord
-		if err := json.Unmarshal([]byte(payload), &record); err != nil {
-			t.Fatalf("parse source-location metadata %q: %v", line, err)
-		}
-		records = append(records, record)
-	}
-	return records
 }
 
 func runFlowCLI(t *testing.T, workspace map[string]string, args ...string) string {

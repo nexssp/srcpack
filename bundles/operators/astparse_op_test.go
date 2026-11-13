@@ -239,6 +239,8 @@ func TestASTParse_SourceLineSpansUseOriginalFileLines(t *testing.T) {
 		Content:         []byte(source),
 		SourceStartLine: 40,
 		SourceEndLine:   44,
+		Sliced:          true,
+		SourceURL:       "https://github.com/example/repo/blob/0123456789abcdef/sample.go#L40-L44",
 		ParseOptions:    operators.ParseOptions{Comments: true},
 		ParseOptionsSet: true,
 	}
@@ -250,6 +252,10 @@ func TestASTParse_SourceLineSpansUseOriginalFileLines(t *testing.T) {
 	if len(out[0].LineSpans) == 0 {
 		t.Fatal("ASTParse returned no source-line spans")
 	}
+	if !out[0].Sliced {
+		t.Fatal("ASTParse lost the sliced marker")
+	}
+	ktest.RequireEqual(t, out[0].SourceURL, "https://github.com/example/repo/blob/0123456789abcdef/sample.go#L40-L44")
 	span := out[0].LineSpans[0]
 	ktest.RequireEqual(t, span.OutputLine, 1)
 	ktest.RequireEqual(t, span.SourceStartLine, 40)

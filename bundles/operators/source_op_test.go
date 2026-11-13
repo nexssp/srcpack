@@ -166,6 +166,9 @@ func TestSource_PreservesOriginalLineRange(t *testing.T) {
 	file := collected[0]
 	ktest.RequireEqual(t, file.SourceStartLine, 2)
 	ktest.RequireEqual(t, file.SourceEndLine, 4)
+	if !file.Sliced {
+		t.Fatal("partial line selection was not marked sliced")
+	}
 	ktest.RequireEqual(t, string(file.Content), "two\nthree\nfour")
 }
 
@@ -179,6 +182,9 @@ func TestSource_UsesPhysicalLineCoordinatesAtEOF(t *testing.T) {
 		t.Fatalf("full-file source emitted %d records, want one", len(full))
 	}
 	ktest.RequireEqual(t, full[0].SourceEndLine, 3)
+	if full[0].Sliced {
+		t.Fatal("whole file was marked sliced")
+	}
 
 	sliced := collectSource(t, operators.PackConfig{Targets: []string{"sample.txt:2-"}})
 	if len(sliced) != 1 {
@@ -186,7 +192,36 @@ func TestSource_UsesPhysicalLineCoordinatesAtEOF(t *testing.T) {
 	}
 	ktest.RequireEqual(t, sliced[0].SourceStartLine, 2)
 	ktest.RequireEqual(t, sliced[0].SourceEndLine, 3)
+	if !sliced[0].Sliced {
+		t.Fatal("partial file was not marked sliced")
+	}
 	ktest.RequireEqual(t, string(sliced[0].Content), "two\nthree\n")
+}
+
+func TestSource_OutOfRangeLineSelectorsKeepWholeFileUnsliced(t *testing.T) {
+	dir := t.TempDir()
+	const source = "one\ntwo\nthree\nfour\nfive\n"
+	writeFile(t, dir, "sample.txt", source)
+	t.Chdir(dir)
+
+	for _, selector := range []string{"sample.txt:99", "sample.txt:1-99", "sample.txt:-99"} {
+		t.Run(selector, func(t *testing.T) {
+			collected := collectSource(t, operators.PackConfig{Targets: []string{selector}})
+			if len(collected) != 1 {
+				t.Fatalf("source emitted %d records, want one", len(collected))
+			}
+			file := collected[0]
+			if got := string(file.Content); got != source {
+				t.Fatalf("out-of-range selector content = %q, want whole file %q", got, source)
+			}
+			if file.Sliced {
+				t.Fatalf("out-of-range selector %q marked whole-file content as sliced", selector)
+			}
+			if file.SourceStartLine != 1 || file.SourceEndLine != 5 {
+				t.Fatalf("out-of-range source range = %d-%d, want 1-5", file.SourceStartLine, file.SourceEndLine)
+			}
+		})
+	}
 }
 
 func TestSource_DirectorySummaryExpansionIsPerSelector(t *testing.T) {

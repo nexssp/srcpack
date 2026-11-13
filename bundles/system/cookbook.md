@@ -77,12 +77,7 @@ srcpack ".#arch" --include-config -o context.md
 srcpack "internal/auth/service.go:80-140#source" --stdout
 ```
 
-Formatted file blocks start with a minimal location comment; `raw`, `none`, and `text` modes remain unmodified. Coordinates use 1-based, inclusive original-file lines; a single-line slice collapses to `path:N`. Structured provenance — full line spans, symbol ranges, and commit-pinned GitHub URLs — is retained on the parsed source record for machine consumers and is not repeated in the rendered prefix. Coordinates are per-file, not positions in the concatenated pack. GitHub URLs keep their required `#Lx-Ly` anchor syntax.
-
-```html
-<!-- internal/auth/service.go:80-140 -->
-<!-- internal/auth/service.go:1-120 -->
-```
+The `${SOURCE_RANGE}` placeholder appends the source range of a genuinely sliced file to its heading: `## internal/auth/service.go:80-140`; whole files keep `## internal/auth/service.go`, and a one-line slice uses `:N`. It is available to every editor preset and to custom `file_start` templates. `raw`, `none`, and `text` presets remain empty. Full `line_spans`, `symbol_spans`, and commit-pinned `source_url` values stay in structured source records; custom templates can use `${SOURCE_URL}` to include a clickable GitHub citation. Coordinates are 1-based, inclusive, and per-file — not positions in the concatenated pack. GitHub URLs keep their required `#Lx-Ly` anchor syntax.
 
 ## Add prompt text
 

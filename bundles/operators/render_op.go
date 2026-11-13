@@ -235,15 +235,15 @@ func defaultDocEnd(editor string) string {
 func defaultFileStart(editor string) string {
 	switch editor {
 	case "zed":
-		return "```${LANG} ${REL_PATH}\n"
+		return "```${LANG} ${REL_PATH}${SOURCE_RANGE}\n"
 	case "claude":
-		return "<file path=\"${REL_PATH}\" language=\"${LANG}\">\n```${LANG}\n"
+		return "<file path=\"${REL_PATH}${SOURCE_RANGE}\" language=\"${LANG}\">\n```${LANG}\n"
 	case "fold":
-		return "<details>\n<summary>${REL_PATH}</summary>\n\n```${LANG}\n"
+		return "<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n"
 	case "raw":
 		return ""
 	default:
-		return "### ${REL_PATH} (${LANG})\n```${LANG}\n"
+		return "### ${REL_PATH}${SOURCE_RANGE} (${LANG})\n```${LANG}\n"
 	}
 }
 
@@ -264,9 +264,6 @@ func defaultFileEnd(editor string) string {
 
 func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	var buf bytes.Buffer
-	if metadata := sourceLocationComment(file); len(metadata) > 0 {
-		buf.Write(metadata)
-	}
 
 	header := expandPlaceholders(fileStart, fileLookup(file))
 	buf.WriteString(header)
@@ -293,33 +290,22 @@ func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	return buf.Bytes()
 }
 
-// sourceLocationComment renders the minimal source citation placed above each
-// file block. Structured provenance — full LineSpans, SymbolSpans, and
-// SourceURL — remains on ParsedFile for machine consumers; the rendered
-// comment keeps only path and inclusive 1-based range to minimize tokens.
-func sourceLocationComment(file *ParsedFile) []byte {
-	if file.SourceStartLine < 1 || file.SourceEndLine < file.SourceStartLine {
-		return nil
-	}
-	path := file.RelPath
-	if path == "" {
-		path = file.Path
-	}
-	if path == "" {
-		return nil
+// sourceRangeSuffix renders the inclusive source range only for files whose
+// selected content excludes at least one original line. Structured provenance
+// remains available on ParsedFile for machine consumers.
+func sourceRangeSuffix(file *ParsedFile) string {
+	if !file.Sliced || file.SourceStartLine < 1 || file.SourceEndLine < file.SourceStartLine {
+		return ""
 	}
 	var b strings.Builder
-	b.Grow(len(path) + 24)
-	b.WriteString("<!-- ")
-	b.WriteString(path)
+	b.Grow(12)
 	b.WriteByte(':')
 	b.WriteString(strconv.Itoa(file.SourceStartLine))
 	if file.SourceEndLine != file.SourceStartLine {
 		b.WriteByte('-')
 		b.WriteString(strconv.Itoa(file.SourceEndLine))
 	}
-	b.WriteString(" -->\n")
-	return []byte(b.String())
+	return b.String()
 }
 
 // writeSnippets packs consecutive single-line declarations tightly and
@@ -422,6 +408,10 @@ func fileLookup(file *ParsedFile) func(string) (string, bool) {
 			return itoa(file.Lines), true
 		case "SIZE_KB":
 			return ftoa(float64(file.Size) / 1024), true
+		case "SOURCE_RANGE":
+			return sourceRangeSuffix(file), true
+		case "SOURCE_URL":
+			return file.SourceURL, true
 		default:
 			return "", false
 		}

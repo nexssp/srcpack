@@ -203,7 +203,7 @@ srcpack clean --dry-run          # preview cleanup
     --save-view NAME
 ```
 
-Formatted file blocks include a machine-readable `srcpack-source` comment with the original line range; `raw`, `none`, and `text` modes remain unmodified. Rendered Markdown omits mappings derivable from the body's starting line; otherwise, compact `line_ranges` maps body lines to original lines (for example, `1-3:52-54,5:60-62`). Structured source records keep complete `line_spans` provenance. Coordinates never refer to positions in the concatenated pack. Blank, synthetic, ambiguous, or unmatched lines may be unmapped. GitHub links retain their required `#Lx-Ly` anchors. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
+Genuinely sliced file headers inline their inclusive 1-based source range, such as `## internal/auth/service.go:80-140`; whole-file headers keep the plain path, and one-line slices collapse to `:N`. The `${SOURCE_RANGE}` placeholder is available to custom `file_start` templates; raw, none, and text presets remain empty. Structured source records retain complete `line_spans`, `symbol_spans`, and commit-pinned `source_url` provenance, and custom templates can use `${SOURCE_URL}` for a clickable citation. Coordinates are per-file and never refer to positions in the concatenated pack. Blank, synthetic, ambiguous, or unmatched lines may be unmapped. GitHub links retain their required `#Lx-Ly` anchors. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
 
 ## Config file shape
 

@@ -204,6 +204,8 @@ func ASTParse(cfg ASTConfig) action.StreamOp[ParsedFile, ParsedFile] {
 					ExpandTree:      file.ExpandTree,
 					SourceStartLine: file.SourceStartLine,
 					SourceEndLine:   file.SourceEndLine,
+					Sliced:          file.Sliced,
+					SourceURL:       file.SourceURL,
 					SymbolSpans:     symbolSpans,
 					LineSpans:       lineSpans,
 					Hash:            file.Hash,

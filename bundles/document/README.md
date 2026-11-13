@@ -49,7 +49,7 @@ Formatting options in `config` are `editor`, `prompt`, `start`, `end`, `file_sta
 
 Each file supplies `content` (a Go string, including arbitrary bytes), `snippets` (string array, possibly nil), `values` (file placeholder string map, possibly nil), and `omitted` (bool). Content takes precedence over snippets. Omitted files and files with no content/snippets are skipped. Whitespace-only snippets can still represent an emitted empty file block, preserving legacy chunk counts.
 
-Unknown/malformed `${KEY}` tokens remain literal. Substitution is single-pass: inserted values, source content, prompts, diffs and tree text are never parsed as NFlow. `items` counts document/file chunks, not bytes or interpolation segments; a nonempty template that expands to empty still counts as one chunk. This distinction lets callers avoid clearing a clipboard for a truly empty stream.
+The built-in file presets use `${SOURCE_RANGE}` in their path header; callers should provide it in each file's `values` map (empty for whole files, or `:N`/`:N-M` for a slice). Custom templates may also use `${SOURCE_URL}` for a source link. Unknown/malformed `${KEY}` tokens remain literal. Substitution is single-pass: inserted values, source content, prompts, diffs and tree text are never parsed as NFlow. `items` counts document/file chunks, not bytes or interpolation segments; a nonempty template that expands to empty still counts as one chunk. This distinction lets callers avoid clearing a clipboard for a truly empty stream.
 
 ## Generic primitive
 

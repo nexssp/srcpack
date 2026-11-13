@@ -55,7 +55,7 @@ editors:
   markdown:
     description: "Standard Markdown code blocks"
     file_start: |-
-      ## ${REL_PATH}
+      ## ${REL_PATH}${SOURCE_RANGE}
       ```${LANG}
     file_end: |-
       ```
@@ -63,14 +63,14 @@ editors:
   zed:
     description: "Zed info-string fold"
     file_start: |-
-      ```${LANG} ${REL_PATH}
+      ```${LANG} ${REL_PATH}${SOURCE_RANGE}
     file_end: |-
       ```
 
   claude:
     description: "Claude XML tags"
     file_start: |-
-      <file path="${REL_PATH}" language="${LANG}">
+      <file path="${REL_PATH}${SOURCE_RANGE}" language="${LANG}">
       ```${LANG}
     file_end: |-
       ```
@@ -84,7 +84,7 @@ editors:
     end: |-
       </details>
     file_start: |-
-      ## ${REL_PATH}
+      ## ${REL_PATH}${SOURCE_RANGE}
       ```${LANG}
     file_end: |-
       ```

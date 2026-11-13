@@ -78,8 +78,9 @@ type ParsedFile struct {
 	Snippets        []string
 	FuncCount       int
 	Lines           int
-	SourceStartLine int `json:"source_start_line,omitempty"`
-	SourceEndLine   int `json:"source_end_line,omitempty"`
+	SourceStartLine int  `json:"source_start_line,omitempty"`
+	SourceEndLine   int  `json:"source_end_line,omitempty"`
+	Sliced          bool `json:"sliced,omitempty"`
 	// SourceURL is an optional immutable, human-clickable source citation.
 	// Remote sources use a commit-pinned GitHub blob URL with line anchors.
 	SourceURL       string           `json:"source_url,omitempty"`
