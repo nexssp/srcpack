@@ -77,11 +77,11 @@ srcpack ".#arch" --include-config -o context.md
 srcpack "internal/auth/service.go:80-140#source" --stdout
 ```
 
-Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. Rendered Markdown omits line mappings derivable from the body's starting line. Otherwise, `line_ranges` compactly maps rendered-body lines to original lines: `1-3:52-54,5:60-62` means body lines 1–3 map to source lines 52–54, and body line 5 maps to source lines 60–62. Structured source records retain complete `line_spans` provenance. Coordinates are per-file, not positions in the concatenated pack. Blank, synthetic, ambiguous, and otherwise unmapped lines have no entry. GitHub URLs keep their required `#Lx-Ly` anchor syntax. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
+Formatted file blocks start with a minimal location comment; `raw`, `none`, and `text` modes remain unmodified. Coordinates use 1-based, inclusive original-file lines; a single-line slice collapses to `path:N`. Structured provenance — full line spans, symbol ranges, and commit-pinned GitHub URLs — is retained on the parsed source record for machine consumers and is not repeated in the rendered prefix. Coordinates are per-file, not positions in the concatenated pack. GitHub URLs keep their required `#Lx-Ly` anchor syntax.
 
 ```html
-<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->
-<!-- srcpack-source: {"path":"internal/auth/service.go","start_line":1,"end_line":120,"symbols":[{"name":"Lookup","kind":"func","start_line":12,"end_line":18}],"line_ranges":"1:12-18"} -->
+<!-- internal/auth/service.go:80-140 -->
+<!-- internal/auth/service.go:1-120 -->
 ```
 
 ## Add prompt text

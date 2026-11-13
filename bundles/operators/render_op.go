@@ -3,7 +3,6 @@ package operators
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"iter"
 	"strconv"
@@ -265,7 +264,7 @@ func defaultFileEnd(editor string) string {
 
 func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	var buf bytes.Buffer
-	if metadata := renderedSourceLocationComment(file); len(metadata) > 0 {
+	if metadata := sourceLocationComment(file); len(metadata) > 0 {
 		buf.Write(metadata)
 	}
 
@@ -294,15 +293,11 @@ func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	return buf.Bytes()
 }
 
+// sourceLocationComment renders the minimal source citation placed above each
+// file block. Structured provenance — full LineSpans, SymbolSpans, and
+// SourceURL — remains on ParsedFile for machine consumers; the rendered
+// comment keeps only path and inclusive 1-based range to minimize tokens.
 func sourceLocationComment(file *ParsedFile) []byte {
-	return sourceLocationCommentWithMap(file, false)
-}
-
-func renderedSourceLocationComment(file *ParsedFile) []byte {
-	return sourceLocationCommentWithMap(file, true)
-}
-
-func sourceLocationCommentWithMap(file *ParsedFile, omitRedundantMap bool) []byte {
 	if file.SourceStartLine < 1 || file.SourceEndLine < file.SourceStartLine {
 		return nil
 	}
@@ -313,117 +308,18 @@ func sourceLocationCommentWithMap(file *ParsedFile, omitRedundantMap bool) []byt
 	if path == "" {
 		return nil
 	}
-	lineSpans := file.LineSpans
-	var lineRanges string
-	if omitRedundantMap && len(lineSpans) > 0 {
-		if identitySourceLineMap(file) {
-			lineSpans = nil
-		} else if lineRanges = compactSourceLineRanges(lineSpans); lineRanges != "" {
-			lineSpans = nil
-		}
+	var b strings.Builder
+	b.Grow(len(path) + 24)
+	b.WriteString("<!-- ")
+	b.WriteString(path)
+	b.WriteByte(':')
+	b.WriteString(strconv.Itoa(file.SourceStartLine))
+	if file.SourceEndLine != file.SourceStartLine {
+		b.WriteByte('-')
+		b.WriteString(strconv.Itoa(file.SourceEndLine))
 	}
-	metadata, err := json.Marshal(struct {
-		Path       string           `json:"path"`
-		StartLine  int              `json:"start_line"`
-		EndLine    int              `json:"end_line"`
-		URL        string           `json:"url,omitempty"`
-		Symbols    []SymbolSpan     `json:"symbols,omitempty"`
-		LineRanges string           `json:"line_ranges,omitempty"`
-		LineSpans  []SourceLineSpan `json:"line_spans,omitempty"`
-	}{
-		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
-		URL: file.SourceURL, Symbols: file.SymbolSpans, LineRanges: lineRanges, LineSpans: lineSpans,
-	})
-	if err != nil {
-		return nil
-	}
-	result := append([]byte("<!-- srcpack-source: "), metadata...)
-	return append(result, []byte(" -->\n")...)
-}
-
-// identitySourceLineMap omits maps that are fully described by the file's
-// source start line and each rendered body's line offset.
-func identitySourceLineMap(file *ParsedFile) bool {
-	if len(file.LineSpans) == 0 || file.SourceStartLine < 1 {
-		return false
-	}
-	body := file.Content
-	if len(body) == 0 && len(file.Snippets) > 0 {
-		var rendered bytes.Buffer
-		writeSnippets(&rendered, file.Snippets)
-		body = rendered.Bytes()
-	}
-	lines := physicalLines(body)
-	if len(lines) == 0 {
-		return false
-	}
-	spanIndex := 0
-	for index, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || isSyntheticSourceLine(trimmed) {
-			continue
-		}
-		if spanIndex >= len(file.LineSpans) {
-			return false
-		}
-		span := file.LineSpans[spanIndex]
-		if span.OutputLine != index+1 ||
-			span.SourceStartLine != file.SourceStartLine+span.OutputLine-1 ||
-			span.SourceEndLine != span.SourceStartLine {
-			return false
-		}
-		spanIndex++
-	}
-	return spanIndex == len(file.LineSpans)
-}
-
-// compactSourceLineRanges encodes contiguous body-to-source mappings as
-// output-range:source-range pairs, e.g. "1-3:52-54,5:60-62". Consecutive
-// single-line mappings and repeated declaration spans are collapsed.
-func compactSourceLineRanges(spans []SourceLineSpan) string {
-	if len(spans) == 0 {
-		return ""
-	}
-	type rangeGroup struct {
-		outputStart int
-		outputEnd   int
-		sourceStart int
-		sourceEnd   int
-		last        SourceLineSpan
-	}
-	groups := make([]rangeGroup, 0, len(spans))
-	for _, span := range spans {
-		if len(groups) == 0 {
-			groups = append(groups, rangeGroup{span.OutputLine, span.OutputLine, span.SourceStartLine, span.SourceEndLine, span})
-			continue
-		}
-		group := &groups[len(groups)-1]
-		sameSourceRange := span.SourceStartLine == group.last.SourceStartLine && span.SourceEndLine == group.last.SourceEndLine
-		adjacentSourceLines := group.last.SourceStartLine == group.last.SourceEndLine &&
-			span.SourceStartLine == span.SourceEndLine && span.SourceStartLine == group.last.SourceEndLine+1
-		if span.OutputLine != group.last.OutputLine+1 || (!sameSourceRange && !adjacentSourceLines) {
-			groups = append(groups, rangeGroup{span.OutputLine, span.OutputLine, span.SourceStartLine, span.SourceEndLine, span})
-			continue
-		}
-		group.outputEnd = span.OutputLine
-		if adjacentSourceLines {
-			group.sourceEnd = span.SourceEndLine
-		}
-		group.last = span
-	}
-	ranges := make([]string, len(groups))
-	for i, group := range groups {
-		ranges[i] = formatCompactLineRange(group.outputStart, group.outputEnd) + ":" +
-			formatCompactLineRange(group.sourceStart, group.sourceEnd)
-	}
-	return strings.Join(ranges, ",")
-}
-
-func formatCompactLineRange(start, end int) string {
-	if start == end {
-		return strconv.Itoa(start)
-	}
-	return strconv.Itoa(start) + "-" + strconv.Itoa(end)
+	b.WriteString(" -->\n")
+	return []byte(b.String())
 }
 
 // writeSnippets packs consecutive single-line declarations tightly and
