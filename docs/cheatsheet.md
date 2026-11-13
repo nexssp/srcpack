@@ -169,8 +169,8 @@ srcpack clean --dry-run          # preview cleanup
 -e, --editor NAME     markdown|zed|claude|fold|raw
 -o, --output PATH     save to a file; - prints the full result to stdout
     --stdout          print the full result to stdout (same as -o -; conflicts with -o FILE)
-    --copy             copy the full result to the clipboard instead of stdout
-    --preview          show a short preview of copied output (requires --copy; off by default)
+    --copy             copy the full result to the clipboard (default without a destination)
+    --preview          show a short preview when copying (off by default)
     --no-copy          disable clipboard output; without a destination, use stdout
     --dir-prefix
     --color auto|always|never

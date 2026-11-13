@@ -11,9 +11,9 @@ parallel {
     -> output.pipeline.output_policy,
   stdout_sentinel: const @{ io: { output_path: "-", explicit_output: "-", config_path: "", copy: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } }
     -> output.pipeline.output_policy,
-  no_copy_stdout: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: false, check: false, explicit_pack: false, quiet: false, started_at: 123 } }
+  no_copy_stdout: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: false, copy_explicit: true, check: false, explicit_pack: false, quiet: false, started_at: 123 } }
     -> output.pipeline.output_policy,
-  default_stdout: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } }
+  default_clipboard: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: false, copy_explicit: false, check: false, explicit_pack: true, quiet: false, started_at: 123 } }
     -> output.pipeline.output_policy,
   clipboard_only: const @{ io: { output_path: "", explicit_output: "", config_path: "", copy: true, check: false, explicit_pack: false, quiet: false, started_at: 123 } }
     -> output.pipeline.output_policy,
@@ -42,7 +42,7 @@ parallel {
 }
 
 @test: result.shorthand_clipboard.mode == output.output_mode.clipboard && result.explicit_pack_clipboard.mode == output.output_mode.clipboard && result.configured_file.mode == output.output_mode.file && result.explicit_file.mode == output.output_mode.file
-@test: result.stdout_sentinel.mode == output.output_mode.stdout && result.no_copy_stdout.mode == output.output_mode.stdout && result.default_stdout.mode == output.output_mode.stdout && result.clipboard_only.mode == output.output_mode.clipboard && result.clipboard_with_file.mode == output.output_mode.file
+@test: result.stdout_sentinel.mode == output.output_mode.stdout && result.no_copy_stdout.mode == output.output_mode.stdout && result.default_clipboard.mode == output.output_mode.clipboard && result.clipboard_only.mode == output.output_mode.clipboard && result.clipboard_with_file.mode == output.output_mode.file
 @test: result.file_check.mode == output.output_mode.check && result.pack_check_clipboard.mode == output.output_mode.clipboard && result.clipboard_check.mode == output.output_mode.clipboard && result.stdout_check.mode == output.output_mode.stdout && result.copy_check_file.mode == output.output_mode.check
 @test: result.shorthand_clipboard.save_state == true && result.file_check.save_state == false && result.explicit_file.trailing_newline == true && result.file_check.trailing_newline == false
 @test: result.check_report.report_prefix == "✓ Checked in " && result.check_report.report_suffix == " (no changes written)\n"

@@ -73,7 +73,7 @@
         { text: file.prefix, newline: true },
         { text: root.file_start, values: file.values, expand: true, newline: true },
         { text: file.body, newline: true },
-        { text: root.file_end, values: file.values, expand: true }
+        { text: root.file_end, values: file.values, expand: true, newline: true }
       ] }),
     !root.config.no_header && !root.config.no_end && root.end != "" ? [{ parts: [{ text: root.end, values: root.values, expand: true }] }] : []
   ) }

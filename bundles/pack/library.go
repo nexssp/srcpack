@@ -321,7 +321,7 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 	if cli.Stdout {
 		outputPath = "-"
 	}
-	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
+	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "copy_explicit": cli.CopyExplicit, "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
 	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", "")}, nil
 }
 

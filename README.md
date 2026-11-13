@@ -51,7 +51,7 @@ srcpack ".#arch"
 srcpack cookbook
 ```
 
-`srcpack ".#arch"` creates a quick architecture map and prints the complete rendered package to stdout. Use `--copy` to copy the full result to the clipboard instead; previews are off by default and can be requested with `--copy --preview`. Use `-o FILE` to save the package. `--stdout` is an explicit alias for stdout output and cannot be combined with `-o FILE`.
+`srcpack ".#arch"` creates a quick architecture map and copies the complete rendered package to the clipboard by default when no destination is set. Use `--no-copy` or `--stdout` to print it to stdout, or `-o FILE` to save it. Previews are off by default and can be requested with `--preview` when copying. `--stdout` cannot be combined with `-o FILE`.
 
 `srcpack cookbook` prints practical, copy-and-paste examples for selectors, line slices, Git changes, saved views, and configuration in a colorized terminal layout. Use `srcpack cookbook --md` to print the cookbook as pure Markdown without terminal styling or banners.
 

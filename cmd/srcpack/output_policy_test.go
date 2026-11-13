@@ -115,7 +115,6 @@ func TestOutputPolicyNoCopyAndExplicitDestinations(t *testing.T) {
 	}{
 		{"no-copy shorthand uses stdout", []string{"-f", "main.go", "--no-copy", "-q"}, true, ""},
 		{"no-copy explicit pack uses stdout", []string{"pack", "-f", "main.go", "--no-copy", "-q"}, true, ""},
-		{"default pack prints the full result to stdout", []string{"pack", "-f", "main.go", "-q"}, true, ""},
 		{"stdout flag prints the full package", []string{"pack", "-f", "main.go", "--stdout", "-q"}, true, ""},
 		{"stdout flag accepts output sentinel", []string{"pack", "-f", "main.go", "--stdout", "-o", "-", "-q"}, true, ""},
 		{"explicit output writes file", []string{"pack", "-f", "main.go", "-o", "out.md", "-q"}, false, "out.md"},
@@ -137,6 +136,63 @@ func TestOutputPolicyNoCopyAndExplicitDestinations(t *testing.T) {
 				_, err = os.Stat("_srcpack/context.md")
 				ktest.RequireCondition(t, os.IsNotExist(err), "implicit output created a file")
 			}
+		})
+	}
+}
+
+func TestOutputPolicyDefaultClipboardAndExplicitDestinations(t *testing.T) {
+	t.Parallel()
+	bundles := append(native.Bundles(), compiler.Bundle{ID: "srcpack_output_policy_test", Libraries: []action.Library{operators.IOLibrary()}})
+	cfg, err := runner.BuildConfig(bundles)
+	ktest.RequireNoError(t, err)
+	ctx := compiler.WithSourceLoader(context.Background(), nflows.Loader())
+	cases := []struct {
+		name        string
+		io          map[string]any
+		wantMode    string
+		wantCopy    bool
+		wantPreview bool
+	}{
+		{
+			name:     "default clipboard without preview",
+			io:       map[string]any{"copy": false, "copy_explicit": false, "preview": false, "output_path": "", "explicit_output": "", "stdout": false, "check": false, "explicit_pack": true, "json": false, "quiet": true, "color": "never", "started_at": int64(0)},
+			wantMode: "clipboard", wantCopy: true,
+		},
+		{
+			name:     "preview requires opt-in",
+			io:       map[string]any{"copy": false, "copy_explicit": false, "preview": true, "output_path": "", "explicit_output": "", "stdout": false, "check": false, "explicit_pack": true, "json": false, "quiet": true, "color": "never", "started_at": int64(0)},
+			wantMode: "clipboard", wantCopy: true, wantPreview: true,
+		},
+		{
+			name:     "explicit no-copy routes to stdout",
+			io:       map[string]any{"copy": false, "copy_explicit": true, "preview": false, "output_path": "", "explicit_output": "", "stdout": false, "check": false, "explicit_pack": true, "json": false, "quiet": true, "color": "never", "started_at": int64(0)},
+			wantMode: "stdout",
+		},
+		{
+			name:     "explicit stdout",
+			io:       map[string]any{"copy": false, "copy_explicit": false, "preview": false, "output_path": "-", "explicit_output": "", "stdout": true, "check": false, "explicit_pack": true, "json": false, "quiet": true, "color": "never", "started_at": int64(0)},
+			wantMode: "stdout",
+		},
+		{
+			name:     "explicit file destination",
+			io:       map[string]any{"copy": false, "copy_explicit": false, "preview": false, "output_path": "out.md", "explicit_output": "out.md", "stdout": false, "check": false, "explicit_pack": true, "json": false, "quiet": true, "color": "never", "started_at": int64(0)},
+			wantMode: "file",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := runner.Execute(ctx, cfg, "@include \"output.nflow\"\noutput.pipeline.output_policy", "output_policy_test.nflow", map[string]any{"io": tc.io})
+			ktest.RequireNoError(t, err)
+			policy, ok := result.Output.(map[string]any)
+			ktest.RequireCondition(t, ok, "output policy returned %T", result.Output)
+			mode, modeOK := policy["mode"].(string)
+			copyEnabled, copyOK := policy["copy"].(bool)
+			preview, previewOK := policy["preview"].(bool)
+			ktest.RequireCondition(t, modeOK && copyOK && previewOK, "output policy fields have unexpected types: %#v", policy)
+			ktest.RequireEqual(t, mode, tc.wantMode)
+			ktest.RequireEqual(t, copyEnabled, tc.wantCopy)
+			ktest.RequireEqual(t, preview, tc.wantPreview)
 		})
 	}
 }

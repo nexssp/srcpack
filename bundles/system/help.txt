@@ -29,8 +29,8 @@ Examples:
 Options:
   -t, --target PATH        Add a target path (repeatable; positional selectors also work)
   -f, --file PATH          Add one explicit file (repeatable)
-  -c, --copy[=BOOL]        Copy rendered output to clipboard
-      --preview            Show a short terminal preview of copied output (requires --copy)
+  -c, --copy[=BOOL]        Copy rendered output to clipboard (default without a destination)
+      --preview            Show a short preview when copying (off by default)
       --no-copy[=BOOL]     Disable clipboard output; with no destination, print the full package to stdout
   -p, --profile NAME       Select a built-in profile
       --dense              Keep signatures, omit bodies, strip comments
