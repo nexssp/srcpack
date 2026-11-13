@@ -35,6 +35,43 @@ func TestRenderFileBlockIncludesSourceLocationMetadata(t *testing.T) {
 	}
 }
 
+func TestRenderFileBlockOmitsRedundantIdentityLineSpans(t *testing.T) {
+	lineSpans := make([]SourceLineSpan, 12)
+	for i := range lineSpans {
+		lineSpans[i] = SourceLineSpan{OutputLine: i + 1, SourceStartLine: 52 + i, SourceEndLine: 52 + i}
+	}
+	file := ParsedFile{
+		FileMeta:        sourceLocationTestMeta(),
+		Content:         []byte(strings.Repeat("source line\n", len(lineSpans))),
+		SourceStartLine: 52,
+		SourceEndLine:   63,
+		LineSpans:       lineSpans,
+	}
+
+	got := string(renderFileBlock(&file, "### ${REL_PATH}\n", ""))
+	if strings.Contains(got, `"line_spans"`) {
+		t.Fatalf("redundant identity line map was rendered:\n%s", got)
+	}
+	if !strings.Contains(got, `"start_line":52`) {
+		t.Fatalf("source range was lost when omitting the redundant map:\n%s", got)
+	}
+}
+
+func TestRenderFileBlockKeepsIncompleteIdentityLikeLineSpans(t *testing.T) {
+	file := ParsedFile{
+		FileMeta:        sourceLocationTestMeta(),
+		Content:         []byte("first\nsecond\n"),
+		SourceStartLine: 52,
+		SourceEndLine:   53,
+		LineSpans:       []SourceLineSpan{{OutputLine: 1, SourceStartLine: 52, SourceEndLine: 52}},
+	}
+
+	got := string(renderFileBlock(&file, "### ${REL_PATH}\n", ""))
+	if !strings.Contains(got, `"line_spans":[{"output_line":1,"source_start_line":52,"source_end_line":52}]`) {
+		t.Fatalf("incomplete line map was incorrectly omitted:\n%s", got)
+	}
+}
+
 func TestDocumentInputRetainsSourceLocationFacts(t *testing.T) {
 	file := ParsedFile{
 		FileMeta:        sourceLocationTestMeta(),
@@ -58,7 +95,7 @@ func TestDocumentInputRetainsSourceLocationFacts(t *testing.T) {
 		t.Fatalf("document location fields = %#v", files[0])
 	}
 	location, ok := files[0]["source_location"].(string)
-	if !ok || !strings.Contains(location, `"source_start_line":20`) {
+	if !ok || !strings.Contains(location, `"source_start_line":20`) || !strings.Contains(location, `"line_spans"`) {
 		t.Fatalf("document source_location = %#v", files[0]["source_location"])
 	}
 	spans, ok := files[0]["symbol_spans"].([]SymbolSpan)

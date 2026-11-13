@@ -43,6 +43,7 @@ type PackConfig struct {
 	Editor         string            `json:"editor" cli:"editor,e"`
 	Output         string            `json:"output" cli:"o,output"`
 	Copy           bool              `json:"copy" cli:"copy,c"`
+	Preview        bool              `json:"preview" cli:"preview"`
 	NoCopy         bool              `json:"no_copy" cli:"no-copy"`
 	TreeOnly       bool              `json:"tree_only" cli:"tree-only"`
 	FullTree       bool              `json:"full_tree" cli:"full-tree"`

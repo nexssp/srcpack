@@ -29,7 +29,8 @@ Examples:
 Options:
   -t, --target PATH        Add a target path (repeatable; positional selectors also work)
   -f, --file PATH          Add one explicit file (repeatable)
-  -c, --copy[=BOOL]        Copy rendered output to clipboard (default without a destination)
+  -c, --copy[=BOOL]        Copy rendered output to clipboard
+      --preview            Show a short terminal preview of copied output (requires --copy)
       --no-copy[=BOOL]     Disable clipboard output; with no destination, print the full package to stdout
   -p, --profile NAME       Select a built-in profile
       --dense              Keep signatures, omit bodies, strip comments
@@ -53,7 +54,7 @@ Options:
       --prompt TEXT        Add inline prompt text or load it from a file
       --save-view NAME     Save the current selectors as a reusable view
   -e, --editor NAME        Format: markdown, raw, none, text, zed, claude, fold
-  -o, --output PATH        Save to a file instead of clipboard; use - for standard output
+  -o, --output PATH        Save to a file instead of stdout; use - for standard output
       --stdout             Print full result to stdout (same as -o -); cannot combine with -o FILE
       --dir-prefix         Prefix output filename with the workspace directory name
       --tree               Emit the folder tree with token bars

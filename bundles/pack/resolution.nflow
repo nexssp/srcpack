@@ -58,7 +58,7 @@
   }
   -> {
     ...,
-    copy: .copy || (.output_path == "" && (.requested_output ?? "") == "" && !.copy_explicit && !(.stdout ?? false))
+    copy
   }
   -> {
     ...,
@@ -67,7 +67,7 @@
     prompt_name: .prompt_choice.name,
     output: .output_path,
     targets_label: len(.target_names) == 0 ? "." : join(.target_names, ", "),
-    display_output: (.stdout ?? false) ? "-" : (.copy && .explicit_output == "" ? "(clipboard only)" : .output_path),
+    display_output: (.stdout ?? false) ? "-" : (.copy && .explicit_output == "" ? "(clipboard only)" : (.output_path == "" ? "-" : .output_path)),
     paths: len(.paths) == 0 && len(.files) == 0 && len(.cli_files) == 0 ? ["."] : .paths,
     files: concat(.files, .cli_files)
   }

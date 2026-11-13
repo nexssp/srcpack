@@ -169,7 +169,9 @@ srcpack clean --dry-run          # preview cleanup
 -e, --editor NAME     markdown|zed|claude|fold|raw
 -o, --output PATH     save to a file; - prints the full result to stdout
     --stdout          print the full result to stdout (same as -o -; conflicts with -o FILE)
-    --no-copy         disable clipboard output; without a destination, use stdout
+    --copy             copy the full result to the clipboard instead of stdout
+    --preview          show a short preview of copied output (requires --copy; off by default)
+    --no-copy          disable clipboard output; without a destination, use stdout
     --dir-prefix
     --color auto|always|never
 -q, --quiet
@@ -198,11 +200,10 @@ srcpack clean --dry-run          # preview cleanup
     --no-end
     --config PATH
 -C, --cwd DIR
--c, --copy
     --save-view NAME
 ```
 
-Formatted file blocks include a machine-readable `srcpack-source` comment with the original line range; `raw`, `none`, and `text` modes remain unmodified. Its optional `line_spans` maps 1-based lines in that file's rendered body to original-file line ranges; it never numbers positions in the concatenated pack, and blank, synthetic, ambiguous, or unmatched lines may be unmapped. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
+Formatted file blocks include a machine-readable `srcpack-source` comment with the original line range; `raw`, `none`, and `text` modes remain unmodified. `line_spans` maps rendered-body lines to original-file line ranges when transformations make the mapping non-linear. Large direct, continuous source bodies omit the repetitive map from rendered Markdown; structured source records keep complete provenance. Coordinates never refer to positions in the concatenated pack. Blank, synthetic, ambiguous, or unmatched lines may be unmapped. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
 
 ## Config file shape
 

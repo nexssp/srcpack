@@ -12,6 +12,7 @@
     path: (.io.stdout ?? false) ? "-" : .io.output_path,
     save_state: !.io.check,
     copy: .io.copy,
+    preview: .io.preview ?? false,
     quiet: .io.quiet || .io.json,
     json: .io.json,
     color: .io.color ?? "auto",
@@ -39,7 +40,7 @@
     .policy.quiet -> { ..., report_prefix: "", report_suffix: "" },
     _ -> match(.policy.mode) {
       output_mode.check -> { ..., report_prefix: "✓ Checked in ", report_suffix: " (no changes written)\n" },
-      output_mode.clipboard -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: clipboard only (no file written)\n" },
+      output_mode.clipboard -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: full rendered context copied to clipboard (no file written)\n" },
       output_mode.stdout -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: rendered context written to stdout\n" },
       _ -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: wrote context to " + .policy.path + "\n" }
     }

@@ -34,7 +34,9 @@ const @{
     -> resolution.pipeline.pack_resolution_policy,
   global_output: { ..., global_output: "reports/global.md" }
     -> resolution.pipeline.pack_resolution_policy,
-  implicit_clipboard: { ... }
+  default_stdout: { ... }
+    -> resolution.pipeline.pack_resolution_policy,
+  explicit_clipboard: { ..., copy: true, copy_explicit: true }
     -> resolution.pipeline.pack_resolution_policy,
   no_copy: { ..., copy_explicit: true }
     -> resolution.pipeline.pack_resolution_policy,
@@ -59,7 +61,8 @@ const @{
   cli_output: {output: .cli_output.output},
   profile_output: {output: .profile_output.output},
   global_output: {output: .global_output.output},
-  implicit_clipboard: {copy: .implicit_clipboard.copy, display_output: .implicit_clipboard.display_output},
+  default_stdout: {copy: .default_stdout.copy, display_output: .default_stdout.display_output},
+  explicit_clipboard: {copy: .explicit_clipboard.copy, display_output: .explicit_clipboard.display_output},
   no_copy: {copy: .no_copy.copy, display_output: .no_copy.display_output},
   explicit_stdout_copy: {output: .explicit_stdout_copy.output, display_output: .explicit_stdout_copy.display_output, copy: .explicit_stdout_copy.copy},
   requested_output: {copy: .requested_output.copy},
@@ -74,7 +77,7 @@ const @{
 @test: result.disabled_profile_prompt.prompt == "parent text" && result.disabled_profile_prompt.prompt_name == "parent"
 @test: result.disabled_sections.start == "" && result.disabled_sections.end == ""
 @test: result.cli_output.output == "reports/project_cli.md" && result.profile_output.output == "reports/project_profile.md" && result.global_output.output == "reports/global.md"
-@test: result.implicit_clipboard.copy == true && result.implicit_clipboard.display_output == "(clipboard only)" && result.no_copy.copy == false && result.no_copy.display_output == ""
+@test: result.default_stdout.copy == false && result.default_stdout.display_output == "-" && result.no_copy.copy == false && result.no_copy.display_output == "-" && result.explicit_clipboard.copy == true && result.explicit_clipboard.display_output == "(clipboard only)"
 @test: result.explicit_stdout_copy.output == "-" && result.explicit_stdout_copy.display_output == "-" && result.explicit_stdout_copy.copy == true && result.requested_output.copy == false
 @test: result.empty_targets.paths[0] == resolution.path_fallback.current_directory && len(result.empty_targets.files) == 0 && result.empty_targets.options.TreeDepth == 4 && result.explicit_depth.options.TreeDepth == 9
 @test: result.remote_full_tree contains "remote sources do not support --full-tree" && result.remote_changed contains "remote sources cannot be combined"

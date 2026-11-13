@@ -265,7 +265,7 @@ func defaultFileEnd(editor string) string {
 
 func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 	var buf bytes.Buffer
-	if metadata := sourceLocationComment(file); len(metadata) > 0 {
+	if metadata := renderedSourceLocationComment(file); len(metadata) > 0 {
 		buf.Write(metadata)
 	}
 
@@ -295,6 +295,14 @@ func renderFileBlock(file *ParsedFile, fileStart, fileEnd string) []byte {
 }
 
 func sourceLocationComment(file *ParsedFile) []byte {
+	return sourceLocationCommentWithMap(file, false)
+}
+
+func renderedSourceLocationComment(file *ParsedFile) []byte {
+	return sourceLocationCommentWithMap(file, true)
+}
+
+func sourceLocationCommentWithMap(file *ParsedFile, omitRedundantMap bool) []byte {
 	if file.SourceStartLine < 1 || file.SourceEndLine < file.SourceStartLine {
 		return nil
 	}
@@ -305,6 +313,10 @@ func sourceLocationComment(file *ParsedFile) []byte {
 	if path == "" {
 		return nil
 	}
+	lineSpans := file.LineSpans
+	if omitRedundantMap && len(lineSpans) >= 8 && identitySourceLineMap(file) {
+		lineSpans = nil
+	}
 	metadata, err := json.Marshal(struct {
 		Path      string           `json:"path"`
 		StartLine int              `json:"start_line"`
@@ -314,13 +326,49 @@ func sourceLocationComment(file *ParsedFile) []byte {
 		LineSpans []SourceLineSpan `json:"line_spans,omitempty"`
 	}{
 		Path: path, StartLine: file.SourceStartLine, EndLine: file.SourceEndLine,
-		URL: file.SourceURL, Symbols: file.SymbolSpans, LineSpans: file.LineSpans,
+		URL: file.SourceURL, Symbols: file.SymbolSpans, LineSpans: lineSpans,
 	})
 	if err != nil {
 		return nil
 	}
 	result := append([]byte("<!-- srcpack-source: "), metadata...)
 	return append(result, []byte(" -->\n")...)
+}
+
+// identitySourceLineMap omits maps that are fully described by the file's
+// source start line and each rendered body's line offset.
+func identitySourceLineMap(file *ParsedFile) bool {
+	if len(file.LineSpans) == 0 || file.SourceStartLine < 1 {
+		return false
+	}
+	body := file.Content
+	if len(body) == 0 && len(file.Snippets) > 0 {
+		var rendered bytes.Buffer
+		writeSnippets(&rendered, file.Snippets)
+		body = rendered.Bytes()
+	}
+	lines := physicalLines(body)
+	if len(lines) == 0 {
+		return false
+	}
+	spanIndex := 0
+	for index, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || isSyntheticSourceLine(trimmed) {
+			continue
+		}
+		if spanIndex >= len(file.LineSpans) {
+			return false
+		}
+		span := file.LineSpans[spanIndex]
+		if span.OutputLine != index+1 ||
+			span.SourceStartLine != file.SourceStartLine+span.OutputLine-1 ||
+			span.SourceEndLine != span.SourceStartLine {
+			return false
+		}
+		spanIndex++
+	}
+	return spanIndex == len(file.LineSpans)
 }
 
 // writeSnippets packs consecutive single-line declarations tightly and

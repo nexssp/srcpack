@@ -1,6 +1,6 @@
 # srcpack cookbook
 
-Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. A normal pack copies the full result to the clipboard and shows a bounded preview. Use `--stdout` to print the full result, or `-o FILE` to save it; do not combine `--stdout` with `-o FILE`. With no destination, `--no-copy` sends the full result to stdout. Only the terminal preview may be shortened; the clipboard, stdout, and file destinations receive the complete output.
+Copy a command, replace `internal/auth` or the example file with paths from your project, and run it from the project root. The terminal view uses color when stdout is a terminal; use `--color always` or `--color never` to override it. Add `--md` to print this document as pure Markdown without terminal styling or banners. A normal pack prints the complete rendered result to stdout. Use `--copy` to copy the full result to the clipboard instead, and add `--preview` only when you want a short terminal preview of that copied output; previews are off by default. Use `-o FILE` to save the result. `--stdout` explicitly selects stdout and cannot be combined with `-o FILE`.
 
 ## Get oriented
 
@@ -77,7 +77,7 @@ srcpack ".#arch" --include-config -o context.md
 srcpack "internal/auth/service.go:80-140#source" --stdout
 ```
 
-Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. `line_spans` maps 1-based `output_line` positions in that one rendered file body to original `source_start_line`/`source_end_line` ranges; it does not use line numbers from the concatenated pack. Blank, synthetic, ambiguous, and unmatched transformed lines have no entry. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
+Formatted file blocks start with a machine-readable location comment; `raw`, `none`, and `text` modes remain unmodified. `start_line` and `end_line` are 1-based, inclusive original-file lines. `line_spans` maps rendered-body line positions to original-file ranges when a transformation makes the mapping non-linear. Large direct, continuous source bodies omit the repetitive map from rendered Markdown, while structured source records keep complete provenance. Coordinates are per-file, not positions in the concatenated pack. Blank, synthetic, ambiguous, and otherwise unmapped lines have no entry. Go signature profiles add `symbols` with declaration names, kinds, and original line spans:
 
 ```html
 <!-- srcpack-source: {"path":"internal/auth/service.go","start_line":80,"end_line":140} -->

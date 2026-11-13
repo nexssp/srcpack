@@ -27,6 +27,7 @@ type OutputPolicy struct {
 	SaveState       bool   `json:"save_state"`
 	Path            string `json:"path"`
 	Copy            bool   `json:"copy"`
+	Preview         bool   `json:"preview"`
 	Quiet           bool   `json:"quiet"`
 	Color           string `json:"color"`
 	JSON            bool   `json:"json"`
@@ -60,7 +61,7 @@ func outputEffect(name string, effect func(context.Context, OutputEnvelope) (Out
 		return map[string]any{
 			outputFieldContent: out.Content, "rendered_items": out.RenderedItems, "status": out.Status,
 			"policy": map[string]any{
-				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
+				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "preview": out.Policy.Preview, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
 				"quiet": out.Policy.Quiet, outputFieldColor: out.Policy.Color, "trailing_newline": out.Policy.TrailingNewline,
 				"started_at": out.Policy.StartedAt,
 			},
@@ -163,7 +164,7 @@ func reportOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvel
 		status = "\x1b[1;32m" + status + "\x1b[0m"
 	}
 	fmt.Fprint(os.Stderr, status, envelope.ReportSuffix)
-	if envelope.Policy.Copy && envelope.RenderedItems > 0 {
+	if envelope.Policy.Copy && envelope.Policy.Preview && envelope.RenderedItems > 0 {
 		heading := "Preview:"
 		if color {
 			heading = "\x1b[1;36m" + heading + "\x1b[0m"

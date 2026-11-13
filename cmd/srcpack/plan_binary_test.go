@@ -72,10 +72,10 @@ func TestPlanRealBinaryCLI(t *testing.T) {
 		if !reflect.DeepEqual(planValue, explainValue) {
 			t.Fatalf("plan and explain differ:\nplan: %s\nexplain: %s", planOut, explainOut)
 		}
-		if flagFirstValue["mode"] != "plan" || flagFirstValue["normal_output_mode"] != "clipboard" || flagFirstValue["output_path"] != "" {
-			t.Fatalf("flag-first plan did not report the clipboard default: %#v", flagFirstValue)
+		if flagFirstValue["mode"] != "plan" || flagFirstValue["normal_output_mode"] != "stdout" || flagFirstValue["output_path"] != "" {
+			t.Fatalf("flag-first plan did not report the stdout default: %#v", flagFirstValue)
 		}
-		if planValue["normal_output_mode"] != "clipboard" {
+		if planValue["normal_output_mode"] != "stdout" {
 			t.Fatalf("default pack output policy not represented: %#v", planValue["normal_output_mode"])
 		}
 		if planValue["schema_version"] != float64(1) || planValue["mode"] != "plan" {

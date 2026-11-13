@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/nexssp/flow/compiler"
@@ -98,6 +99,37 @@ func TestPrintOutputWritesExactlyOnceWithoutNewline(t *testing.T) {
 		ktest.RequireNoError(t, err)
 	})
 	ktest.RequireEqual(t, stdout, "exact")
+}
+
+func TestReportOutputDoesNotPrintClipboardPreview(t *testing.T) {
+	stderr := captureOutput(t, &os.Stderr, func() {
+		_, err := reportOutputAction(context.Background(), OutputEnvelope{
+			Policy:        OutputPolicy{Copy: true, Color: "never"},
+			Content:       "package secret\nfunc Sensitive() {}\n",
+			RenderedItems: 1,
+			ReportPrefix:  "✓ Completed in ",
+			ReportSuffix:  "\nOutput: full context copied to clipboard\n",
+		})
+		ktest.RequireNoError(t, err)
+	})
+	ktest.RequireStringContains(t, stderr, "Output: full context copied to clipboard")
+	if strings.Contains(stderr, "Preview:") || strings.Contains(stderr, "func Sensitive()") {
+		t.Fatalf("clipboard status leaked a partial context preview: %q", stderr)
+	}
+}
+
+func TestReportOutputShowsPreviewWhenRequested(t *testing.T) {
+	stderr := captureOutput(t, &os.Stderr, func() {
+		_, err := reportOutputAction(context.Background(), OutputEnvelope{
+			Policy:        OutputPolicy{Copy: true, Preview: true, Color: "never"},
+			Content:       "preview sentinel\n",
+			RenderedItems: 1,
+			ReportPrefix:  "done ",
+		})
+		ktest.RequireNoError(t, err)
+	})
+	ktest.RequireStringContains(t, stderr, "Preview:")
+	ktest.RequireStringContains(t, stderr, "preview sentinel")
 }
 
 func TestCopyOutputRetainsEmptyStreamSemantics(t *testing.T) {

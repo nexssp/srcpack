@@ -115,6 +115,7 @@ func TestOutputPolicyNoCopyAndExplicitDestinations(t *testing.T) {
 	}{
 		{"no-copy shorthand uses stdout", []string{"-f", "main.go", "--no-copy", "-q"}, true, ""},
 		{"no-copy explicit pack uses stdout", []string{"pack", "-f", "main.go", "--no-copy", "-q"}, true, ""},
+		{"default pack prints the full result to stdout", []string{"pack", "-f", "main.go", "-q"}, true, ""},
 		{"stdout flag prints the full package", []string{"pack", "-f", "main.go", "--stdout", "-q"}, true, ""},
 		{"stdout flag accepts output sentinel", []string{"pack", "-f", "main.go", "--stdout", "-o", "-", "-q"}, true, ""},
 		{"explicit output writes file", []string{"pack", "-f", "main.go", "-o", "out.md", "-q"}, false, "out.md"},
