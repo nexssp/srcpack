@@ -63,6 +63,24 @@ func TestFlowCLIPackSummaryStartsWithOriginalCommand(t *testing.T) {
 	}
 }
 
+func TestFlowCLIPackWarnsWhenOnlyBinaryFilesAreSelected(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "asset.bin"), []byte{0x00, 0x01, 0xff}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+
+	_, stderr, err := captureFlowCLIStreams(t, func() error {
+		return execute(context.Background(), []string{"pack", "--file", "asset.bin", "--stdout", "--quiet"})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stderr, "Warning: no source files were included") {
+		t.Fatalf("binary-only selection should explain the empty pack; stderr: %s", stderr)
+	}
+}
+
 func TestFlowCLIPackMasksSecretsByDefault(t *testing.T) {
 	secret := "sk-proj-" + strings.Repeat("R", 40)
 	root := t.TempDir()

@@ -89,6 +89,10 @@ func StatsCollectWithContext(ctx context.Context, cfg StatsCollectConfig) action
 				return
 			}
 
+			if stats.FileCount == 0 && !cfg.TreeOnly {
+				fmt.Fprintln(os.Stderr, "Warning: no source files were included. Check the selected paths and filters; binary files are skipped.")
+			}
+
 			if !cfg.Quiet {
 				summary, err := terminal.Summary(ctx, terminalSummaryInput(cfg, stats, time.Since(startedAt).Round(time.Millisecond).String(), color, tree))
 				if err != nil {
