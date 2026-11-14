@@ -12,6 +12,7 @@
     path: (.io.stdout ?? false) ? "-" : .io.output_path,
     save_state: !.io.check,
     copy: .io.copy || (!(.io.copy_explicit ?? false) && !(.io.stdout ?? false) && !.io.check && .io.output_path == ""),
+    fail_on_change: .io.fail_on_change ?? false,
     preview: .io.preview ?? false,
     quiet: .io.quiet || .io.json,
     json: .io.json,

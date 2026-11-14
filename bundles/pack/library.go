@@ -29,6 +29,11 @@ const (
 	profileWithTests = "with-tests"
 )
 
+// ErrFailOnChangeRequiresCheck reports the --fail-on-change/--check
+// combination requirement; exported so CLI error classification can
+// match it with errors.Is rather than re-parsing the message.
+var ErrFailOnChangeRequiresCheck = errors.New("--fail-on-change requires --check")
+
 //go:embed *.nflow
 var FS embed.FS
 
@@ -80,6 +85,7 @@ type cliOptions struct {
 	RawSelectors   []string
 	SaveView       string
 	Check          bool
+	FailOnChange   bool
 	DirPrefix      bool
 	CopyExplicit   bool
 	Stdout         bool
@@ -113,6 +119,10 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.ConfigPath = stringField(in, "config_path", "")
 	cli.SaveView = stringField(in, "save_view", "")
 	cli.Check = boolField(in, "check")
+	cli.FailOnChange = boolField(in, "fail_on_change")
+	if cli.FailOnChange && !cli.Check {
+		return nil, ErrFailOnChangeRequiresCheck
+	}
 	cli.Plan = boolField(in, "plan")
 	cli.JSON = boolField(in, "json")
 	cli.DirPrefix = boolField(in, "dir_prefix")
@@ -321,7 +331,7 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 	if cli.Stdout {
 		outputPath = "-"
 	}
-	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "copy_explicit": cli.CopyExplicit, "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
+	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "fail_on_change": cli.FailOnChange, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "copy_explicit": cli.CopyExplicit, "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
 	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", "")}, nil
 }
 

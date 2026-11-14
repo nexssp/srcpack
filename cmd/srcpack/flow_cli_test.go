@@ -213,6 +213,41 @@ func TestFlowCLIPackJSONCheckWritesJSONStatus(t *testing.T) {
 	}
 }
 
+func TestFlowCLIPackFailOnCheckDriftReturnsExitCode3(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
+	t.Chdir(root)
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+	os.Args = []string{"srcpack", "pack", "--file", "main.go", "--json", "--output", "packed.json", "--check", "--fail-on-change", "--no-start", "--quiet"}
+	var exitCode int
+	stdout, stderr, err := captureFlowCLIStreams(t, func() error {
+		exitCode = run()
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exitCode != 3 {
+		t.Fatalf("exit code = %d, want 3; stderr=%s", exitCode, stderr)
+	}
+	var result struct {
+		Status string `json:"status"`
+		Path   string `json:"path"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("--json --check --fail-on-change produced invalid JSON: %v\n%s", err, stdout)
+	}
+	if result.Status != "NEW" || result.Path != "packed.json" {
+		t.Fatalf("unexpected JSON status: %#v", result)
+	}
+	if stderr != "srcpack: check detected NEW output at \"packed.json\"\n" {
+		t.Fatalf("unexpected drift diagnostic: %q", stderr)
+	}
+	if _, err := os.Stat("packed.json"); !os.IsNotExist(err) {
+		t.Fatalf("check mode unexpectedly created packed.json: %v", err)
+	}
+}
+
 func TestCommandInvocationNormalizesOnlyCommandSyntax(t *testing.T) {
 	tests := []struct {
 		args, want        []string

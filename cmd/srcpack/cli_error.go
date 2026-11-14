@@ -9,6 +9,7 @@ import (
 	"github.com/expr-lang/expr/file"
 	"github.com/nexssp/flow/runner"
 	"github.com/nexssp/kernel/xerr"
+	packcmd "github.com/nexssp/srcpack/bundles/pack"
 )
 
 // writeCLIError changes presentation only. The original error and its complete
@@ -19,6 +20,18 @@ func writeCLIError(w io.Writer, err error, debug bool) {
 	}
 	if debug {
 		fmt.Fprintf(w, "srcpack: %v\n", err)
+		return
+	}
+	var exitCoder interface {
+		error
+		ExitCode() int
+	}
+	if errors.As(err, &exitCoder) {
+		fmt.Fprintf(w, "srcpack: %s\n", exitCoder.Error())
+		return
+	}
+	if errors.Is(err, packcmd.ErrFailOnChangeRequiresCheck) {
+		fmt.Fprintf(w, "srcpack: %s\n", packcmd.ErrFailOnChangeRequiresCheck.Error())
 		return
 	}
 	diagnostic, hasDiagnostic := runner.DiagnosticOf(err)
@@ -83,9 +96,12 @@ func conciseCLIError(err error) string {
 	return "unknown error"
 }
 
-// isCLIUsageError recognizes only request-parse BadRequests emitted by tcli.
-// Domain validation/runtime BadRequests must retain the ordinary status 1.
+// isCLIUsageError recognizes parser errors and explicitly invalid flag combinations.
+// Domain validation/runtime errors retain the ordinary status 1.
 func isCLIUsageError(err error) bool {
+	if errors.Is(err, packcmd.ErrFailOnChangeRequiresCheck) {
+		return true
+	}
 	// Check each wrapper because errors.As can find an outer runtime AppError before an inner CLI usage error.
 	for current := err; current != nil; current = errors.Unwrap(current) {
 		var appErr *xerr.AppError
