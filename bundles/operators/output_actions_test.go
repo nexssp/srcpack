@@ -74,6 +74,53 @@ func TestCheckOutputStatusesAndDoesNotChangeTarget(t *testing.T) {
 	}
 }
 
+func TestCheckOutputFailOnChange(t *testing.T) {
+	for _, test := range []struct {
+		status   string
+		existing string
+		content  string
+	}{
+		{status: "UNCHANGED", existing: "same", content: "same"},
+		{status: "MODIFIED", existing: "old", content: "new"},
+		{status: "NEW", content: "new"},
+	} {
+		t.Run(test.status, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "out")
+			if test.status != "NEW" {
+				if err := os.WriteFile(path, []byte(test.existing), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var got OutputEnvelope
+			var actionErr error
+			stdout := captureOutput(t, &os.Stdout, func() {
+				got, actionErr = checkOutputAction(context.Background(), OutputEnvelope{
+					Policy: OutputPolicy{Path: path, FailOnChange: true}, Content: test.content,
+				})
+			})
+			if got.Status != test.status {
+				t.Fatalf("status = %q, want %q", got.Status, test.status)
+			}
+			if stdout != "["+test.status+"] "+path+"\n" {
+				t.Fatalf("stdout = %q", stdout)
+			}
+			if test.status == "UNCHANGED" {
+				if actionErr != nil {
+					t.Fatalf("unchanged output returned error: %v", actionErr)
+				}
+				return
+			}
+			var drift *OutputDriftError
+			if !errors.As(actionErr, &drift) {
+				t.Fatalf("error = %v, want OutputDriftError", actionErr)
+			}
+			if drift.ExitCode() != 3 {
+				t.Fatalf("exit code = %d, want 3", drift.ExitCode())
+			}
+		})
+	}
+}
+
 func TestCheckOutputReadFailure(t *testing.T) {
 	path := t.TempDir()
 	_, err := checkOutputAction(context.Background(), OutputEnvelope{Policy: OutputPolicy{Path: path}})

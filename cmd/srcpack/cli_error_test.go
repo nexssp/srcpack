@@ -143,6 +143,23 @@ func TestRunExitCodeUsageVersusRuntimeError(t *testing.T) {
 	if code := run(); code != 2 {
 		t.Fatalf("usage error exit code = %d, want 2", code)
 	}
+	if err := stderr.Truncate(0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := stderr.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	os.Args = []string{"srcpack", "pack", "--fail-on-change"}
+	if code := run(); code != 2 {
+		t.Fatalf("--fail-on-change without --check exit code = %d, want 2", code)
+	}
+	usageOutput, err := os.ReadFile(stderr.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(usageOutput), "srcpack: --fail-on-change requires --check") || strings.Contains(string(usageOutput), "action pipeline") {
+		t.Fatalf("invalid flag diagnostic is not concise: %s", usageOutput)
+	}
 
 	if err := stderr.Truncate(0); err != nil {
 		t.Fatal(err)

@@ -69,6 +69,8 @@ Options:
       --staged             Include staged files
       --diff-only          Prepend a Git unified diff section
       --check              Preview changes without writing files
+      --fail-on-change     With pack --check, exit 3 on new/modified output
+                           Use --no-start to exclude volatile date/Git metadata
       --plan, --explain    Show resolved targets/options; do not scan or write
       --no-header          Suppress the document header
       --no-prompt          Suppress the prompt block

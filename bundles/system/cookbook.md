@@ -142,8 +142,10 @@ srcpack "internal/auth#api" -o auth-api.md
 # Preview the resolved selection without scanning or writing output
 srcpack pack "internal/auth#impl" --plan
 
-# Preview whether a generated output would change
-srcpack "internal/auth#impl" -o auth.md --check
+# Check whether a generated output would change; fail CI on new or changed output
+srcpack "internal/auth#impl" -o auth.md --check --fail-on-change --no-start
+# Exit status: 0 = unchanged, 3 = new/modified output, 1 = runtime error, 2 = usage error.
+# --no-start avoids volatile date/Git metadata in the default start banner.
 
 # Inspect folder structure; include files and limit depth
 srcpack tree "internal/auth" --tree-files --depth 4 -o auth-tree.md

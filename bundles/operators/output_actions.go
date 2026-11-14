@@ -27,6 +27,7 @@ type OutputPolicy struct {
 	SaveState       bool   `json:"save_state"`
 	Path            string `json:"path"`
 	Copy            bool   `json:"copy"`
+	FailOnChange    bool   `json:"fail_on_change"`
 	Preview         bool   `json:"preview"`
 	Quiet           bool   `json:"quiet"`
 	Color           string `json:"color"`
@@ -45,6 +46,19 @@ type OutputEnvelope struct {
 	ReportSuffix  string       `json:"report_suffix,omitempty"`
 }
 
+// OutputDriftError marks a new or modified check result for automation.
+type OutputDriftError struct {
+	Status string
+	Path   string
+}
+
+func (e *OutputDriftError) Error() string {
+	return fmt.Sprintf("check detected %s output at %q", e.Status, e.Path)
+}
+
+// ExitCode returns the dedicated status used for check-mode drift.
+func (e *OutputDriftError) ExitCode() int { return 3 }
+
 // joinOutputAction retains empty-stream information without changing content.
 func joinOutputAction(_ context.Context, files []fs.FileContent) (map[string]any, error) {
 	return map[string]any{outputFieldContent: JoinRendered(files), "items": len(files)}, nil
@@ -61,7 +75,7 @@ func outputEffect(name string, effect func(context.Context, OutputEnvelope) (Out
 		return map[string]any{
 			outputFieldContent: out.Content, "rendered_items": out.RenderedItems, "status": out.Status,
 			"policy": map[string]any{
-				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "preview": out.Policy.Preview, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
+				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "fail_on_change": out.Policy.FailOnChange, "preview": out.Policy.Preview, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
 				"quiet": out.Policy.Quiet, outputFieldColor: out.Policy.Color, "trailing_newline": out.Policy.TrailingNewline,
 				"started_at": out.Policy.StartedAt,
 			},
@@ -122,9 +136,17 @@ func checkOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvelo
 		if _, err := fmt.Fprintln(os.Stdout, string(payload)); err != nil {
 			return envelope, err
 		}
+		if envelope.Policy.FailOnChange && envelope.Status != "UNCHANGED" {
+			return envelope, &OutputDriftError{Status: envelope.Status, Path: envelope.Policy.Path}
+		}
 		return envelope, nil
 	}
-	fmt.Fprintf(os.Stdout, "[%s] %s\n", envelope.Status, envelope.Policy.Path)
+	if _, err := fmt.Fprintf(os.Stdout, "[%s] %s\n", envelope.Status, envelope.Policy.Path); err != nil {
+		return envelope, err
+	}
+	if envelope.Policy.FailOnChange && envelope.Status != "UNCHANGED" {
+		return envelope, &OutputDriftError{Status: envelope.Status, Path: envelope.Policy.Path}
+	}
 	return envelope, nil
 }
 
