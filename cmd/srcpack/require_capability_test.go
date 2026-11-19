@@ -36,7 +36,7 @@ func TestProductionMissingTcliRequirementFailsCompilation(t *testing.T) {
 	body, err := nflows.FS.ReadFile("srcpack.nflow")
 	ktest.RequireNoError(t, err)
 	source := string(body)
-	const tcliRequirement = "@require github.com/nexssp/transport/tcli v0.10.0\n"
+	const tcliRequirement = "@require github.com/nexssp/transport/tcli@v0.10.0\n"
 	ktest.RequireCondition(t, strings.Contains(source, tcliRequirement), "production source must declare tcli explicitly")
 	transport := tcli.New(tcli.WithOutput(io.Discard, io.Discard))
 	cfg, err := cliRunnerConfig(ctx, source, transport)

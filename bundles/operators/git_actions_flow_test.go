@@ -33,7 +33,7 @@ func TestReusableGitActionsThroughNFlow(t *testing.T) {
 	input := map[string]any{"root": repo}
 	for range 3 {
 		result, err := runner.Execute(context.Background(), cfg,
-			`{ root: .root, filter: { modified: true } } -> git.changed_paths`, "git-action.nflow", input)
+			`{ root: string(.root), filter: { modified: true } } -> git.changed_paths`, "git-action.nflow", input)
 		if err != nil {
 			t.Fatal(err)
 		}

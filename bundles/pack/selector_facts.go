@@ -104,7 +104,8 @@ func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error)
 			prompt = resolvePromptFile(prompt, cwd)
 		}
 		for _, target := range parsed.Targets {
-			bindings = append(bindings, map[string]any{"key": selectorTargetKey(target, cwd), "profile": parsed.Profile, "has_prompt": parsed.Prompt != "", "prompt": prompt, "excludes": parsed.Excludes})
+			key := selectorTargetKey(target, cwd)
+			bindings = append(bindings, map[string]any{"key": key, "profile": parsed.Profile, "has_prompt": parsed.Prompt != "", "prompt": prompt, "excludes": parsed.Excludes})
 		}
 		facts = append(facts, map[string]any{"bindings": bindings, "targets": parsed.Targets, "raw": raw, "forced": boolField(item, "forced"), "path_exists": statErr == nil, "bare_profile": isBareProfile(raw), "canonical": canonicalProfile(raw), "profile": parsed.Profile})
 	}

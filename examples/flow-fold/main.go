@@ -59,7 +59,7 @@ func run(out io.Writer) error {
 		return err
 	}
 	fmt.Fprintln(out, "SRCPACK + Flow: build once, extend in the DSL")
-	fmt.Fprintln(out, "srcpack.source -> ast.parse -> pack.stats_input -> pack.batch -> pack_fold.@pack_stats_fold")
+	fmt.Fprintln(out, "srcpack.source -> ast.parse -> pack.stats_input -> pack_fold.@pack_stats_fold")
 	for _, section := range []struct {
 		label string
 		value map[string]any
@@ -161,7 +161,7 @@ func executeDemo(ctx context.Context, root string) (demoResult, error) {
 // and replaces the presentation tail. Production CLI never rewrites its source.
 // Guard the seam so pipeline changes fail loudly.
 func demoSource(pack, mode string) (string, error) {
-	const seam = "    -> stats.collect @{\n"
+	const seam = "    -> stats.collect (\n"
 	if strings.Count(pack, seam) != 1 || !strings.Contains(pack, "-> pack_fold.@pack_stats_fold()") {
 		return "", errors.New("production pack pipeline changed: expected one presentation seam after stream.fold")
 	}

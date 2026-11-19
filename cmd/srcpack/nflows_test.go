@@ -113,7 +113,7 @@ func TestSrcpackNflowDeclaresIncludedCommandSchemas(t *testing.T) {
 
 	treeSchema := findSchema(t, schema.SchemasFromMap(imports["tree"].Source.Metadata()), "TreeInput")
 	ktest.RequireCondition(t, reflect.DeepEqual(schemaFieldsWithoutPositions(packSchema.Fields), schemaFieldsWithoutPositions(treeSchema.Fields)),
-		"TreeInput must preserve the PackInput CLI contract through schema embedding")
+		"TreeInput must preserve the PackInput CLI contract through schema embedding: pack=%#v tree=%#v", packSchema.Fields, treeSchema.Fields)
 }
 
 func findSchema(tb testing.TB, schemas []schema.Schema, name string) schema.Schema {

@@ -51,6 +51,9 @@ var lockFiles = map[string]bool{
 //nolint:gocyclo // single walk closure with per-target state; extraction needs a six-parameter helper.
 func SourceOperator() action.AnyStreamAction {
 	return action.NewStream("srcpack.source", func(ctx context.Context, cfg PackConfig) (iter.Seq2[ParsedFile, error], error) {
+		if err := cfg.DecodeFlowTargetMetadata(); err != nil {
+			return nil, fmt.Errorf("srcpack.source: %w", err)
+		}
 		root, err := os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("srcpack.source: get working directory: %w", err)

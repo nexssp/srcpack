@@ -45,26 +45,26 @@
       mode: plan_mode.plan,
       command: .command ?? plan_command.pack,
       workspace: .stats.directory ?? "",
-      profile: .stats.profile ?? "default",
-      targets: .pack.targets ?? [],
-      explicit_files: .pack.files ?? [],
-      target_profiles: .pack.target_profiles ?? {},
-      target_excludes: .pack.target_excludes ?? {},
+	      profile: .stats.profile ?? "default",
+	      targets: .pack.targets ?? [],
+	      explicit_files: .pack.files ?? [],
+      target_profiles: .target_profiles ?? toPairs(.pack.target_profiles ?? {}),
+      target_excludes: .target_excludes ?? toPairs(.pack.target_excludes ?? {}),
       editor: .render.editor ?? "markdown",
       prompt_source: .render.prompt_name ?? "(none)",
       normal_output_mode: match {
         (.io.stdout ?? false)
-          -> const @{ value: output_mode.stdout },
+          -> const  output_mode.stdout,
         (.io.copy ?? false) && (.io.explicit_output ?? "") == ""
-          -> const @{ value: output_mode.clipboard },
+          -> const  output_mode.clipboard,
         (.io.explicit_pack ?? false) && !(.io.check ?? false) && (.io.explicit_output ?? "") == "" && (.io.config_path ?? "") == ""
-          -> const @{ value: output_mode.stdout },
+          -> const  output_mode.stdout,
         (.io.output_path ?? "") == "" || .io.output_path == "-"
-          -> const @{ value: output_mode.stdout },
+          -> const  output_mode.stdout,
         (.io.check ?? false)
-          -> const @{ value: output_mode.check },
+          -> const  output_mode.check,
         _
-          -> const @{ value: output_mode.file }
+          -> const  output_mode.file
       },
       output_path: .io.output_path ?? "",
       plan_output: plan_output_stream.stdout,
@@ -112,11 +112,11 @@
         state_write: false,
         clipboard_write: false
       }
-    },
+	    },
     json: .io.json ?? false
   }
   -> {
-    content: .json ? toJSON(.report) + "\n" :
+    content: (.json ?? false) ? toJSON(fromPairs(concat(toPairs(.report), [["target_profiles", fromPairs(.report.target_profiles)], ["target_excludes", fromPairs(.report.target_excludes)]]))) + "\n" :
       "srcpack plan (schema v" + string(.report.schema_version) + ")\n" +
       "Command: " + .report.command + "\n" +
       "Workspace: " + .report.workspace + "\n" +
@@ -133,8 +133,8 @@
       ", only-signatures=" + string(.report.filters.only_signatures) + ", dense=" + string(.report.filters.dense) +
       ", comments=" + string(.report.filters.comments) + ", mask=" + string(.report.filters.mask_secrets) +
       ", max-lines=" + string(.report.filters.max_lines) + "\n" +
-      "Per-target profiles:\n" + (len(toPairs(.report.target_profiles)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_profiles), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
-      "Per-target excludes:\n" + (len(toPairs(.report.target_excludes)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_excludes), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+	      "Per-target profiles:\n" + (len(.report.target_profiles) == 0 ? "  (none)\n" : join(map(sortBy(.report.target_profiles, #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+	      "Per-target excludes:\n" + (len(.report.target_excludes) == 0 ? "  (none)\n" : join(map(sortBy(.report.target_excludes, #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
       "Phases:\n" + join(map(.report.phases, "  - " + #.name + ": " + #.status + " — " + #.detail + "\n"), "") +
       "No candidate-file list is produced by plan mode.\n",
     stream: plan_output_stream.stdout

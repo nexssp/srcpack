@@ -14,30 +14,62 @@
   quiet        bool  `cli:"quiet,q" usage:"Suppress per-target completion lines"`
 }
 
+@schema UpdatePackRequest struct {
+  selectors       []string
+  profile         string
+  check           bool
+  quiet           bool
+  _output_path    string `json:"_output_path"`
+  _command        string `json:"_command"`
+  _explicit_pack  bool   `json:"_explicit_pack"`
+  _derived_request bool  `json:"_derived_request"`
+}
+@schema UpdateTargetItem struct {
+  request UpdatePackRequest
+  target  string
+  file    string
+  status  string
+}
+@schema UpdateTargetPlan struct {
+  profile       string
+  output_profile string
+  check         bool
+  quiet         bool
+  target_names  []string
+  output_prefix string
+  items         []UpdateTargetItem
+}
+
+@pipeline update_target_item
+  :request-schema=UpdateTargetItem
+  update_item.pipeline.update_item
+@end
+
+@pipeline update_target_plan
+  :response-schema=UpdateTargetPlan
+  update_policy.@update_target_plan()
+@end
+
 @pipeline update
   :cli="update:Regenerate every configured target"
   :request-schema=UpdateInput
   cli.restore
   -> updatecmd.targets
-  -> update_policy.@update_target_plan()
+  -> pipeline.update_target_plan
   -> parallel {
-    results: (distribute.map @{ action: update_item.pipeline.update_item, items, concurrency: 1, fail_fast: false }),
+    results: (distribute.map ( action: pipeline.update_target_item, items, concurrency: 1, fail_fast: false )),
     plan: { items, check, quiet, profile }
   }
   -> {
     ...,
-    joined_rows: map(.plan.items,
-      let row = #;
-      let result_present = #index < len(.results.Items);
-      let result = result_present ? .results.Items[#index] : nil;
-      {
-        target: row.target,
-        file: row.file,
-        status: row.status,
-        result_present: result_present,
-        ok: result_present ? result.OK : false,
-        error: result_present ? (result.Error ?? "") : ""
-      })
+    joined_rows: map(.plan.items, fromPairs([
+          ["target", #.target],
+          ["file", #.file],
+          ["status", #.status],
+          ["result_present", #index < len(.results.Items)],
+          ["ok", #index < len(.results.Items) ? .results.Items[#index].OK : false],
+          ["error", #index < len(.results.Items) ? (.results.Items[#index].Error ?? "") : ""]
+    ]))
   }
   -> update_policy.@update_outcomes()
   -> update_policy.@update_report()

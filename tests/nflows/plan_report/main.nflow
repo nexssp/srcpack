@@ -2,7 +2,7 @@
 @require github.com/nexssp/srcpack/bundles/cliinput
 @include "../../../bundles/pack/plan_report.nflow"
 
-const @{
+const (
   pack: {
     targets: ["src"], files: [], target_profiles: { src: "arch", lib: "api" },
     target_excludes: { src: "vendor" }, ext: ".go", exclude: "vendor",
@@ -20,7 +20,7 @@ const @{
     json: true, check: false, explicit_copy: false, explicit_output: "",
     output_path: "", copy: true, explicit_pack: true, config_path: "", quiet: false
   }
-}
+)
 -> parallel {
   json: plan_report.pipeline.pack_plan_report,
   human: { ..., io: fromPairs(concat(toPairs(.io), [["json", false]])) }
@@ -60,7 +60,7 @@ const @{
   output_conflict: .output_conflict.message,
   save_view_conflict: .save_view_conflict.message
 }
-@test: result.json contains "\"schema_version\": 1" && result.json contains "\"normal_output_mode\": \"clipboard\"" && result.json contains "\"candidate_files_enumerated\": false"
+@test: result.json contains "\"schema_version\": 1" && result.json contains "\"normal_output_mode\": \"clipboard\"" && result.json contains "\"candidate_files_enumerated\": false" && result.json contains "\"target_profiles\": {" && result.json contains "\"lib\": \"api\"" && result.json contains "\"src\": \"arch\"" && result.json contains "\"target_excludes\": {" && result.json contains "\"src\": \"vendor\""
 @test: result.human contains "Profile: arch" && result.human contains "no-tests=true" && result.human contains "  - lib: api\n  - src: arch"
 @test: result.stdout_output contains "\"normal_output_mode\": \"stdout\""
 @test: result.file_output contains "\"normal_output_mode\": \"file\"" && result.file_output contains "\"output_path\": \"/tmp/context.md\""

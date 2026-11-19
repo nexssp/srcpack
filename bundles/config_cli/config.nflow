@@ -34,15 +34,15 @@
   cli.restore
   -> { ..., sub: match(.sub ?? "") {
     ""
-      -> const @{ value: config_subcommand.show },
+      -> const  config_subcommand.show,
     config_subcommand.path
-      -> const @{ value: config_subcommand.path },
+      -> const  config_subcommand.path,
     config_subcommand.show
-      -> const @{ value: config_subcommand.show },
+      -> const  config_subcommand.show,
     config_subcommand.validate
-      -> const @{ value: config_subcommand.validate },
+      -> const  config_subcommand.validate,
     _
-      -> pick @{ field: "sub" }
+      -> pick ( field: "sub" )
   } }
   -> configcmd.inspect
   -> match(.sub) {
@@ -63,7 +63,7 @@
         true
           -> cli.finish,
         _
-          -> fail @{ kind: failure.validation, message: "validation failed" }
+          -> fail ( kind: failure.validation, message: "validation failed" )
       }
     },
     _

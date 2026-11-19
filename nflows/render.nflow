@@ -55,7 +55,7 @@
           SOURCE_RANGE: file.source_range ?? "",
           SOURCE_URL: file.source_url ?? ""
         }
-      })
+    })
   }
 }
 
@@ -65,7 +65,7 @@
 
 @macro render_document() {
   { records: . }
-  -> srcpack.document_input @{ config: {
+  -> srcpack.document_input ( records, config: {
       # The destination key and @config suffix intentionally stay in sync.
       @render_config_field(editor),
       @render_config_field(prompt),
@@ -92,7 +92,7 @@
       @render_config_field(full_tree),
       @render_config_field(tree_files),
       @render_config_field(tree_depth),
-  } }
+  } )
   -> @shape_document()
   -> document.pipeline.document_render
 }

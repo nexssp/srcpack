@@ -67,21 +67,56 @@ func joinOutputAction(_ context.Context, files []fs.FileContent) (map[string]any
 // Flow predicates address JSON field names. Return explicit maps, not nested Go
 // structs (expr does not apply json tags when traversing nested struct values).
 func outputEffect(name string, effect func(context.Context, OutputEnvelope) (OutputEnvelope, error)) action.AnyAction {
-	return action.New(name, func(ctx context.Context, input OutputEnvelope) (map[string]any, error) {
-		out, err := effect(ctx, input)
+	return action.New(name, func(ctx context.Context, input map[string]any) (map[string]any, error) {
+		envelope, err := outputEnvelopeFromMap(input)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{
-			outputFieldContent: out.Content, "rendered_items": out.RenderedItems, "status": out.Status,
-			"policy": map[string]any{
-				"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "fail_on_change": out.Policy.FailOnChange, "preview": out.Policy.Preview, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
-				"quiet": out.Policy.Quiet, outputFieldColor: out.Policy.Color, "trailing_newline": out.Policy.TrailingNewline,
-				"started_at": out.Policy.StartedAt,
-			},
-			"report_prefix": out.ReportPrefix, "report_suffix": out.ReportSuffix,
-		}, nil
+		out, err := effect(ctx, envelope)
+		if err != nil {
+			return nil, err
+		}
+		return outputEnvelopeMap(out), nil
 	}).Build()
+}
+
+func outputEnvelopeFromMap(input map[string]any) (OutputEnvelope, error) {
+	var content string
+	if value, ok := input[outputFieldContent]; ok {
+		text, ok := value.(string)
+		if !ok {
+			return OutputEnvelope{}, fmt.Errorf("output content has type %T, want string", value)
+		}
+		content = text
+	}
+	fields := make(map[string]any, len(input))
+	for key, value := range input {
+		if key != outputFieldContent {
+			fields[key] = value
+		}
+	}
+	data, err := json.Marshal(fields)
+	if err != nil {
+		return OutputEnvelope{}, fmt.Errorf("encode output envelope: %w", err)
+	}
+	var envelope OutputEnvelope
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return OutputEnvelope{}, fmt.Errorf("decode output envelope: %w", err)
+	}
+	envelope.Content = content
+	return envelope, nil
+}
+
+func outputEnvelopeMap(out OutputEnvelope) map[string]any {
+	return map[string]any{
+		outputFieldContent: out.Content, "rendered_items": out.RenderedItems, "status": out.Status,
+		"policy": map[string]any{
+			"mode": out.Policy.Mode, "path": out.Policy.Path, "copy": out.Policy.Copy, "fail_on_change": out.Policy.FailOnChange, "preview": out.Policy.Preview, "json": out.Policy.JSON, "save_state": out.Policy.SaveState,
+			"quiet": out.Policy.Quiet, outputFieldColor: out.Policy.Color, "trailing_newline": out.Policy.TrailingNewline,
+			"started_at": out.Policy.StartedAt,
+		},
+		"report_prefix": out.ReportPrefix, "report_suffix": out.ReportSuffix,
+	}
 }
 
 // OutputActions exposes output effects and their data-only rendering adapter.
@@ -98,7 +133,7 @@ func outputActionsWithClipboardWriter(writeClipboard func(string) error) []actio
 		outputEffect("srcpack.copy_output", func(ctx context.Context, envelope OutputEnvelope) (OutputEnvelope, error) {
 			return copyOutputActionWithWriter(ctx, envelope, writeClipboard)
 		}),
-		outputEffect("srcpack.report_output", reportOutputAction),
+		action.New("srcpack.report_output", reportOutputMapAction).Build(),
 	}
 }
 
@@ -173,6 +208,17 @@ func copyOutputActionWithWriter(_ context.Context, envelope OutputEnvelope, writ
 		}
 	}
 	return envelope, nil
+}
+
+func reportOutputMapAction(ctx context.Context, input map[string]any) (map[string]any, error) {
+	envelope, err := outputEnvelopeFromMap(input)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := reportOutputAction(ctx, envelope); err != nil {
+		return nil, err
+	}
+	return input, nil
 }
 
 func reportOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvelope, error) {

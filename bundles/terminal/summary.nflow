@@ -29,7 +29,7 @@
     { label: terminal.clean(rate.label, 48),
       currency: terminal.clean(rate.currency, 8),
       amount: float(.saved_tokens) / 1000000 * float(rate.per_million_tokens)
-    }) }
+  }) }
   -> { ...,
     template_source: terminal.template("summary.tmpl"),
     template_variables: {
@@ -45,10 +45,10 @@
       estimates
     }
   }
-  -> template.render @{
+  -> template.render (
     template: .template_source,
     variables: .template_variables
-  }
+  )
   -> { content: . }
 }
 @pipeline terminal_summary

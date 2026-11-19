@@ -70,7 +70,7 @@ func TestSameNameFieldShorthandCheckCoversProjectionAndActionArguments(t *testin
 		},
 		{
 			name:   "action arguments",
-			source: "@pipeline check\n  test.consume @{ field: .field }\n@end\n",
+			source: "@pipeline check\n  test.consume ( field: .field )\n@end\n",
 		},
 	}
 	for _, test := range tests {

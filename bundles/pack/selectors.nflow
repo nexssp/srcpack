@@ -51,9 +51,9 @@
   {
     ...,
     command: match((.input._command ?? "pack") != "" ? (.input._command ?? "pack") : (.context_command != "" ? .context_command : "pack")) {
-      route.pack -> const @{ value: route.pack },
-      route.tree -> const @{ value: route.tree },
-      _ -> const @{ value: route.pack }
+      route.pack -> const  route.pack,
+      route.tree -> const  route.tree,
+      _ -> const  route.pack
     }
   }
   -> {
@@ -63,8 +63,8 @@
       explicit_pack: .input._explicit_pack ?? .context_explicit,
       output: (.input.output ?? "") != "" ? .input.output :
         match(command) {
-          route.tree -> const @{ value: .tree_output },
-          _ -> const @{ value: "" }
+          route.tree -> const  .tree_output,
+          _ -> const  ""
         },
       comments: .cli_bool_flags.comments ?? .input.comments ?? true,
       depth: (.input.depth ?? 0) == 0 ? .default_depth : .input.depth
@@ -75,8 +75,8 @@
       no_examples: .cli_bool_flags.examples != nil ? !.cli_bool_flags.examples :
         (.input.examples == nil ? .input.no_examples : !.input.examples),
       tree_only: .input.tree_only ?? match(command) {
-        route.tree -> const @{ value: true },
-        _ -> const @{ value: nil }
+        route.tree -> const  true,
+        _ -> const null
       },
       tree_depth: .input.tree_depth ?? .input.depth
     })))
@@ -103,9 +103,8 @@
   pipeline.pack_selector_plan
   -> packcmd.typed_input
   -> {
-    host,
-    requested_output,
-    policy: match { _ -> pick @{field: "facts"} -> resolution.pipeline.pack_resolution_policy }
+    ...,
+    policy: match { _ -> pick (field: "facts") -> resolution.pipeline.pack_resolution_policy }
   }
   -> match {
     .policy.need_diff
@@ -116,6 +115,8 @@
   -> packcmd.build_request
   -> {
     pack,
+    target_profiles,
+    target_excludes,
     stats: fromPairs(concat(toPairs(.stats), [["output", .requested_output != "" ? .requested_output : (.stats.output != "" ? .stats.output : .io.output_path)]])),
     render: fromPairs(concat(toPairs(.render), [["output_file", .requested_output != "" ? .requested_output : .render.output_file]])),
     io: fromPairs(concat(toPairs(.io), [["output_path", .requested_output != "" ? .requested_output : .io.output_path]])),

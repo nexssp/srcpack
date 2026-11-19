@@ -16,7 +16,7 @@
     rows: let root = .; map(.rows,
       let row = #;
       let share = root.total_tokens > 0 && row.tokens > 0 ? float(row.tokens) / float(root.total_tokens) * 100 : 0.0;
-      let icon = ({ test: "🧪", config: "⚙️ ", doc: "📝", gen: "🧬", entry: "🚀" })[row.role] ?? "📄";
+      let icon = row.role == "test" ? "🧪" : row.role == "config" ? "⚙️ " : row.role == "doc" ? "📝" : row.role == "gen" ? "🧬" : row.role == "entry" ? "🚀" : "📄";
       { dir: row.dir, share: share,
         header: row.prefix + row.connector + (row.dir ? "📁 " + row.name + "/" : icon + " " + row.name),
         share_code: share <= 10 ? "1;32" : share <= 20 ? "38;5;118" : share <= 35 ? "1;33" : share <= 55 ? "38;5;208" : "1;31",
@@ -46,12 +46,12 @@
     ),
     rendered_rows: let root = .; map(.rows,
       terminal.paint(#.header, "1", root.color && #.dir)
-        + repeat(" ", max(60 - terminal.width(#.header), 1))
-        + (#.dir ? ((#.share > 0 ? terminal.paint(terminal.printf("%5.1f%%", #.share), #.share_code, root.color) : "     ")
-            + " " + terminal.bar(#.share, 16, #.share_code, root.color)
-            + (len(#.meta) > 0 ? " [" + join(#.meta, " · ") + "]" : ""))
-          : terminal.paint(len(#.meta) > 0 ? "[" + join(#.meta, " · ") + "]" : "", "2", root.color && len(#.meta) > 0))
-        + "\n"),
+      + repeat(" ", max(60 - terminal.width(#.header), 1))
+      + (#.dir ? ((#.share > 0 ? terminal.paint(terminal.printf("%5.1f%%", #.share), #.share_code, root.color) : "     ")
+          + " " + terminal.bar(#.share, 16, #.share_code, root.color)
+          + (len(#.meta) > 0 ? " [" + join(#.meta, " · ") + "]" : ""))
+        : terminal.paint(len(#.meta) > 0 ? "[" + join(#.meta, " · ") + "]" : "", "2", root.color && len(#.meta) > 0))
+      + "\n"),
     footer_meta: filter([
       string(.included) + " files", "~" + terminal.tokens(int(.total_tokens)) + " tokens",
       .raw_bytes > 0 ? terminal.bytes(int(.saved_bytes)) + " saved of " + terminal.bytes(int(.raw_bytes)) : "",

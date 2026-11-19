@@ -31,6 +31,22 @@ func TestTreeStandalone(t *testing.T) {
 	ktest.RequireCondition(t, !strings.Contains(text, "\x1b["), "plain tree must not produce ANSI")
 }
 
+func TestTreeFileRoleIcons(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ role, icon string }{
+		{"test", "🧪"}, {"config", "⚙️"}, {"doc", "📝"}, {"gen", "🧬"}, {"entry", "🚀"}, {"unknown", "📄"},
+	} {
+		t.Run(tc.role, func(t *testing.T) {
+			input := treeFacts()
+			rows := input["rows"].([]map[string]any)
+			rows[0]["dir"], rows[0]["role"] = false, tc.role
+			text, err := Tree(context.Background(), input)
+			ktest.RequireNoError(t, err)
+			ktest.RequireStringContains(t, text, tc.icon)
+		})
+	}
+}
+
 func TestTreeStandaloneEmptyAndColor(t *testing.T) {
 	t.Parallel()
 	input := treeFacts()

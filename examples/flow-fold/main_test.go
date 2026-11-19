@@ -109,7 +109,7 @@ func TestDemoSourceKeepsProductionFoldAndRemovesSideEffects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	head, _, _ := strings.Cut(string(pack), "    -> stats.collect @{\n")
+	head, _, _ := strings.Cut(string(pack), "    -> stats.collect (\n")
 	head = strings.Replace(head, "    -> workspace.save_state:enabled=$save_state\n", "", 1)
 	head = strings.Replace(head, "@macro pack_body(save_state) {", "@pipeline pack", 1)
 	for _, mode := range []string{"baseline", "extended", "render", "extended-render"} {

@@ -95,6 +95,9 @@ func TestRemoteMaterializePreservesMetadata(t *testing.T) {
 	}
 	session.results[raw] = remote.Result{Path: path, Root: root, Repository: "https://github.com/nexssp/flow.git", Commit: commit}
 	cfg := operators.PackConfig{Targets: []string{raw, "local"}, TargetProfiles: map[string]string{raw: "arch"}, TargetPrompts: map[string]string{raw: "explain"}, TargetExcludes: map[string]string{raw: "*_test.go"}}
+	if err := cfg.EncodeFlowTargetMetadata(); err != nil {
+		t.Fatal(err)
+	}
 	in := map[string]any{"pack": cfg, "render": map[string]any{"dirs": raw}, "io": map[string]any{"quiet": true}}
 	got, err := materializeInput(ctx, in)
 	if err != nil {
@@ -102,6 +105,9 @@ func TestRemoteMaterializePreservesMetadata(t *testing.T) {
 	}
 	var out operators.PackConfig
 	if err := decode(got["pack"], &out); err != nil {
+		t.Fatal(err)
+	}
+	if err := out.DecodeFlowTargetMetadata(); err != nil {
 		t.Fatal(err)
 	}
 	if out.Targets[0] != path || out.Targets[1] != "local" || out.TargetProfiles[path] != "arch" || out.TargetPrompts[path] != "explain" || out.TargetExcludes[path] != "*_test.go" {

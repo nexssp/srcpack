@@ -39,8 +39,8 @@
 @pipeline doctor_path_step
   {state: ., item: .paths[.i]}
   -> parallel {
-    state: pick @{field: "state"},
-    result: (pick @{field: "item"} -> pipeline.doctor_path)
+    state: pick (field: "state"),
+    result: (pick (field: "item") -> pipeline.doctor_path)
   }
   -> {name: .state.name, paths: .state.paths, refs: .state.refs, cycle: .state.cycle, i: .state.i + 1, issues: concat(.state.issues, .result.issues)}
 @end
@@ -62,8 +62,8 @@
 @pipeline doctor_target_step
   {state: ., item: .targets[.i]}
   -> parallel {
-    state: pick @{field: "state"},
-    result: (pick @{field: "item"} -> pipeline.doctor_target)
+    state: pick (field: "state"),
+    result: (pick (field: "item") -> pipeline.doctor_target)
   }
   -> {path: .state.path, config_file: .state.config_file, targets: .state.targets, profiles: .state.profiles, i: .state.i + 1, issues: concat(.state.issues, .result.issues)}
 @end

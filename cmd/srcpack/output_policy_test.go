@@ -251,12 +251,12 @@ func TestNFlowSelectsOutputEffects(t *testing.T) {
 			var called []string
 			var actions []action.AnyAction
 			for _, name := range []string{"write_output", "check_output", "print_output", "copy_output", "report_output"} {
-				actions = append(actions, action.New("srcpack."+name, func(_ context.Context, in operators.OutputEnvelope) (map[string]any, error) {
+				actions = append(actions, action.New("srcpack."+name, func(_ context.Context, in map[string]any) (map[string]any, error) {
 					called = append(called, name)
 					if tc.fail && name == "write_output" {
 						return nil, errors.New("simulated write failure")
 					}
-					return jsonObject(in)
+					return in, nil
 				}).Build())
 			}
 			bundles := append(native.Bundles(), compiler.Bundle{ID: "output_effect_spies", Libraries: []action.Library{{Name: "output.effect.spies", Actions: actions}}})

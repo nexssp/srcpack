@@ -6,8 +6,17 @@
 }
 
 @macro update_target_plan() {
-  { ..., profile: .profile != "" ? .profile : .profile_arg }
-  -> { ..., output_profile: .profile != "" ? .profile : "default" }
+  {
+    let explicit_profile = string(.profile ?? "");
+    let positional_profile = string(.profile_arg ?? "");
+    ...,
+    profile: explicit_profile != "" ? explicit_profile : positional_profile,
+    output_profile: explicit_profile != "" ? explicit_profile : (positional_profile != "" ? positional_profile : "default"),
+    check: (.check ?? false) == true,
+    quiet: (.quiet ?? false) == true,
+    target_names: map(.target_names, string(#)),
+    output_prefix: string(.output_prefix ?? "")
+  }
   -> {
     ...,
     items: let root = .; map(len(root.target_names) > 0 ? sortBy(root.target_names, #, "asc") : [""],
@@ -34,19 +43,15 @@
 @macro update_outcomes() {
   {
     ...,
-    outcomes: map(.joined_rows,
-      let row = #;
-      let failed = !row.result_present || !row.ok;
-      let detail = !row.result_present ? "target did not produce a result" :
-        (!row.ok ? ((row.error ?? "") != "" ? row.error : "target failed without an error message") : row.file);
-      {
-        failed: failed,
-        written: !failed && row.status != update_policy.update_status.checked,
-        checked: !failed && row.status == update_policy.update_status.checked,
-        icon: failed ? "✗" : "✓",
-        label: row.target,
-        detail: detail
-      })
+    outcomes: map(.joined_rows, fromPairs([
+          ["failed", !#.result_present || !#.ok],
+          ["written", #.result_present && #.ok && #.status != update_policy.update_status.checked],
+          ["checked", #.result_present && #.ok && #.status == update_policy.update_status.checked],
+          ["icon", (!#.result_present || !#.ok) ? "✗" : "✓"],
+          ["label", #.target],
+          ["detail", !#.result_present ? "target did not produce a result" :
+            (!#.ok ? ((#.error ?? "") != "" ? #.error : "target failed without an error message") : #.file)]
+    ]))
   }
 }
 

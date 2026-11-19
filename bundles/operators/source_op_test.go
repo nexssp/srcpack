@@ -62,6 +62,27 @@ func TestSource_OmittedFilesDoNotConsumeFileCountLimit(t *testing.T) {
 	}
 }
 
+func TestSource_DecodesFlowTargetMetadataBeforeScanning(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "main.go", "package a\n")
+	t.Chdir(dir)
+	target := filepath.Join(dir, "main.go")
+	cfg := operators.PackConfig{
+		Targets:       []string{target},
+		TargetPrompts: map[string]string{target: "keep the exact path key"},
+	}
+	if err := cfg.EncodeFlowTargetMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	collected := collectSource(t, cfg)
+	if len(collected) != 1 {
+		t.Fatalf("source emitted %d records, want one", len(collected))
+	}
+	if collected[0].Prompt != "keep the exact path key" {
+		t.Fatalf("target prompt = %q, want exact-key prompt", collected[0].Prompt)
+	}
+}
+
 func TestSource_ExcludesGeneratedDepsExamples(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "main.go", "package a\n")

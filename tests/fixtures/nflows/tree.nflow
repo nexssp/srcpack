@@ -22,7 +22,7 @@
   srcpack.source
     -> ast.parse
     -> workspace.save_state:enabled=$save_state
-    -> stats.collect @{
+    -> stats.collect (
       tree_only: @config.stats_tree_only,
       full_tree: @config.stats_full_tree,
       tree_files: @config.stats_tree_files,
@@ -38,7 +38,7 @@
       clipboard: @config.stats_clipboard,
       started_at: @config.stats_started_at,
       cost: @config.stats_cost
-    }
+    )
     -> collect
     -> render.pipeline.render_configured_document_pipeline
 }

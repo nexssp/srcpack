@@ -21,17 +21,17 @@
     trailing_newline: .io.explicit_pack && !.io.check,
     mode: match {
       (.io.stdout ?? false)
-        -> const @{ value: output_mode.stdout },
+        -> const  output_mode.stdout,
       (.io.copy || (!(.io.copy_explicit ?? false) && !(.io.stdout ?? false) && !.io.check && .io.output_path == "")) && .io.explicit_output == ""
-        -> const @{ value: output_mode.clipboard },
+        -> const  output_mode.clipboard,
       .io.explicit_pack && !.io.check && .io.explicit_output == "" && .io.config_path == ""
-        -> const @{ value: output_mode.stdout },
+        -> const  output_mode.stdout,
       .io.output_path == "" || .io.output_path == "-"
-        -> const @{ value: output_mode.stdout },
+        -> const  output_mode.stdout,
       .io.check
-        -> const @{ value: output_mode.check },
+        -> const  output_mode.check,
       _
-        -> const @{ value: output_mode.file }
+        -> const  output_mode.file
     }
   }
 @end
@@ -63,7 +63,7 @@
     output_mode.clipboard
       -> runtime.noop,
     _
-      -> runtime.fail @{ kind: "validation", message: "unknown output policy" }
+      -> runtime.fail ( kind: "validation", message: "unknown output policy" )
   }
   -> match {
     .policy.copy

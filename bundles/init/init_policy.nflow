@@ -20,7 +20,7 @@
   -> {
     ...,
     mode: ._init_mode == "" ? (len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? init_mode.targets : init_mode.default) : ._init_mode,
-    dirs: ._init_mode == "" && len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? ._init_dirs[1 :] : ._init_dirs
+    dirs: ._init_mode == "" && len(._init_dirs) > 0 && ._init_dirs[0] == "targets" ? ._init_dirs[1 : ] : ._init_dirs
   }
 @end
 

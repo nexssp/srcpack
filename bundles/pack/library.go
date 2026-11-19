@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -100,7 +101,27 @@ type selector struct {
 
 // ResolveInput accepts only typed fields produced by tcli (or a test adapter); it never interprets raw argv.
 func ResolveInput(ctx context.Context, fields map[string]any) (map[string]any, error) {
-	return resolveInput(ctx, fields)
+	result, err := resolveInput(ctx, fields)
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(result["pack"])
+	if err != nil {
+		return nil, fmt.Errorf("decode resolved pack config: %w", err)
+	}
+	var cfg operators.PackConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("decode resolved pack config: %w", err)
+	}
+	if err := cfg.DecodeFlowTargetMetadata(); err != nil {
+		return nil, err
+	}
+	pack, err := jsonObject(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("encode resolved pack config: %w", err)
+	}
+	result["pack"] = pack
+	return result, nil
 }
 
 func resolveInput(ctx context.Context, in map[string]any) (map[string]any, error) {
@@ -256,7 +277,11 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 		plan.Facts = make(map[string]any)
 	}
 	plan.Facts["requested_output"] = requestedOutput
-	return map[string]any{"host": &packRequestHost{CLI: cli, Started: time.Now(), Plan: plan}, "facts": plan.Facts, "requested_output": requestedOutput}, nil
+	host, err := json.Marshal(packRequestHost{CLI: cli, Started: time.Now(), Plan: plan})
+	if err != nil {
+		return nil, fmt.Errorf("packcmd.typed_input: encode host facts: %w", err)
+	}
+	return map[string]any{"host": string(host), "facts": plan.Facts, "requested_output": requestedOutput}, nil
 }
 
 // resolveMaskOverride merges the positive and negative mask flags by argv
@@ -294,18 +319,47 @@ func resolveMaskOverride(ctx context.Context, command string, input map[string]a
 	return result, nil
 }
 
-// packRequestHost carries typed objects through the policy projection. NFlow
-// never needs to serialize or reinterpret configuration-store implementation types.
+// packRequestHost is the stable Go representation of host facts. typedInput
+// sends it as opaque JSON text because Flow projections add snake_case aliases
+// to map keys; that would corrupt case-sensitive filesystem paths used as keys.
 type packRequestHost struct {
-	CLI     cliOptions
-	Started time.Time
-	Plan    resolutionPlan
+	CLI     cliOptions     `json:"cli"`
+	Started time.Time      `json:"started"`
+	Plan    resolutionPlan `json:"plan"`
+}
+
+func packRequestHostFromValue(value any) (*packRequestHost, error) {
+	switch host := value.(type) {
+	case string:
+		var decoded packRequestHost
+		if err := json.Unmarshal([]byte(host), &decoded); err != nil {
+			return nil, fmt.Errorf("decode host facts: %w", err)
+		}
+		return &decoded, nil
+	case *packRequestHost:
+		if host != nil {
+			return host, nil
+		}
+	case packRequestHost:
+		return &host, nil
+	case map[string]any:
+		data, err := json.Marshal(host)
+		if err != nil {
+			return nil, fmt.Errorf("decode host facts: %w", err)
+		}
+		var decoded packRequestHost
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return nil, fmt.Errorf("decode host facts: %w", err)
+		}
+		return &decoded, nil
+	}
+	return nil, errors.New("missing typed host facts")
 }
 
 func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any, error) {
-	host, ok := envelope["host"].(*packRequestHost)
-	if !ok {
-		return nil, errors.New("packcmd.build_request: missing typed host facts")
+	host, err := packRequestHostFromValue(envelope["host"])
+	if err != nil {
+		return nil, fmt.Errorf("packcmd.build_request: %w", err)
 	}
 	cli, started := host.CLI, host.Started
 	policy := policyObject(envelope["policy"])
@@ -314,7 +368,13 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 	if err != nil {
 		return nil, err
 	}
-	packMap, err := jsonObject(run.Pack)
+	flowPack := run.Pack
+	targetProfiles := stringMapPairs(flowPack.TargetProfiles)
+	targetExcludes := stringMapPairs(flowPack.TargetExcludes)
+	if err := flowPack.EncodeFlowTargetMetadata(); err != nil {
+		return nil, fmt.Errorf("encode pack target metadata: %w", err)
+	}
+	packMap, err := jsonObject(flowPack)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +392,7 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 		outputPath = "-"
 	}
 	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "fail_on_change": cli.FailOnChange, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "copy_explicit": cli.CopyExplicit, "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
-	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", "")}, nil
+	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", ""), "target_profiles": targetProfiles, "target_excludes": targetExcludes}, nil
 }
 
 func statisticsAction(ctx context.Context, in map[string]any) (map[string]any, error) {
@@ -467,6 +527,9 @@ func stringSliceField(v any) []string {
 	case []string:
 		return append([]string(nil), a...)
 	case []any:
+		if len(a) == 0 {
+			return nil
+		}
 		r := make([]string, 0, len(a))
 		for _, x := range a {
 			if s, ok := x.(string); ok {
@@ -631,15 +694,28 @@ func stringMapField(value any) map[string]string {
 	return out
 }
 
+func stringMapPairs(values map[string]string) [][]string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	pairs := make([][]string, 0, len(keys))
+	for _, key := range keys {
+		pairs = append(pairs, []string{key, values[key]})
+	}
+	return pairs
+}
+
 func requestMaps(_ context.Context, in map[string]any) (map[string]any, error) {
 	return policyObject(in), nil
 }
 
 // gitDiff performs exactly the effect selected by the caller's NFlow branch.
 func gitDiff(ctx context.Context, in map[string]any) (map[string]any, error) {
-	host, ok := in["host"].(*packRequestHost)
-	if !ok {
-		return nil, errors.New("packcmd.git_diff: missing typed host facts")
+	host, err := packRequestHostFromValue(in["host"])
+	if err != nil {
+		return nil, fmt.Errorf("packcmd.git_diff: %w", err)
 	}
 	if host.CLI.Plan {
 		in["diff_content"] = ""

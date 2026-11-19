@@ -68,6 +68,12 @@ func materializeInput(ctx context.Context, in map[string]any) (map[string]any, e
 	if err := decode(in["pack"], &cfg); err != nil {
 		return nil, fmt.Errorf("materialize pack config: %w", err)
 	}
+	flowTransport := cfg.TargetMetadataJSON != ""
+	if flowTransport {
+		if err := cfg.DecodeFlowTargetMetadata(); err != nil {
+			return nil, fmt.Errorf("materialize pack config: %w", err)
+		}
+	}
 	if !hasRemoteTargets(cfg.Targets, cfg.Files) {
 		return in, nil
 	}
@@ -119,6 +125,11 @@ func materializeInput(ctx context.Context, in map[string]any) (map[string]any, e
 	}
 	if err := materialize(cfg.Files); err != nil {
 		return nil, err
+	}
+	if flowTransport {
+		if err := cfg.EncodeFlowTargetMetadata(); err != nil {
+			return nil, fmt.Errorf("materialize pack config: %w", err)
+		}
 	}
 	pack, err := jsonObject(cfg)
 	if err != nil {

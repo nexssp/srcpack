@@ -113,12 +113,12 @@ func TestFlowFilesystemDownload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := fmt.Sprintf(`fs.download @{
+	source := fmt.Sprintf(`fs.download (
   output_dir: %q,
   files: [{ url: %q, path: "assets/payload.txt", expected_bytes: %d }],
   receipt_path: ".download-receipt.json",
   provenance: { project: "srcpack", revision: "integration-test" }
-}`, outputDir, server.URL+"/asset", len(payload))
+ )`, outputDir, server.URL+"/asset", len(payload))
 	if _, err := runner.Execute(t.Context(), cfg, source, "fs_download_test.nflow", nil); err != nil {
 		t.Fatalf("run fs.download NFlow: %v", err)
 	}

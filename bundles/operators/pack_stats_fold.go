@@ -19,8 +19,8 @@ const packStatsFoldExpression = `{
 }`
 
 // foldPackStats preserves the existing Go-backed aggregate for legacy stream
-// callers. The active pack.nflow path uses pack.batch plus stream.fold with
-// its expression defined in nflows/pack.nflow; source selection, parsing, and
+// callers. The active pack.nflow path uses stream.fold with its expression
+// defined in nflows/pack_fold.nflow; source selection, parsing, and
 // rendering stay SRCPACK-owned in both paths.
 func foldPackStats(files []ParsedFile) (PackStats, error) {
 	input := func(yield func(any, error) bool) {

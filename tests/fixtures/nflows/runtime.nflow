@@ -25,7 +25,7 @@
         -> tree.pipeline.tree_preview
     },
     _
-      -> runtime.fail @{ kind: "validation", message: "unknown srcpack pipeline command" }
+      -> runtime.fail ( kind: "validation", message: "unknown srcpack pipeline command" )
   }
 }
 -> { policy, .rendered.content, rendered_items: .rendered.items }

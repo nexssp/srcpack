@@ -14,9 +14,9 @@ import (
 	"github.com/nexssp/srcpack/bundles/document"
 )
 
-// This gate deliberately runs real NFlow projections before and after the
-// byte-to-string boundary, then the independent production document formatter.
-// JSON, fmt.Sprint and Unicode decoding must never touch source content.
+// This gate verifies that Flow v0.89's []any byte projection is restored
+// exactly before the sole permitted representation change, lossless conversion
+// to string, and the independent production document formatter.
 func TestNFlowBinarySafePassthrough(t *testing.T) {
 	allBytes := make([]byte, 256)
 	for i := range allBytes {
@@ -44,9 +44,9 @@ func TestNFlowBinarySafePassthrough(t *testing.T) {
 				if !ok {
 					return nil, fmt.Errorf("projected file has type %T, want map[string]any", files[0])
 				}
-				raw, ok := file["content"].([]byte)
-				if !ok || !bytes.Equal(raw, original) {
-					return nil, fmt.Errorf("projection corrupted raw bytes: %T %x; want %x", file["content"], file["content"], original)
+				raw, err := projectedContentBytes(file["content"])
+				if err != nil || !bytes.Equal(raw, original) {
+					return nil, fmt.Errorf("projection corrupted raw bytes: %T %x (%v); want %x", file["content"], raw, err, original)
 				}
 				calls++
 				// The sole representation change permitted in production is Go's lossless

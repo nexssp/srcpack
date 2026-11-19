@@ -31,6 +31,7 @@
   config_path       string  `cli:"config" config:"true" usage:"use a specific config file"`
   dir_prefix        bool  `cli:"dir-prefix,pfx" config:"true" usage:"prefix output filename with workspace name"`
   check             bool  `cli:"check,diff,dry-run" config:"true" usage:"preview output changes without writing"`
+  fail_on_change    bool  `cli:"fail-on-change" usage:"with pack --check, exit 3 on new/modified output; use --no-start for stable CI metadata"`
   plan              bool  `cli:"plan,explain" usage:"explain resolved targets and options without scanning or writing"`
   save_view         string  `cli:"save-view,as" config:"true" usage:"save selectors as a reusable view"`
   tests             bool  `cli:"tests" usage:"include test files"`
@@ -66,7 +67,7 @@
   no_header         bool  `cli:"no-header" config:"true" usage:"suppress the document header"`
   no_prompt         bool  `cli:"no-prompt" config:"true" usage:"suppress the prompt block"`
   no_start          bool  `cli:"no-start" config:"true" usage:"suppress the document start section"`
-	no_end            bool  `cli:"no-end" config:"true" usage:"suppress the document end section"`
+  no_end            bool  `cli:"no-end" config:"true" usage:"suppress the document end section"`
 }
 
 @include "../pack/pack_workflow.nflow"

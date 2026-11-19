@@ -212,20 +212,20 @@
   :request-schema=EmptyInput
   cli.restore
   -> {
-    aliases: {
-      "go": ["go"], "ts": ["ts", "tsx"], "typescript": ["ts", "tsx"],
-      "js": ["js", "jsx", "mjs", "cjs"], "javascript": ["js", "jsx", "mjs", "cjs"],
-      "py": ["py", "pyi"], "python": ["py", "pyi"], "rust": ["rs"], "rs": ["rs"],
-      "php": ["php"], "zig": ["zig"], "vue": ["vue"], "svelte": ["svelte"],
-      "web": ["html", "htm", "css", "scss", "js", "jsx", "ts", "tsx", "svelte", "vue"],
-      "config": ["json", "yaml", "yml", "toml", "ini"], "md": ["md", "mdx", "markdown"],
-      "markdown": ["md", "mdx", "markdown"]
-    }
+    aliases: fromPairs([
+      ["go", ["go"]], ["ts", ["ts", "tsx"]], ["typescript", ["ts", "tsx"]],
+      ["js", ["js", "jsx", "mjs", "cjs"]], ["javascript", ["js", "jsx", "mjs", "cjs"]],
+      ["py", ["py", "pyi"]], ["python", ["py", "pyi"]], ["rust", ["rs"]], ["rs", ["rs"]],
+      ["php", ["php"]], ["zig", ["zig"]], ["vue", ["vue"]], ["svelte", ["svelte"]],
+      ["web", ["html", "htm", "css", "scss", "js", "jsx", "ts", "tsx", "svelte", "vue"]],
+      ["config", ["json", "yaml", "yml", "toml", "ini"]], ["md", ["md", "mdx", "markdown"]],
+      ["markdown", ["md", "mdx", "markdown"]]
+    ])
   }
   -> {
-    content: "Available file types:\n" + join(map(sortBy(keys(.aliases), #, "asc"), let name = #;
-      terminal.printf("  %-12s %s\n", name + ":", join(map(.aliases[name], "*." + #), ", ")
-      )), "") + "\nFilter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml\n",
+    content: "Available file types:\n" + join(map(sortBy(toPairs(.aliases), #[0], "asc"),
+      terminal.printf("  %-12s %s\n", #[0] + ":", join(map(#[1], "*." + #), ", "))
+      ), "") + "\nFilter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml\n",
     stream: output_stream.stdout
   }
   -> cli.print
