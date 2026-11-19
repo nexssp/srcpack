@@ -9,6 +9,13 @@
 @include "../../nflows/pack_fold.nflow"
 @include "../../bundles/config_views/config_views.nflow"
 
+@schema PackDoneInput {}
+
+@description "Discard the completed output envelope and preserve the command's nil result"
+@pipeline pack_done(req: PackDoneInput)
+  const null
+@end
+
 @pipeline pack_resolve
   selectors.pipeline.pack_resolve
 @end
@@ -68,5 +75,5 @@
       content: .rendered.content
     }) + "\n" : .rendered.content, rendered_items: .rendered.items }
   -> output.pipeline.emit_output
-  -> packcmd.done
+  -> pipeline.pack_done
 @end

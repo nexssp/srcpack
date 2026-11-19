@@ -68,7 +68,6 @@ func Bundle(_ map[string]string) compiler.Bundle {
 		action.New("packcmd.materialize", materializeInput).Build(),
 		action.New("packcmd.view_request", viewRequestAction).Build(),
 		action.New("packcmd.statistics", statisticsAction).Build(),
-		action.New("packcmd.done", doneAction).Build(),
 	}}}}
 }
 
@@ -462,7 +461,6 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 	}
 	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "value": normalized, "replace": true, "legacy": true}, nil
 }
-func doneAction(context.Context, map[string]any) (any, error) { return nil, nil }
 func jsonObject(v any) (map[string]any, error) {
 	b, e := json.Marshal(v)
 	if e != nil {
