@@ -2,51 +2,71 @@ package document
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/nexssp/flow/compiler"
+	"github.com/nexssp/flow/native"
+	"github.com/nexssp/flow/runner"
 	"github.com/nexssp/kernel/xtest/ktest"
 )
 
-func TestBundleAndInterpolationContract(t *testing.T) {
-	ktest.RequireNoError(t, compiler.ValidateBundle(Bundle(nil)))
-	_, found := compiler.Lookup(ID)
-	ktest.RequireCondition(t, found, "document bundle is not registered")
-	for _, tc := range []struct{ source, want string }{
-		{"${A}|${B}|${UNKNOWN}|${BROKEN", "${B}|value|${UNKNOWN}|${BROKEN"},
-		{"${}|${A}${A}", "empty|${B}${B}"},
-		{"\x00\xff", "\x00\xff"},
-	} {
-		ktest.RequireEqual(t, expandOnce(tc.source, map[string]string{"A": "${B}", "B": "value", "": "empty"}), tc.want)
-	}
-	valid := map[string]any{"blocks": []any{map[string]any{"parts": []any{
-		map[string]any{"text": "${A}", "values": map[string]any{"A": "x"}, "expand": true, "newline": true},
-		map[string]any{"text": "\x00\xff", "newline": true},
-	}}}}
-	out, err := interpolate(context.Background(), valid)
+func TestBundleRetainsCompatibilityWithoutActions(t *testing.T) {
+	bundle := Bundle(nil)
+	ktest.RequireNoError(t, compiler.ValidateBundle(bundle))
+	ktest.RequireCondition(t, len(bundle.Libraries) == 1, "document compatibility bundle must retain its library")
+	ktest.RequireCondition(t, len(bundle.Libraries[0].Actions) == 0, "document bundle must not register Go actions")
+
+	cfg, err := runner.BuildConfig(append(native.Bundles(), bundle))
 	ktest.RequireNoError(t, err)
-	blocks, ok := out["blocks"].([]string)
+	_, found := cfg.Resolver.Action("document.interpolate")
+	ktest.RequireCondition(t, !found, "document.interpolate must be implemented by NFlow, not registered as a Go action")
+}
+
+func TestInterpolationPipelinePreservesSinglePassAndBytes(t *testing.T) {
+	cfg, err := runner.BuildConfig(native.Bundles())
+	ktest.RequireNoError(t, err)
+	ctx := compiler.WithSourceLoader(context.Background(), Loader())
+	source := `@include "document.nflow" AS document
+document.interpolation.pipeline.document_interpolate`
+	payload := map[string]any{
+		"blocks": []any{
+			map[string]any{"parts": []any{
+				map[string]any{
+					"text":    "${A}|${B}|${UNKNOWN}|${BROKEN",
+					"values":  map[string]any{"A": "${B}", "B": "value"},
+					"expand":  true,
+					"newline": true,
+				},
+				map[string]any{"text": string([]byte{0, 0xff}), "newline": true},
+			}},
+			map[string]any{"parts": []any{
+				map[string]any{
+					"text":   "${}|${A}${A}|${BROKEN${A}|${A",
+					"values": map[string]any{"": "empty", "A": "ok"},
+					"expand": true,
+				},
+				map[string]any{"text": "${A}", "values": map[string]any{"A": "changed"}, "expand": false},
+			}},
+			map[string]any{"parts": []any{
+				map[string]any{"text": "already\n", "newline": true},
+				map[string]any{"text": "", "newline": true},
+			}},
+		},
+	}
+
+	execution, err := runner.Execute(ctx, cfg, source, "document-interpolation-test.nflow", payload)
+	ktest.RequireNoError(t, err)
+	output, ok := execution.Output.(map[string]any)
 	if !ok {
-		t.Fatalf("blocks have type %T, want []string", out["blocks"])
+		t.Fatalf("interpolation output has type %T, want map[string]any", execution.Output)
 	}
-	ktest.RequireEqual(t, blocks, []string{"x\n\x00\xff\n"})
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err = interpolate(ctx, valid)
-	ktest.RequireCondition(t, errors.Is(err, context.Canceled), "cancellation must propagate")
-	for _, bad := range []map[string]any{
-		{},
-		{"blocks": "wrong"},
-		{"blocks": []any{42}},
-		{"blocks": []any{map[string]any{"parts": "wrong"}}},
-		{"blocks": []any{map[string]any{"parts": []any{42}}}},
-		{"blocks": []any{map[string]any{"parts": []any{map[string]any{"text": 42}}}}},
-		{"blocks": []any{map[string]any{"parts": []any{map[string]any{"text": "x", "expand": "yes"}}}}},
-		{"blocks": []any{map[string]any{"parts": []any{map[string]any{"text": "x", "expand": true, "values": map[string]any{"A": 42}}}}}},
-	} {
-		_, err := interpolate(context.Background(), bad)
-		ktest.RequireCondition(t, err != nil && strings.Contains(err.Error(), "document.interpolate"), "malformed input must fail with context")
+	blocks, ok := output["blocks"].([]any)
+	if !ok {
+		t.Fatalf("interpolation blocks have type %T, want []any", output["blocks"])
 	}
+	ktest.RequireEqual(t, blocks, []any{
+		"${B}|value|${UNKNOWN}|${BROKEN\n\x00\xff\n",
+		"empty|okok|${BROKEN${A}|${A${A}",
+		"already\n",
+	})
 }

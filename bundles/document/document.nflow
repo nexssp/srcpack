@@ -1,5 +1,5 @@
 @description "Copyable document formatting policy; no SRCPACK or I/O dependency"
-@require github.com/nexssp/srcpack/bundles/document
+@include "./interpolation.nflow" AS interpolation
 @symbols editor_format {
   zed: "zed"
   claude: "claude"
@@ -77,7 +77,7 @@
     ] }),
     !root.config.no_header && !root.config.no_end && root.end != "" ? [{ parts: [{ text: root.end, values: root.values, expand: true }] }] : []
   ) }
-  -> document.interpolate
+  -> interpolation.pipeline.document_interpolate
   -> {
     content: reduce(.blocks, #acc + #, ""),
     items: len(.blocks)

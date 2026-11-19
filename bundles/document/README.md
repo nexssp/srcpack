@@ -1,15 +1,15 @@
 # Copyable document bundle
 
-Copy this **entire directory**, including `document.nflow`, into another Go repository. Change the consumer's Go import to its new local package path. The implementation imports only Flow and kernel; it does not import srcpack, its CLI, parser, workspace configuration or output effects. Use Flow/kernel v0.35.0 or a compatible version.
+Copy this **entire directory**, including `document.nflow` and `interpolation.nflow`, into another Go repository. Change the consumer's Go import to its new local package path. The Go package only embeds and loads the NFlow sources; it imports no srcpack domain types, parser, workspace configuration or output effects. The workflow uses Flow 0.89.0 or a compatible release.
 
-`document.nflow` owns Markdown/Zed/Claude/fold/raw presets and aliases, prompt/diff/tree ordering, document/file delimiters, snippet spacing, suppression flags, concatenation and emitted-chunk counts. `library.go` supplies only a generic, byte-preserving `${KEY}` interpolation primitive and an embedded source loader.
+`document.nflow` owns Markdown/Zed/Claude/fold/raw presets and aliases, prompt/diff/tree ordering, document/file delimiters, snippet spacing, suppression flags, concatenation and emitted-chunk counts. `interpolation.nflow` owns one-pass `${KEY}` expansion and block concatenation in a typed-output NFlow pipeline. The Go package is limited to the embedded source loader and a no-action compatibility bundle.
 
 ## Mount and execute
 
 The host imports `context`, Flow's `compiler`, `native`, `runner`, and the copied `document` package:
 
 ```go
-cfg, err := runner.BuildConfig(append(native.Bundles(), document.Bundle(nil)))
+cfg, err := runner.BuildConfig(native.Bundles())
 if err != nil { return err }
 ctx := compiler.WithSourceLoader(context.Background(), document.Loader())
 input := map[string]any{
@@ -26,9 +26,9 @@ execution, err := runner.Execute(ctx, cfg,
     "consumer.nflow", input)
 ```
 
-`execution.Output` is a map containing `content` (string) and `items` (int). A registry factory is also registered as `document`; `@require document` identifies that bundle, but **does not include its NFlow source or install a source loader**. The example explicitly mounts the bundle and provides its loader. A larger host should compose loaders or materialize the included source beside its own files.
+`execution.Output` is a map containing `content` (string) and `items` (int). `document.Bundle()` remains registered as a no-action compatibility bundle for existing Go hosts, but this workflow does not need `@require document` or a Go interpolation action. The bundle does not include NFlow source or install a source loader; `document.Loader()` resolves both embedded files. A larger host may compose this loader with its own namespaced source loader.
 
-For composition inside another declared pipeline, use the public `@document_format()` macro after a **value boundary** (`collect` when upstream is a stream). This avoids dependency on the order in which Flow 0.35.0 materializes named pipelines:
+For composition inside another declared pipeline, use the public `@document_format()` macro after a **value boundary** (`collect` when upstream is a stream):
 
 ```nflow
 @include "document.nflow"
@@ -49,10 +49,12 @@ Formatting options in `config` are `editor`, `prompt`, `start`, `end`, `file_sta
 
 Each file supplies `content` (a Go string, including arbitrary bytes), `snippets` (string array, possibly nil), `values` (file placeholder string map, possibly nil), and `omitted` (bool). Content takes precedence over snippets. Omitted files and files with no content/snippets are skipped. Whitespace-only snippets can still represent an emitted empty file block, preserving legacy chunk counts.
 
-The built-in file presets use `${SOURCE_RANGE}` in their path header; callers should provide it in each file's `values` map (empty for whole files, or `:N`/`:N-M` for a slice). Custom templates may also use `${SOURCE_URL}` for a source link. Unknown/malformed `${KEY}` tokens remain literal. Substitution is single-pass: inserted values, source content, prompts, diffs and tree text are never parsed as NFlow. `items` counts document/file chunks, not bytes or interpolation segments; a nonempty template that expands to empty still counts as one chunk. This distinction lets callers avoid clearing a clipboard for a truly empty stream.
+The built-in file presets use `${SOURCE_RANGE}` in their path header; callers should provide it in each file's `values` map (empty for whole files, or `:N`/`:N-M` for a slice). Custom templates may also use `${SOURCE_URL}` for a source link. Unknown and unterminated placeholders remain literal. Substitution is single-pass: inserted values, source content, prompts, diffs and tree text are never parsed as NFlow. `items` counts document/file chunks, not bytes or interpolation segments; a nonempty template that expands to empty still counts as one chunk. This distinction lets callers avoid clearing a clipboard for a truly empty stream.
 
-## Generic primitive
+## Interpolation pipeline
 
-`document.interpolate` accepts `{blocks: [{parts: [{text, values?, expand?, newline?}]}]}` and returns `{blocks: []string}`. `expand: true` enables one-pass placeholder substitution. `newline: true` appends a newline only to a nonempty segment not already ending in one. Each block's parts are concatenated without additional separators. Invalid types fail, and cancellation propagates.
+The included `interpolation.pipeline.document_interpolate()` pipeline accepts the internal block/part shape `{blocks: [{parts: [{text, values?, expand?, newline?}]}]}` and returns a typed `{blocks: []string}` result. `expand: true` enables one-pass placeholder substitution; missing `expand` and `newline` flags default to false. Unknown, malformed and unterminated tokens are preserved. `newline: true` appends a newline only to a nonempty part not already ending in one, and parts within a block concatenate without separators.
 
-The workflow has no filesystem discovery, state-cache writes, stdout or clipboard effects. Those remain the caller's responsibility. Run the bundled Go tests with `go test ./path/to/document`; they mount only native Flow and this bundle.
+The pipeline intentionally uses an output-only typed signature: Flow request-schema validation JSON-normalizes string input and would replace invalid UTF-8 in source content. Its response schema validates the output shape without replacing the returned bytes. The renderer keeps source text out of JSON coercion so embedded NUL and invalid UTF-8 remain intact.
+
+The workflow has no filesystem discovery, state-cache writes, stdout or clipboard effects. Those remain the caller's responsibility. Run the bundled Go tests with `go test ./path/to/document`; they use native Flow plus the package's embedded source loader.
