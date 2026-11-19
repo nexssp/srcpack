@@ -13,11 +13,11 @@ type packStatsEnvelope struct {
 }
 
 func isPackStatsEnvelope(value any) bool {
-	switch value.(type) {
+	switch envelope := value.(type) {
 	case packStatsEnvelope, *packStatsEnvelope:
 		return true
 	case map[string]any:
-		_, ok := projectedRecordValue(value.(map[string]any), "files", "Files")
+		_, ok := projectedRecordValue(envelope, "files", "Files")
 		return ok
 	default:
 		return false
