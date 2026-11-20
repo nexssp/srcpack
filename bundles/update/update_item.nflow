@@ -7,10 +7,10 @@
 @pipeline update_item
   match {
     "request" in keys(.)
-      -> pick ( field: "request" ),
+    -> pick ( field: "request" ),
     _
-      -> { kind: "update", message: "update: item is missing its pack request" }
-      -> fail
+    -> { kind: "update", message: "update: item is missing its pack request" }
+    -> fail
   }
   -> cli.restore
   -> pack_workflow.pipeline.pack_resolve

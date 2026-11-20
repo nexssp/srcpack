@@ -9,8 +9,8 @@ parallel {
   ] ) -> pack_fold.@pack_stats_fold() -> collect,
   empty: srcpack_test.records ( items: [] ) -> pack_fold.@pack_stats_fold() -> collect,
   materialized: srcpack_test.records ( items: [{name: "first"}, {name: "second"}] )
-    -> pack.batch
-    -> collect
+  -> pack.batch
+  -> collect
 }
 -> {
   populated: {files: .populated[0].files, file_count: .populated[0].fileCount, func_count: .populated[0].funcCount, packed_bytes: .populated[0].packedBytes, raw_bytes: .populated[0].rawBytes},

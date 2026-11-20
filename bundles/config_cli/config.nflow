@@ -22,9 +22,9 @@
 @pipeline config_validation_policy
   match {
     .path == ""
-      -> { action: failure.error, kind: failure.validation, message: "no config file found; run 'srcpack init' to create one" },
+    -> { action: failure.error, kind: failure.validation, message: "no config file found; run 'srcpack init' to create one" },
     _
-      -> { action: config_subcommand.validate }
+    -> { action: config_subcommand.validate }
   }
 @end
 
@@ -33,41 +33,41 @@
   :request-schema=ConfigInput
   cli.restore
   -> { ..., sub: match(.sub ?? "") {
-    ""
-      -> const  config_subcommand.show,
-    config_subcommand.path
-      -> const  config_subcommand.path,
-    config_subcommand.show
-      -> const  config_subcommand.show,
-    config_subcommand.validate
-      -> const  config_subcommand.validate,
-    _
+      ""
+      ->   config_subcommand.show,
+      config_subcommand.path
+      ->   config_subcommand.path,
+      config_subcommand.show
+      ->   config_subcommand.show,
+      config_subcommand.validate
+      ->   config_subcommand.validate,
+      _
       -> pick ( field: "sub" )
   } }
   -> configcmd.inspect
   -> match(.sub) {
     config_subcommand.path
-      -> pipeline.config_path_policy
-      -> configcmd.path,
+    -> pipeline.config_path_policy
+    -> configcmd.path,
     config_subcommand.show
-      -> configcmd.show,
+    -> configcmd.show,
     config_subcommand.validate
-      -> pipeline.config_validation_policy
-      -> match(.action) {
+    -> pipeline.config_validation_policy
+    -> match(.action) {
       failure.error
-        -> { kind, message }
-        -> fail,
+      -> { kind, message }
+      -> fail,
       _
-        -> configcmd.validate
-        -> match(.passed) {
+      -> configcmd.validate
+      -> match(.passed) {
         true
-          -> cli.finish,
+        -> cli.finish,
         _
-          -> fail ( kind: failure.validation, message: "validation failed" )
+        -> fail ( kind: failure.validation, message: "validation failed" )
       }
     },
     _
-      -> { kind: failure.validation, message: "unknown config subcommand \"" + .sub + "\" (valid: path, show, validate)\n" }
-      -> fail
+    -> { kind: failure.validation, message: "unknown config subcommand \"" + .sub + "\" (valid: path, show, validate)\n" }
+    -> fail
   }
 @end

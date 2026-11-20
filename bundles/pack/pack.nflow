@@ -75,10 +75,10 @@
   -> pack_workflow.pipeline.pack_resolve
   -> match {
     .io.plan
-      -> plan_report.pipeline.pack_plan,
+    -> plan_report.pipeline.pack_plan,
     .save_view != ""
-      -> pack_workflow.pipeline.pack_save_view,
+    -> pack_workflow.pipeline.pack_save_view,
     _
-      -> pack_workflow.pipeline.pack_execute
+    -> pack_workflow.pipeline.pack_execute
   }
 @end

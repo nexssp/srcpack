@@ -11,31 +11,39 @@
   markdown: "markdown"
 }
 
-@macro document_format() {
+@pipeline document_render
   { ..., config: .config ?? {}, values: .values ?? {}, tree: .tree ?? "", files: .files ?? [] }
   -> { ..., config: {
-    editor: .config.editor ?? "",
-    prompt: .config.prompt ?? "",
-    start: .config.start ?? "",
-    end: .config.end ?? "",
-    file_start: .config.file_start ?? "",
-    file_end: .config.file_end ?? "",
-    diff_content: .config.diff_content ?? "",
-    no_header: .config.no_header ?? false,
-    no_prompt: .config.no_prompt ?? false,
-    no_start: .config.no_start ?? false,
-    no_end: .config.no_end ?? false
+      editor: .config.editor ?? "",
+      prompt: .config.prompt ?? "",
+      start: .config.start ?? "",
+      end: .config.end ?? "",
+      file_start: .config.file_start ?? "",
+      file_end: .config.file_end ?? "",
+      diff_content: .config.diff_content ?? "",
+      no_header: .config.no_header ?? false,
+      no_prompt: .config.no_prompt ?? false,
+      no_start: .config.no_start ?? false,
+      no_end: .config.no_end ?? false
   } }
   -> { ..., editor: lower(trim(.config.editor)) }
   -> { ..., preset: match(.editor) {
-    editor_format.zed -> { start: "", end: "", file_start: "```${LANG} ${REL_PATH}${SOURCE_RANGE}\n", file_end: "```\n\n" },
-    editor_format.claude -> { start: "", end: "", file_start: "<file path=\"${REL_PATH}${SOURCE_RANGE}\" language=\"${LANG}\">\n```${LANG}\n", file_end: "```\n</file>\n\n" },
-    editor_format.fold -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
-    editor_format.details -> { start: "<details>\n<summary>📦 Packed Context</summary>\n", end: "</details>\n", file_start: "<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n", file_end: "```\n</details>\n\n" },
-    editor_format.raw -> { start: "", end: "", file_start: "", file_end: "" },
-    editor_format.none -> { start: "", end: "", file_start: "", file_end: "" },
-    editor_format.text -> { start: "", end: "", file_start: "", file_end: "" },
-    _ -> { start: "", end: "", file_start: "### ${REL_PATH}${SOURCE_RANGE} (${LANG})\n```${LANG}\n", file_end: "```\n\n" }
+      editor_format.zed
+      -> { start: "", end: "", file_start: ("```${LANG} ${REL_PATH}${SOURCE_RANGE}\n"), file_end: ("```\n\n") },
+      editor_format.claude
+      -> { start: "", end: "", file_start: ("<file path=\"${REL_PATH}${SOURCE_RANGE}\" language=\"${LANG}\">\n```${LANG}\n"), file_end: ("```\n</file>\n\n") },
+      editor_format.fold
+      -> { start: ("<details>\n<summary>📦 Packed Context</summary>\n"), end: ("</details>\n"), file_start: ("<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n"), file_end: ("```\n</details>\n\n") },
+      editor_format.details
+      -> { start: ("<details>\n<summary>📦 Packed Context</summary>\n"), end: ("</details>\n"), file_start: ("<details>\n<summary>${REL_PATH}${SOURCE_RANGE}</summary>\n\n```${LANG}\n"), file_end: ("```\n</details>\n\n") },
+      editor_format.raw
+      -> { start: "", end: "", file_start: "", file_end: "" },
+      editor_format.none
+      -> { start: "", end: "", file_start: "", file_end: "" },
+      editor_format.text
+      -> { start: "", end: "", file_start: "", file_end: "" },
+      _
+      -> { start: "", end: "", file_start: ("### ${REL_PATH}${SOURCE_RANGE} (${LANG})\n```${LANG}\n"), file_end: ("```\n\n") }
   } }
   -> {
     ...,
@@ -47,43 +55,34 @@
   }
   -> {
     ...,
-    files: map(.included,
-      let file = #;
-      {
-        prefix: (.editor == editor_format.raw || .editor == editor_format.none || .editor == editor_format.text) ? "" : (file.prefix ?? ""),
-        values: file.values,
-        body: len(file.content) > 0 ? file.content : reduce(filter(map(file.snippets, trim(#)), # != ""),
-          let acc = #acc;
-          let snippet = #;
-          {
-            text: acc.text + (acc.written ? ((acc.previous contains "\n") || (snippet contains "\n") ? "\n\n" : "\n") : "") + snippet,
-            previous: snippet,
-            written: true
-          }, { text: "", previous: "", written: false }).text
-      })
+    files: map(.included, (
+        {
+          prefix: (.editor == editor_format.raw || .editor == editor_format.none || .editor == editor_format.text) ? "" : (#.prefix ?? ""),
+          values: #.values,
+          body: len(#.content) > 0 ? #.content : join(reduce(#.snippets, trim(#) != "" ? concat(#acc, [len(#acc) > 0 ? ((#acc[-1] contains "\n" || trim(#) contains "\n") ? "\n\n" : "\n") : "", trim(#)]) : #acc, []), "")
+        }
+    ))
   }
-  -> { blocks: let root = .; concat(
-    root.config.diff_content != "" ? [{ parts: [{ text: "## Git Unified Diff\n```diff\n" + root.config.diff_content + "\n```\n\n" }] }] : [],
-    !root.config.no_header && !root.config.no_prompt && root.config.prompt != "" ? [{ parts: [{ text: "> " + replace(trim(root.config.prompt), "\n", "\n> ") + "\n\n" }] }] : [],
-    root.tree != "" && !(root.config.start contains "${TREE}") ? [{ parts: [{ text: root.tree }] }] : [],
-    !root.config.no_header && !root.config.no_start && root.start != "" ? [{ parts: [{ text: root.start, values: root.values, expand: true }] }] : [],
-    map(root.files,
-      let file = #;
-      { parts: [
-          { text: file.prefix, newline: true },
-          { text: root.file_start, values: file.values, expand: true, newline: true },
-          { text: file.body, newline: true },
-          { text: root.file_end, values: file.values, expand: true, newline: true }
-    ] }),
-    !root.config.no_header && !root.config.no_end && root.end != "" ? [{ parts: [{ text: root.end, values: root.values, expand: true }] }] : []
-  ) }
+  -> { blocks: concat(
+    .config.diff_content != "" ? [{ parts: [{ text: ("## Git Unified Diff\n```diff\n" + .config.diff_content + "\n```\n\n") }] }] : [],
+    !.config.no_header && !.config.no_prompt && .config.prompt != "" ? [{ parts: [{ text: "> " + replace(trim(.config.prompt), "\n", "\n> ") + "\n\n" }] }] : [],
+    .tree != "" && !(.config.start contains "${TREE}") ? [{ parts: [{ text: .tree }] }] : [],
+    !.config.no_header && !.config.no_start && .start != "" ? [{ parts: [{ text: .start, values, expand: true }] }] : [],
+    map(.files, (
+        {
+          parts: [
+            { text: #.prefix, newline: true },
+            { text: .file_start, values: #.values, expand: true, newline: true },
+            { text: #.body, newline: true },
+            { text: .file_end, values: #.values, expand: true, newline: true }
+          ]
+        }
+    )),
+    !.config.no_header && !.config.no_end && .end != "" ? [{ parts: [{ text: .end, values, expand: true }] }] : []
+    ) }
   -> interpolation.pipeline.document_interpolate
   -> {
     content: reduce(.blocks, #acc + #, ""),
     items: len(.blocks)
   }
-}
-
-@pipeline document_render
-  @document_format()
 @end

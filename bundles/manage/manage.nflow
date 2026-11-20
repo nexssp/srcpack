@@ -23,14 +23,14 @@
 @macro manage_normalize() {
   { ..., sub: (.sub ?? ""), args: (.args ?? []) }
   -> { ..., sub: match(.sub) {
-    "" -> const  manage_subcommand.list,
-    manage_alias.list -> const  manage_subcommand.list,
-    manage_alias.delete -> const  manage_subcommand.delete,
-    manage_subcommand.list -> const  manage_subcommand.list,
-    manage_subcommand.show -> const  manage_subcommand.show,
-    manage_subcommand.add -> const  manage_subcommand.add,
-    manage_subcommand.delete -> const  manage_subcommand.delete,
-    _ -> const  .sub
+    "" ->   manage_subcommand.list,
+    manage_alias.list ->   manage_subcommand.list,
+    manage_alias.delete ->   manage_subcommand.delete,
+    manage_subcommand.list ->   manage_subcommand.list,
+    manage_subcommand.show ->   manage_subcommand.show,
+    manage_subcommand.add ->   manage_subcommand.add,
+    manage_subcommand.delete ->   manage_subcommand.delete,
+    _ ->   .sub
   } }
 }
 
@@ -42,64 +42,64 @@
   -> manage.load
   -> match(.sub) {
     manage_subcommand.list
-      -> manage_reports.pipeline.target_list_report
-      -> cli.print
-      -> cli.finish,
+    -> manage_reports.pipeline.target_list_report
+    -> cli.print
+    -> cli.finish,
     manage_subcommand.show
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack target show NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack target show NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.targets)) {
+      -> match(.args[0] in keys(.config.targets)) {
         false
-          -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         true
-          -> manage_reports.pipeline.target_show_report
-          -> cli.print
-          -> cli.finish
+        -> manage_reports.pipeline.target_show_report
+        -> cli.print
+        -> cli.finish
       }
     },
     manage_subcommand.add
-      -> match {
+    -> match {
       len(.args) < 2
-        -> { kind: "validation", message: "usage: srcpack target add NAME PATH [PATH...]" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack target add NAME PATH [PATH...]" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.targets)) {
+      -> match(.args[0] in keys(.config.targets)) {
         true
-          -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " already exists" }
-          -> fail,
+        -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " already exists" }
+        -> fail,
         _
-          -> { name: .args[0], paths: .args[1: ] }
-          -> manage.target_add
-          -> { content: terminal.printf("✓ Added target %q\n", .name) }
-          -> cli.print
-          -> cli.finish
+        -> { name: .args[0], paths: .args[1: ] }
+        -> manage.target_add
+        -> { content: terminal.printf("✓ Added target %q\n", .name) }
+        -> cli.print
+        -> cli.finish
       }
     },
     manage_subcommand.delete
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack target delete NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack target delete NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.targets)) {
+      -> match(.args[0] in keys(.config.targets)) {
         false
-          -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "target " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         _
-          -> { name: .args[0] }
-          -> manage.target_delete
-          -> { content: terminal.printf("✓ Removed target %q\n", .name) }
-          -> cli.print
-          -> cli.finish
+        -> { name: .args[0] }
+        -> manage.target_delete
+        -> { content: terminal.printf("✓ Removed target %q\n", .name) }
+        -> cli.print
+        -> cli.finish
       }
     },
     _
-      -> { kind: "validation", message: "unknown target subcommand " + terminal.printf("%q", .sub) }
-      -> fail
+    -> { kind: "validation", message: "unknown target subcommand " + terminal.printf("%q", .sub) }
+    -> fail
   }
 @end
 
@@ -111,64 +111,64 @@
   -> manage.load
   -> match(.sub) {
     manage_subcommand.list
-      -> manage_reports.pipeline.prompt_list_report
-      -> cli.print
-      -> cli.finish,
+    -> manage_reports.pipeline.prompt_list_report
+    -> cli.print
+    -> cli.finish,
     manage_subcommand.show
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack prompt show NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack prompt show NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.prompts)) {
+      -> match(.args[0] in keys(.config.prompts)) {
         false
-          -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         true
-          -> manage_reports.pipeline.prompt_show_report
-          -> cli.print
-          -> cli.finish
+        -> manage_reports.pipeline.prompt_show_report
+        -> cli.print
+        -> cli.finish
       }
     },
     manage_subcommand.add
-      -> match {
+    -> match {
       len(.args) < 2
-        -> { kind: "validation", message: "usage: srcpack prompt add NAME TEXT" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack prompt add NAME TEXT" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.prompts)) {
+      -> match(.args[0] in keys(.config.prompts)) {
         true
-          -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " already exists" }
-          -> fail,
+        -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " already exists" }
+        -> fail,
         _
-          -> { name: .args[0], text: join(.args[1: ], " ") }
-          -> manage.prompt_add
-          -> { content: terminal.printf("✓ Added prompt %q\n", .name) }
-          -> cli.print
-          -> cli.finish
+        -> { name: .args[0], text: join(.args[1: ], " ") }
+        -> manage.prompt_add
+        -> { content: terminal.printf("✓ Added prompt %q\n", .name) }
+        -> cli.print
+        -> cli.finish
       }
     },
     manage_subcommand.delete
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack prompt delete NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack prompt delete NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.prompts)) {
+      -> match(.args[0] in keys(.config.prompts)) {
         false
-          -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "prompt " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         _
-          -> { name: .args[0] }
-          -> manage.prompt_delete
-          -> { content: terminal.printf("✓ Removed prompt %q\n", .name) }
-          -> cli.print
-          -> cli.finish
+        -> { name: .args[0] }
+        -> manage.prompt_delete
+        -> { content: terminal.printf("✓ Removed prompt %q\n", .name) }
+        -> cli.print
+        -> cli.finish
       }
     },
     _
-      -> { kind: "validation", message: "unknown prompt subcommand " + terminal.printf("%q", .sub) }
-      -> fail
+    -> { kind: "validation", message: "unknown prompt subcommand " + terminal.printf("%q", .sub) }
+    -> fail
   }
 @end
 
@@ -180,28 +180,28 @@
   -> manage.load
   -> match(.sub) {
     manage_subcommand.list
-      -> manage_reports.pipeline.profile_list_report
-      -> cli.print
-      -> cli.finish,
+    -> manage_reports.pipeline.profile_list_report
+    -> cli.print
+    -> cli.finish,
     manage_subcommand.show
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack profile show NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack profile show NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.profiles)) {
+      -> match(.args[0] in keys(.config.profiles)) {
         false
-          -> { kind: "validation", message: "profile " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "profile " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         true
-          -> manage_reports.pipeline.profile_show_report
-          -> cli.print
-          -> cli.finish
+        -> manage_reports.pipeline.profile_show_report
+        -> cli.print
+        -> cli.finish
       }
     },
     _
-      -> { kind: "validation", message: "unknown profile subcommand " + terminal.printf("%q", .sub) + " (valid: list, show)" }
-      -> fail
+    -> { kind: "validation", message: "unknown profile subcommand " + terminal.printf("%q", .sub) + " (valid: list, show)" }
+    -> fail
   }
 @end
 
@@ -213,28 +213,28 @@
   -> manage.load
   -> match(.sub) {
     manage_subcommand.list
-      -> manage_reports.pipeline.editor_list_report
-      -> cli.print
-      -> cli.finish,
+    -> manage_reports.pipeline.editor_list_report
+    -> cli.print
+    -> cli.finish,
     manage_subcommand.show
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack editor show NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack editor show NAME" }
+      -> fail,
       _
-        -> match(.args[0] in keys(.config.editors)) {
+      -> match(.args[0] in keys(.config.editors)) {
         false
-          -> { kind: "validation", message: "editor " + terminal.printf("%q", .args[0]) + " not found" }
-          -> fail,
+        -> { kind: "validation", message: "editor " + terminal.printf("%q", .args[0]) + " not found" }
+        -> fail,
         true
-          -> manage_reports.pipeline.editor_show_report
-          -> cli.print
-          -> cli.finish
+        -> manage_reports.pipeline.editor_show_report
+        -> cli.print
+        -> cli.finish
       }
     },
     _
-      -> { kind: "validation", message: "unknown editor subcommand " + terminal.printf("%q", .sub) + " (valid: list, show)" }
-      -> fail
+    -> { kind: "validation", message: "unknown editor subcommand " + terminal.printf("%q", .sub) + " (valid: list, show)" }
+    -> fail
   }
 @end
 
@@ -246,33 +246,33 @@
   -> manage.view_context
   -> match(.sub) {
     manage_subcommand.list
-      -> { operation: manage_subcommand.list, path, legacy: true, replace: true }
-      -> config_views.pipeline.config_views
-      -> manage_reports.pipeline.view_list_report
-      -> cli.print -> cli.finish,
+    -> { operation: manage_subcommand.list, path, legacy: true, replace: true }
+    -> config_views.pipeline.config_views
+    -> manage_reports.pipeline.view_list_report
+    -> cli.print -> cli.finish,
     manage_subcommand.show
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack view show NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack view show NAME" }
+      -> fail,
       _
-        -> { report_name: .args[0], result: match { _ -> { operation: "get", path, name: .args[0], legacy: true, replace: true } -> config_views.pipeline.config_views } }
-        -> manage_reports.pipeline.view_show_report -> cli.print -> cli.finish
+      -> { report_name: .args[0], result: match { _ -> { operation: "get", path, name: .args[0], legacy: true, replace: true } -> config_views.pipeline.config_views } }
+      -> manage_reports.pipeline.view_show_report -> cli.print -> cli.finish
     },
     manage_subcommand.delete
-      -> match {
+    -> match {
       len(.args) == 0
-        -> { kind: "validation", message: "usage: srcpack view delete NAME" }
-        -> fail,
+      -> { kind: "validation", message: "usage: srcpack view delete NAME" }
+      -> fail,
       _
-        -> { operation: manage_subcommand.delete, path, name: .args[0], legacy: true, replace: true }
-        -> config_views.pipeline.config_views
-        -> manage_reports.pipeline.view_delete_report
-        -> cli.print
-        -> cli.finish
+      -> { operation: manage_subcommand.delete, path, name: .args[0], legacy: true, replace: true }
+      -> config_views.pipeline.config_views
+      -> manage_reports.pipeline.view_delete_report
+      -> cli.print
+      -> cli.finish
     },
     _
-      -> { kind: "validation", message: "unknown view subcommand " + terminal.printf("%q", .sub) + " (valid: list, show, delete)" }
-      -> fail
+    -> { kind: "validation", message: "unknown view subcommand " + terminal.printf("%q", .sub) + " (valid: list, show, delete)" }
+    -> fail
   }
 @end

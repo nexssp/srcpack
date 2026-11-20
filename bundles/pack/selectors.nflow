@@ -51,9 +51,9 @@
   {
     ...,
     command: match((.input._command ?? "pack") != "" ? (.input._command ?? "pack") : (.context_command != "" ? .context_command : "pack")) {
-      route.pack -> const  route.pack,
-      route.tree -> const  route.tree,
-      _ -> const  route.pack
+      route.pack ->   route.pack,
+      route.tree ->   route.tree,
+      _ ->   route.pack
     }
   }
   -> {
@@ -63,8 +63,8 @@
       explicit_pack: .input._explicit_pack ?? .context_explicit,
       output: (.input.output ?? "") != "" ? .input.output :
         match(command) {
-          route.tree -> const  .tree_output,
-          _ -> const  ""
+          route.tree ->   .tree_output,
+          _ ->   ""
         },
       comments: .cli_bool_flags.comments ?? .input.comments ?? true,
       depth: (.input.depth ?? 0) == 0 ? .default_depth : .input.depth
@@ -75,8 +75,8 @@
       no_examples: .cli_bool_flags.examples != nil ? !.cli_bool_flags.examples :
         (.input.examples == nil ? .input.no_examples : !.input.examples),
       tree_only: .input.tree_only ?? match(command) {
-        route.tree -> const  true,
-        _ -> const null
+        route.tree ->   true,
+        _ ->  null
       },
       tree_depth: .input.tree_depth ?? .input.depth
     })))
@@ -88,11 +88,11 @@
   -> @pack_choose_selectors()
   -> match {
     .selection.profile != "" && !(.selection.profile in .valid_profiles)
-      ->
-      { message: "unknown profile " + toJSON(.selection.profile) + "; valid profiles: " + join(.valid_profiles, ", ") }
-        -> fail,
+    ->
+    { message: "unknown profile " + toJSON(.selection.profile) + "; valid profiles: " + join(.valid_profiles, ", ") }
+    -> fail,
     _
-      -> noop
+    -> noop
   }
   -> @pack_target_metadata()
   -> @pack_flag_policy()
@@ -108,9 +108,9 @@
   }
   -> match {
     .policy.need_diff
-      -> packcmd.git_diff,
+    -> packcmd.git_diff,
     _
-      -> { ..., diff_content: "" }
+    -> { ..., diff_content: "" }
   }
   -> packcmd.build_request
   -> {

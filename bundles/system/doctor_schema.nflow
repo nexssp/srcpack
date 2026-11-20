@@ -24,7 +24,7 @@
 @pipeline doctor_validate_shape
   DoctorRawConfigShape.validate ? on_error {
     else
-      -> { cwd: .input.cwd, path: .input.path, shape_error: .error.message }
+    -> { cwd: .input.cwd, path: .input.path, shape_error: .error.message }
   }
 @end
 

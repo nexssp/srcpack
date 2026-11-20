@@ -6,17 +6,17 @@
 -> { ..., first: .aliases[.first] ?? .first }
 -> match {
   len(.args) == 0
-    -> { args: ["dashboard"], command: "dashboard", explicit_pack: false },
+  -> { args: ["dashboard"], command: "dashboard", explicit_pack: false },
   .first in ["help", "--help", "-h"]
-    -> match {
+  -> match {
     len(.args) == 1
-      -> { args: ["usage"], command: "usage", explicit_pack: false },
+    -> { args: ["usage"], command: "usage", explicit_pack: false },
     _
-      -> { ..., target: lower(.args[1]) }
-      -> { args: concat(["help", .aliases[.target] ?? .target], .args[2: ]), command: "help", explicit_pack: false }
+    -> { ..., target: lower(.args[1]) }
+    -> { args: concat(["help", .aliases[.target] ?? .target], .args[2: ]), command: "help", explicit_pack: false }
   },
   .first in ["init", "pack", "tree", "update", "config", "version", "list", "info", "clean", "doctor", "types", "health", "demo", "target", "prompt", "profile", "editor", "view", "dashboard", "usage"]
-    -> { args: concat([.first], .args[1: ]), command: .first, explicit_pack: lower(.args[0]) == "pack" },
+  -> { args: concat([.first], .args[1: ]), command: .first, explicit_pack: lower(.args[0]) == "pack" },
   _
-    -> { args: concat(["pack"], .args), command: "pack", explicit_pack: false }
+  -> { args: concat(["pack"], .args), command: "pack", explicit_pack: false }
 }

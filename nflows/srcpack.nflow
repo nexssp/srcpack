@@ -18,9 +18,9 @@
 @pipeline command_entry
   match(._srcpack_cli_normalize ?? false) {
     true
-      -> cli_invocation.pipeline.normalize,
+    -> cli_invocation.pipeline.normalize,
     _
-      -> tcli.listen
+    -> tcli.listen
   }
 @end
 

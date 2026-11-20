@@ -16,20 +16,20 @@
         let source = .text;
         let placeholders = .values ?? {};
         let scanned = (.expand ?? false) ? reduce(split(source, "${"),
-          let state = #acc;
-          let segment = #;
-          let token = split(segment, "}", 2);
-          let has_end = len(token) > 1;
-          let key = state.inside ? state.pending + "${" + token[0] : token[0];
-          let replacement = key in keys(placeholders) ? placeholders[key] : "${" + key + "}";
-          !state.started
-            ? { output: segment, pending: "", inside: false, started: true }
-            : state.inside && !has_end
-              ? { output: state.output, pending: state.pending + "${" + segment, inside: true, started: true }
-              : !state.inside && !has_end
-                ? { output: state.output, pending: segment, inside: true, started: true }
-                : { output: state.output + replacement + token[1], pending: "", inside: false, started: true },
-          { output: "", pending: "", inside: false, started: false }
+        let state = #acc;
+        let segment = #;
+        let token = split(segment, "}", 2);
+        let has_end = len(token) > 1;
+        let key = state.inside ? state.pending + "${" + token[0] : token[0];
+        let replacement = key in keys(placeholders) ? placeholders[key] : "${" + key + "}";
+        !state.started
+        ? { output: segment, pending: "", inside: false, started: true }
+        : state.inside && !has_end
+        ? { output: state.output, pending: state.pending + "${" + segment, inside: true, started: true }
+        : !state.inside && !has_end
+        ? { output: state.output, pending: segment, inside: true, started: true }
+        : { output: state.output + replacement + token[1], pending: "", inside: false, started: true },
+        { output: "", pending: "", inside: false, started: false }
         ) : { output: source, pending: "", inside: false, started: true };
         let text = scanned.inside ? scanned.output + "${" + scanned.pending : scanned.output;
         text: text + ((.newline ?? false) && text != "" && !hasSuffix(text, "\n") ? "\n" : "")

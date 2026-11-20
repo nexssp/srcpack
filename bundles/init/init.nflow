@@ -20,34 +20,34 @@
   -> init_policy.pipeline.init_validate_request
   -> match {
     .ok
-      -> noop,
+    -> noop,
     _
-      -> { message, kind }
-      -> fail
+    -> { message, kind }
+    -> fail
   }
   # Prepare and validate generated content before reset can remove anything.
   -> match(.mode) {
     init_policy.init_mode.targets
-      -> init.generate_targets,
+    -> init.generate_targets,
     _
-      -> init.generate_default
+    -> init.generate_default
   }
   -> match {
     .reset
-      -> match(.dry_run) {
+    -> match(.dry_run) {
       true
-        -> init.preview_clean_generated,
+      -> init.preview_clean_generated,
       _
-        -> init.clean_generated
+      -> init.clean_generated
     },
     _
-      -> noop
+    -> noop
   }
   -> match {
     .dry_run
-      -> init.preview,
+    -> init.preview,
     _
-      -> init.write_atomic
+    -> init.write_atomic
   }
   -> init.report_success
 @end

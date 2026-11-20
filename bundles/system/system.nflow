@@ -70,31 +70,31 @@
 @pipeline dashboard_report
   {
     content: "\n⚡ srcpack — package source code as AI context\n\n" +
-      terminal.printf("  Working in:  %s\n", .cwd) +
-      (.project_root != .cwd ? terminal.printf("  Project:     %s\n", .project_root) : "") +
-      (.config_name != "" ? terminal.printf("  Config:      %s\n", .config_name) : "  Config:      (none) — run 'srcpack init' to create one\n") +
-      (len(.target_names) > 0 ? terminal.printf("  Targets:     %s\n", join(sort(.target_names), ", ")) : "") +
-      (len(.view_names) > 0 ? terminal.printf("  Views:       %s\n", join(sort(.view_names), ", ")) : "") +
-      "\n  Selector syntax:  <path[,path...]>[~exclude][#profile][@prompt]\n\n" +
-      "  Everyday commands:\n" +
-      "    srcpack arch                              Architecture map to clipboard\n" +
-      "    srcpack impl -t <target>                  Full source for one subsystem\n" +
-      "    srcpack \"src#arch\" \"pkg#source\"            Mixed: signatures + full source\n" +
-      "    srcpack \"auth~tests#impl@find bugs\"       Exclude tests, attach prompt\n" +
-      "    srcpack with-tests -t <target>            Include tests (for writing new ones)\n" +
-      "    srcpack tree --tree-only                   Folder tree with token bars\n" +
-      "    srcpack \"a#arch\" \"b#source\" --save-view=x  Save a selector set as a view\n" +
-      "    srcpack x                                 Re-run the saved view\n" +
-      "    srcpack view list                          Show all saved views\n" +
-      "    srcpack update                             Regenerate every configured target\n" +
-      "    srcpack update --check                     Preview changes without writing\n" +
-      "    srcpack arch --check                       Single-target preview\n" +
-      "    srcpack impl --modified                   Only changed + untracked files\n" +
-      "    srcpack cookbook                           Copy-and-paste workflows and selector examples\n" +
-      "    srcpack skill                              Find the Agent Skill for this CLI version\n" +
-      "    srcpack doctor                             Validate config\n" +
-      "    srcpack clean --dry-run                    Preview what would be removed\n\n" +
-      "  Full reference: srcpack help\n\n",
+    terminal.printf("  Working in:  %s\n", .cwd) +
+    (.project_root != .cwd ? terminal.printf("  Project:     %s\n", .project_root) : "") +
+    (.config_name != "" ? terminal.printf("  Config:      %s\n", .config_name) : "  Config:      (none) — run 'srcpack init' to create one\n") +
+    (len(.target_names) > 0 ? terminal.printf("  Targets:     %s\n", join(sort(.target_names), ", ")) : "") +
+    (len(.view_names) > 0 ? terminal.printf("  Views:       %s\n", join(sort(.view_names), ", ")) : "") +
+    "\n  Selector syntax:  <path[,path...]>[~exclude][#profile][@prompt]\n\n" +
+    "  Everyday commands:\n" +
+    "    srcpack arch                              Architecture map to clipboard\n" +
+    "    srcpack impl -t <target>                  Full source for one subsystem\n" +
+    "    srcpack \"src#arch\" \"pkg#source\"            Mixed: signatures + full source\n" +
+    "    srcpack \"auth~tests#impl@find bugs\"       Exclude tests, attach prompt\n" +
+    "    srcpack with-tests -t <target>            Include tests (for writing new ones)\n" +
+    "    srcpack tree --tree-only                   Folder tree with token bars\n" +
+    "    srcpack \"a#arch\" \"b#source\" --save-view=x  Save a selector set as a view\n" +
+    "    srcpack x                                 Re-run the saved view\n" +
+    "    srcpack view list                          Show all saved views\n" +
+    "    srcpack update                             Regenerate every configured target\n" +
+    "    srcpack update --check                     Preview changes without writing\n" +
+    "    srcpack arch --check                       Single-target preview\n" +
+    "    srcpack impl --modified                   Only changed + untracked files\n" +
+    "    srcpack cookbook                           Copy-and-paste workflows and selector examples\n" +
+    "    srcpack skill                              Find the Agent Skill for this CLI version\n" +
+    "    srcpack doctor                             Validate config\n" +
+    "    srcpack clean --dry-run                    Preview what would be removed\n\n" +
+    "  Full reference: srcpack help\n\n",
     stream: output_stream.stdout
   }
 @end
@@ -150,17 +150,17 @@
   cli.restore
   -> match {
     (.name ?? "") == ""
-      -> system.profiles,
+    -> system.profiles,
     _
-      -> system.profile_info
+    -> system.profile_info
   }
   -> match {
     (.error ?? "") != ""
-      -> { kind: "usage", message: .error }
-      -> fail,
+    -> { kind: "usage", message: .error }
+    -> fail,
     _
-      -> cli.print
-      -> cli.finish
+    -> cli.print
+    -> cli.finish
   }
 @end
 
@@ -175,19 +175,19 @@
   -> system.clean.inspect
   -> match(.error) {
     ""
-      -> match(.dry_run) {
+    -> match(.dry_run) {
       true
-        -> system.clean.report_dry_run
-        -> cli.print
-        -> cli.finish,
+      -> system.clean.report_dry_run
+      -> cli.print
+      -> cli.finish,
       _
-        -> system.clean.remove
-        -> cli.print
-        -> cli.finish
+      -> system.clean.remove
+      -> cli.print
+      -> cli.finish
     },
     _
-      -> { kind: "filesystem", message: .error }
-      -> fail
+    -> { kind: "filesystem", message: .error }
+    -> fail
   }
 @end
 
@@ -200,10 +200,10 @@
   -> cli.print
   -> match(.passed) {
     true
-      -> cli.finish,
+    -> cli.finish,
     _
-      -> { kind: "validation", message: .error }
-      -> fail
+    -> { kind: "validation", message: .error }
+    -> fail
   }
 @end
 
@@ -213,19 +213,19 @@
   cli.restore
   -> {
     aliases: fromPairs([
-      ["go", ["go"]], ["ts", ["ts", "tsx"]], ["typescript", ["ts", "tsx"]],
-      ["js", ["js", "jsx", "mjs", "cjs"]], ["javascript", ["js", "jsx", "mjs", "cjs"]],
-      ["py", ["py", "pyi"]], ["python", ["py", "pyi"]], ["rust", ["rs"]], ["rs", ["rs"]],
-      ["php", ["php"]], ["zig", ["zig"]], ["vue", ["vue"]], ["svelte", ["svelte"]],
-      ["web", ["html", "htm", "css", "scss", "js", "jsx", "ts", "tsx", "svelte", "vue"]],
-      ["config", ["json", "yaml", "yml", "toml", "ini"]], ["md", ["md", "mdx", "markdown"]],
-      ["markdown", ["md", "mdx", "markdown"]]
+    ["go", ["go"]], ["ts", ["ts", "tsx"]], ["typescript", ["ts", "tsx"]],
+    ["js", ["js", "jsx", "mjs", "cjs"]], ["javascript", ["js", "jsx", "mjs", "cjs"]],
+    ["py", ["py", "pyi"]], ["python", ["py", "pyi"]], ["rust", ["rs"]], ["rs", ["rs"]],
+    ["php", ["php"]], ["zig", ["zig"]], ["vue", ["vue"]], ["svelte", ["svelte"]],
+    ["web", ["html", "htm", "css", "scss", "js", "jsx", "ts", "tsx", "svelte", "vue"]],
+    ["config", ["json", "yaml", "yml", "toml", "ini"]], ["md", ["md", "mdx", "markdown"]],
+    ["markdown", ["md", "mdx", "markdown"]]
     ])
   }
   -> {
     content: "Available file types:\n" + join(map(sortBy(toPairs(.aliases), #[0], "asc"),
-      terminal.printf("  %-12s %s\n", #[0] + ":", join(map(#[1], "*." + #), ", "))
-      ), "") + "\nFilter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml\n",
+    terminal.printf("  %-12s %s\n", #[0] + ":", join(map(#[1], "*." + #), ", "))
+    ), "") + "\nFilter by extension suffixes with --ext (not type labels): srcpack . --ext json,yaml\n",
     stream: output_stream.stdout
   }
   -> cli.print

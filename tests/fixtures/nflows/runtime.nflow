@@ -11,21 +11,21 @@
   policy,
   rendered: match(.command) {
     cli_invocation.cmd.pack
-      -> match {
+    -> match {
       .policy.save_state
-        -> pack.pipeline.pack,
+      -> pack.pipeline.pack,
       _
-        -> pack.pipeline.pack_preview
+      -> pack.pipeline.pack_preview
     },
     cli_invocation.cmd.tree
-      -> match {
+    -> match {
       .policy.save_state
-        -> tree.pipeline.tree,
+      -> tree.pipeline.tree,
       _
-        -> tree.pipeline.tree_preview
+      -> tree.pipeline.tree_preview
     },
     _
-      -> runtime.fail ( kind: "validation", message: "unknown srcpack pipeline command" )
+    -> runtime.fail ( kind: "validation", message: "unknown srcpack pipeline command" )
   }
 }
 -> { policy, .rendered.content, rendered_items: .rendered.items }

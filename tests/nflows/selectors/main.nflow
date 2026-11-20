@@ -1,39 +1,39 @@
 @include "../../../bundles/pack/selectors.nflow"
 
 parallel {
-  saved_view: const ( ordered: [{ raw: "saved", forced: false, path_exists: false, has_view: true, view: [{ raw: "src#arch", forced: false }] }] ) -> selectors.@pack_expand_selector_views(),
-  real_path: const ( ordered: [{ raw: "existing", forced: false, path_exists: true, has_view: true, view: [{ raw: "elsewhere", forced: false }] }] ) -> selectors.@pack_expand_selector_views(),
-  forced_target: const ( ordered: [{ raw: "dense", forced: true, path_exists: false, has_view: true, view: [{ raw: "expanded", forced: false }] }] ) -> selectors.@pack_expand_selector_views(),
-  config_view: const ( selectors: ["saved"] )
-    -> selectors.pipeline.pack_selector_plan,
-  path_wins: const ( selectors: ["existing"] )
-    -> selectors.pipeline.pack_selector_plan,
-  literal_target: const ( targets: ["saved"] )
-    -> selectors.pipeline.pack_selector_plan,
-  forced_profile_target: const ( targets: ["dense"] )
-    -> selectors.pipeline.pack_selector_plan,
-  first_profile: const ( selectors: ["architecture", "src"] )
-    -> selectors.pipeline.pack_selector_plan,
-  first_selector_profile: const ( selectors: ["src#source", "dense"] )
-    -> selectors.pipeline.pack_selector_plan,
-  first_bare_profile: const ( selectors: ["api", "compact"] )
-    -> selectors.pipeline.pack_selector_plan,
-  existing_profile_path: const ( selectors: ["dense"] )
-    -> selectors.pipeline.pack_selector_plan,
-  metadata: const ( selectors: ["src~one#source@first", "src~two#arch@prompt.txt", "github:nexssp/flow#source@remote"] )
-    -> selectors.pipeline.pack_selector_plan,
-  explicit_metadata_profile: const ( profile: "impl", selectors: ["src#arch"] )
-    -> selectors.pipeline.pack_selector_plan,
-  flag_policy: const ( _command: selectors.route.tree, comments: false, examples: false, tests: true, no_tests: true, dense: false, depth: 3, tree_depth: 7, tree_only: false )
-    -> selectors.pipeline.pack_selector_plan,
-  omitted_flags: const  {}
-    -> selectors.pipeline.pack_selector_plan,
-  explicit_output: const ( output: "out.md", _explicit_pack: true )
-    -> selectors.pipeline.pack_selector_plan,
-  unknown_profile: const ( profile: "unknown" )
-    -> selectors.pipeline.pack_selector_plan ? on_error {
+  saved_view: { ordered: [{ raw: "saved", forced: false, path_exists: false, has_view: true, view: [{ raw: "src#arch", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  real_path: { ordered: [{ raw: "existing", forced: false, path_exists: true, has_view: true, view: [{ raw: "elsewhere", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  forced_target: { ordered: [{ raw: "dense", forced: true, path_exists: false, has_view: true, view: [{ raw: "expanded", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  config_view: { selectors: ["saved"] }
+  -> selectors.pipeline.pack_selector_plan,
+  path_wins: { selectors: ["existing"] }
+  -> selectors.pipeline.pack_selector_plan,
+  literal_target: { targets: ["saved"] }
+  -> selectors.pipeline.pack_selector_plan,
+  forced_profile_target: { targets: ["dense"] }
+  -> selectors.pipeline.pack_selector_plan,
+  first_profile: { selectors: ["architecture", "src"] }
+  -> selectors.pipeline.pack_selector_plan,
+  first_selector_profile: { selectors: ["src#source", "dense"] }
+  -> selectors.pipeline.pack_selector_plan,
+  first_bare_profile: { selectors: ["api", "compact"] }
+  -> selectors.pipeline.pack_selector_plan,
+  existing_profile_path: { selectors: ["dense"] }
+  -> selectors.pipeline.pack_selector_plan,
+  metadata: { selectors: ["src~one#source@first", "src~two#arch@prompt.txt", "github:nexssp/flow#source@remote"] }
+  -> selectors.pipeline.pack_selector_plan,
+  explicit_metadata_profile: { profile: "impl", selectors: ["src#arch"] }
+  -> selectors.pipeline.pack_selector_plan,
+  flag_policy: { _command: selectors.route.tree, comments: false, examples: false, tests: true, no_tests: true, dense: false, depth: 3, tree_depth: 7, tree_only: false }
+  -> selectors.pipeline.pack_selector_plan,
+  omitted_flags:   {}
+  -> selectors.pipeline.pack_selector_plan,
+  explicit_output: { output: "out.md", _explicit_pack: true }
+  -> selectors.pipeline.pack_selector_plan,
+  unknown_profile: { profile: "unknown" }
+  -> selectors.pipeline.pack_selector_plan ? on_error {
     else
-      -> { error: .error.message }
+    -> { error: .error.message }
   },
 }
 -> {

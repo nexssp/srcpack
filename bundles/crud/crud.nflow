@@ -24,36 +24,36 @@
   { ..., exists: .name in keys(.entries), current: .entries[.name] }
   -> match(.operation) {
     crud_operation.list
-      -> { names: sort(keys(.entries)), records: .entries },
+    -> { names: sort(keys(.entries)), records: .entries },
     crud_operation.get
-      -> match(.exists) {
+    -> match(.exists) {
       false
-        -> { code: "not_found", message: .name + " not found" }
-        -> crud.reject,
+      -> { code: "not_found", message: .name + " not found" }
+      -> crud.reject,
       _
-        -> { value: .current }
+      -> { value: .current }
     },
     crud_operation.save
-      -> match(.exists && !.replace) {
+    -> match(.exists && !.replace) {
       true
-        -> { code: "conflict", message: .name + " already exists; set replace: true to replace it" }
-        -> crud.reject,
+      -> { code: "conflict", message: .name + " already exists; set replace: true to replace it" }
+      -> crud.reject,
       _
-        -> { path, section, source, entries, patch: { key: .name, remove: false, value } }
-        -> crud.patch
+      -> { path, section, source, entries, patch: { key: .name, remove: false, value } }
+      -> crud.patch
     },
     crud_operation.delete
-      -> match(.exists) {
+    -> match(.exists) {
       false
-        -> { code: "not_found", message: .name + " not found" }
-        -> crud.reject,
+      -> { code: "not_found", message: .name + " not found" }
+      -> crud.reject,
       _
-        -> { path, section, source, entries, patch: { key: .name, remove: true } }
-        -> crud.patch
+      -> { path, section, source, entries, patch: { key: .name, remove: true } }
+      -> crud.patch
     },
     _
-      -> { code: "validation", message: "unknown CRUD operation " + .operation }
-      -> crud.reject
+    -> { code: "validation", message: "unknown CRUD operation " + .operation }
+    -> crud.reject
   }
 @end
 

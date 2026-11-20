@@ -80,8 +80,8 @@
   -> pack_workflow.pipeline.pack_resolve
   -> match {
     .save_view != ""
-      -> pack_workflow.pipeline.pack_save_view,
+    -> pack_workflow.pipeline.pack_save_view,
     _
-      -> pack_workflow.pipeline.pack_execute
+    -> pack_workflow.pipeline.pack_execute
   }
 @end
