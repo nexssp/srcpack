@@ -45,7 +45,9 @@ packedBytesPerFile:      23.5
 
 The per-file average is guarded against division by zero. Change the reporting expression and rerun `go run ./examples/flow-fold`; no Go changes or operator registration are needed. The `.nflow` fragment is embedded, so a previously built binary must be rebuilt to pick up edits.
 
-**3. Keep the rest of the system working.** Both the original and extended envelopes go through `stats.collect → srcpack.render → collect → srcpack.join`. The runner checks that the rendered context is byte-for-byte identical. The console prints the two signatures, without test code or function bodies.
+**3. Keep the rest of the system working.** Both the original and extended envelopes go through `stats.collect → srcpack.render → stream.map(item.Content) → collect → bytes.concat`. The runner checks that the rendered context is byte-for-byte identical. The console prints the two signatures, without test code or function bodies.
+
+The stream keeps each rendered `Content` value as `[]byte`; `bytes.concat` returns a Go `string` with those bytes unchanged. If that string is later JSON-encoded, invalid UTF-8 may be replaced with U+FFFD.
 
 The point: reusable Go capabilities provide the building blocks; Flow makes their wiring and reporting policy visible and changeable in the DSL.
 

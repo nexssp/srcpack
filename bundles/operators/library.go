@@ -32,7 +32,7 @@ func RenderLibrary() action.Library {
 	return action.Library{
 		Name:      "srcpack.render",
 		Operators: []action.NamedOperator{RenderMarkdownOperator()},
-		Actions:   []action.AnyAction{JoinRenderedAction(), DocumentInputAction()},
+		Actions:   []action.AnyAction{DocumentInputAction()},
 	}
 }
 

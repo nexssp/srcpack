@@ -6,9 +6,9 @@
 
 - `PackDemoInput` opisuje wyłącznie opcje wejścia/parsowania, które obecny pipeline wykonuje.
 - `@pipeline pack:cli=...:request-schema=PackDemoInput` deklaruje nazwę, help i request schema.
-- `srcpack.source -> ast.parse -> stats.collect -> srcpack.render -> collect -> srcpack.join` pozostawia logikę domenową w Go, a kolejność etapów w Flow.
+- `srcpack.source -> ast.parse -> stats.collect -> srcpack.render -> stream.map(item.Content) -> collect -> bytes.concat` pozostawia logikę domenową w Go, a łączenie surowych bajtów jawnie pokazuje w Flow.
 - `tcli.listen` uruchamia pipeline jako komendę `pack`.
-- `srcpack.join` skleja wyrenderowane chunki dokładnie w ich kolejności; `tcli` rozpoznaje wynik jako `string` i wypisuje surowy Markdown, bez obudowy JSON/base64.
+- `bytes.concat` zachowuje kolejność i dokładny ciąg bajtów, zwracając Go `string`, który `tcli` wypisuje jako Markdown. Nie należy kodować dowolnych danych binarnych jako JSON: niepoprawny UTF-8 może zostać zastąpiony przez U+FFFD.
 
 To celowo **nie jest jeszcze zamiennik pełnego `srcpack` CLI**: `--output`, clipboard, profile/selector grammar, workspace config i wynikowe kody CLI nie są tu realizowane. Osobna schema zawęża powierzchnię zamiast sugerować, że te zachowania już działają.
 

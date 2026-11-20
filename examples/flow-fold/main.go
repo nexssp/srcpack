@@ -178,7 +178,7 @@ func demoSource(pack, mode string) (string, error) {
 	case "extended":
 		tail = reportExtension + "\n    -> collect\n"
 	case "render", "extended-render":
-		tail = "    -> stats.collect:quiet:color=never\n    -> srcpack.render:editor=markdown\n    -> collect\n    -> srcpack.join\n"
+		tail = "    -> stats.collect:quiet:color=never\n    -> srcpack.render:editor=markdown\n    -> stream.map ( expression: \"item.Content\" )\n    -> collect\n    -> bytes.concat\n"
 		if mode == extendedRenderMode {
 			tail = reportExtension + "\n" + tail
 		}

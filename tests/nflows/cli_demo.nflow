@@ -21,8 +21,11 @@
     -> ast.parse
     -> stats.collect :quiet
     -> srcpack.render
+    # Keep Content as []byte through collection; avoid a text conversion.
+    # JSON-encoding the final string may replace invalid UTF-8.
+    -> stream.map ( expression: "item.Content" )
     -> collect
-    -> srcpack.join
+    -> bytes.concat
 @end
 
 tcli.listen
