@@ -1,5 +1,6 @@
 @description "Selector decisions: explicit targets, path/view precedence and profile selection"
 @require github.com/nexssp/srcpack/bundles/pack
+@require github.com/nexssp/repo@v0.8.0
 @include "resolution.nflow"
 
 @symbols route {
@@ -111,8 +112,27 @@
     -> packcmd.git_diff,
     _
     -> { ..., diff_content: "" }
+  } as build_input
+  -> match {
+    .policy.options.Since != "" || .policy.options.Modified || .policy.options.Staged
+    -> {
+      root: ".",
+      since: string(build_input.policy.options.Since ?? ""),
+      modified: build_input.policy.options.Modified == true,
+      staged: build_input.policy.options.Staged == true
+    }
+    -> repo.changed_paths as changed
+    -> packcmd.build_request(
+      host: build_input.host,
+      policy: build_input.policy,
+      diff_content: build_input.diff_content,
+      requested_output: build_input.requested_output,
+      changed_paths: changed.Paths,
+      changed_paths_provided: true
+    ),
+    _
+    -> packcmd.build_request
   }
-  -> packcmd.build_request
   -> {
     pack,
     target_profiles,

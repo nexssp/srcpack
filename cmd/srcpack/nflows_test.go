@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -181,4 +182,48 @@ func TestRunEntrypoint_PackCommandRoutesToPipeline(t *testing.T) {
 	ktest.RequireNoError(t, err)
 	ktest.RequireStringContains(t, string(content), "func Hello() string")
 	ktest.RequireStringNotContains(t, string(content), `return "hi"`)
+}
+
+func TestRunEntrypointPackUsesRepoChangedPaths(t *testing.T) {
+	root := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.CommandContext(t.Context(), "git", args...)
+		cmd.Dir = root
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, output)
+		}
+	}
+	ktest.RequireNoError(t, os.WriteFile(filepath.Join(root, "changed.go"), []byte("package changed\nfunc Changed() { println(\"changed-marker\") }\n"), 0o600))
+	ktest.RequireNoError(t, os.WriteFile(filepath.Join(root, "untouched.go"), []byte("package changed\nfunc Untouched() { println(\"untouched-marker\") }\n"), 0o600))
+	runGit("init", "-q")
+	runGit("config", "user.email", "srcpack-test@example.invalid")
+	runGit("config", "user.name", "Srcpack Test")
+	runGit("add", "-A")
+	runGit("commit", "-qm", "base")
+	ktest.RequireNoError(t, os.WriteFile(filepath.Join(root, "changed.go"), []byte("package changed\nfunc Changed() { println(\"changed-marker\") }\n// modified\n"), 0o600))
+	t.Chdir(root)
+
+	handled, err := runEntrypoint(context.Background(), []string{
+		"pack", "--target", ".", "--modified", "--output", "out.md", "--no-copy", "--quiet",
+	})
+	ktest.RequireNoError(t, err)
+	ktest.RequireCondition(t, handled, "pack with --modified must execute through the NFlow Repo capability")
+	content, err := os.ReadFile(filepath.Join(root, "out.md"))
+	ktest.RequireNoError(t, err)
+	ktest.RequireStringContains(t, string(content), "## changed.go")
+	ktest.RequireStringNotContains(t, string(content), "## untouched.go")
+}
+
+func TestRunEntrypointStateOnlyChangedDoesNotRequireGitRepo(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
+	t.Chdir(root)
+
+	handled, err := runEntrypoint(context.Background(), []string{
+		"pack", "--target", ".", "--changed", "--output", "out.md", "--no-copy", "--quiet",
+	})
+	ktest.RequireNoError(t, err)
+	ktest.RequireCondition(t, handled, "state-only --changed must execute without Repo Git filtering")
+	_, err = os.Stat(filepath.Join(root, "out.md"))
+	ktest.RequireNoError(t, err)
 }

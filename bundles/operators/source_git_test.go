@@ -84,6 +84,28 @@ func TestGitSourceChangedPathsMatrix(t *testing.T) {
 	}
 }
 
+func TestSourceUsesProvidedChangedPathsWithoutRepoLookup(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "selected.go", "package x\n")
+	writeFile(t, root, "unselected.go", "package x\n")
+	t.Chdir(root)
+
+	files := collectSource(t, operators.PackConfig{
+		Targets: []string{"."}, Modified: true,
+		ChangedPaths: []string{filepath.Join(root, "selected.go")}, ChangedPathsProvided: true,
+	})
+	if got, want := includedRelPaths(files), []string{"selected.go"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("provided changed paths selected %#v, want %#v", got, want)
+	}
+
+	files = collectSource(t, operators.PackConfig{
+		Targets: []string{"."}, Modified: true, ChangedPathsProvided: true,
+	})
+	if got := includedRelPaths(files); len(got) != 0 {
+		t.Fatalf("provided empty changed paths selected %#v, want no files", got)
+	}
+}
+
 func TestGitSourceKeepsOmittedMarkersAndWalkGuardrails(t *testing.T) {
 	repo := newGitSourceFixture(t)
 	writeFile(t, repo, "omitted_test.go", "package x\n")
@@ -170,8 +192,8 @@ func TestGitActionsErrorsAndCancellation(t *testing.T) {
 	_, err := operators.GitChangedPathsAction().DoAny(context.Background(), operators.GitChangedPathsRequest{
 		Root: nonRepo, Filter: operators.GitFilter{Modified: true},
 	})
-	if err == nil || !strings.Contains(err.Error(), "git diff") {
-		t.Fatalf("non-repository error = %v, want git diff failure", err)
+	if err == nil {
+		t.Fatal("expected Repo to reject a non-repository path")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

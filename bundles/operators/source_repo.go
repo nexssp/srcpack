@@ -1,15 +1,12 @@
 package operators
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
-	"strconv"
 	"strings"
 
 	repository "github.com/nexssp/repo"
@@ -124,90 +121,4 @@ func sourceReadLimit(maxBytes int64) int {
 		return int(maxInt)
 	}
 	return int(maxBytes)
-}
-
-// changedPathsFromRepositoryDiff decodes Git's quoted diff headers and returns
-// absolute changed paths. false means the bounded patch was incomplete or a
-// header could not be decoded; callers should use srcpack's legacy path query.
-func changedPathsFromRepositoryDiff(root, patch string) ([]string, bool) {
-	seen := make(map[string]bool)
-	scanner := bufio.NewScanner(strings.NewReader(patch))
-	scanner.Buffer(make([]byte, 64*1024), 1<<20)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if !strings.HasPrefix(line, "diff --git ") {
-			continue
-		}
-		_, right, ok := parseGitDiffHeader(line)
-		if !ok || !strings.HasPrefix(right, "b/") {
-			return nil, false
-		}
-		rel := filepath.FromSlash(strings.TrimPrefix(right, "b/"))
-		seen[filepath.Clean(filepath.Join(root, rel))] = true
-	}
-	if scanner.Err() != nil {
-		return nil, false
-	}
-	paths := make([]string, 0, len(seen))
-	for path := range seen {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-	return paths, true
-}
-
-func parseGitDiffHeader(line string) (left, right string, ok bool) {
-	body := strings.TrimPrefix(line, "diff --git ")
-	if !strings.HasPrefix(body, `"`) {
-		// Git may leave spaces unquoted in diff headers. Because the provider
-		// disables rename detection, both sides carry the same relative path;
-		// use that equality to identify the single " b/" separator safely.
-		for offset := 0; ; {
-			index := strings.Index(body[offset:], " b/")
-			if index < 0 {
-				break
-			}
-			index += offset
-			candidateLeft, candidateRight := body[:index], body[index+1:]
-			if strings.HasPrefix(candidateLeft, "a/") && strings.HasPrefix(candidateRight, "b/") && strings.TrimPrefix(candidateLeft, "a/") == strings.TrimPrefix(candidateRight, "b/") {
-				return candidateLeft, candidateRight, true
-			}
-			offset = index + 1
-		}
-	}
-	left, body, ok = parseGitDiffPath(body)
-	if !ok {
-		return "", "", false
-	}
-	right, body, ok = parseGitDiffPath(body)
-	if !ok || strings.TrimSpace(body) != "" {
-		return "", "", false
-	}
-	return left, right, true
-}
-
-func parseGitDiffPath(input string) (value, rest string, ok bool) {
-	input = strings.TrimLeft(input, " ")
-	if input == "" {
-		return "", "", false
-	}
-	if input[0] != '"' {
-		if space := strings.IndexByte(input, ' '); space >= 0 {
-			return input[:space], strings.TrimLeft(input[space:], " "), true
-		}
-		return input, "", true
-	}
-	for index := 1; index < len(input); index++ {
-		switch input[index] {
-		case '\\':
-			index++
-		case '"':
-			decoded, err := strconv.Unquote(input[:index+1])
-			if err != nil {
-				return "", "", false
-			}
-			return decoded, strings.TrimLeft(input[index+1:], " "), true
-		}
-	}
-	return "", "", false
 }

@@ -368,6 +368,9 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 		return nil, err
 	}
 	flowPack := run.Pack
+	// NFlow owns Git path selection and hands the Repo result through this boundary.
+	flowPack.ChangedPaths = stringSliceField(envelope["changed_paths"])
+	flowPack.ChangedPathsProvided = boolField(envelope, "changed_paths_provided")
 	targetProfiles := stringMapPairs(flowPack.TargetProfiles)
 	targetExcludes := stringMapPairs(flowPack.TargetExcludes)
 	if err := flowPack.EncodeFlowTargetMetadata(); err != nil {

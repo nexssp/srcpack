@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/nexssp/flow/compiler"
+	reponflow "github.com/nexssp/repo/nexssflow"
 
 	"github.com/nexssp/flow/native"
 	"github.com/nexssp/flow/runner"
@@ -17,7 +18,8 @@ func runNamedPolicy(ctx context.Context, filename, entry string, payload map[str
 	if err != nil {
 		return nil, err
 	}
-	bundles := append(native.Bundles(), Bundle(nil))
+	// ResolveInput executes selectors.nflow in-process, so mount its Repo action dependency too.
+	bundles := append(native.Bundles(), reponflow.Bundle(nil), Bundle(nil))
 	cfg, err := runner.BuildConfig(bundles)
 	if err != nil {
 		return nil, err
