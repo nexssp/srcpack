@@ -1,14 +1,15 @@
 name: CI
-
+concurrency:
+  group: srcpack-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
   pull_request:
-
 permissions:
   contents: read
-
 jobs:
-  test:
+  go-quality:
+    name: Go format and lint
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -16,42 +17,104 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-
-      - name: Setup Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Verify Formatting
         run: test -z "$(gofmt -l .)"
-
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
           install-mode: goinstall
           install-only: true
-
       - name: Run golangci-lint
         run: golangci-lint run --timeout=5m
-
+  nflow-quality:
+    name: NFlow format and lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install upstream nflow
         run: |
           go install github.com/nexssp/flow/cmd/nflow@main
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
       - name: Check NFlow formatting
         run: task nflow:fmt-check
-
       - name: Lint NFlow sources
         run: task lint:nflow
-
+  unit-tests:
+    name: Go unit tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Run Unit Tests
         run: go test ./...
-
+  race-tests:
+    name: Go race tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Run Tests with Race Detector
         run: go test -race ./...
-
+  benchmarks:
+    name: Go benchmarks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Run Benchmarks
         run: go test -run='^$' -bench=. -benchmem ./...
+  verify:
+    # Keep the existing CI / test branch-protection check stable.
+    name: test
+    if: ${{ always() }}
+    needs:
+      - go-quality
+      - nflow-quality
+      - unit-tests
+      - race-tests
+      - benchmarks
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Report failed checks
+        env:
+          GO_QUALITY_RESULT: ${{ needs.go-quality.result }}
+          NFLOW_QUALITY_RESULT: ${{ needs.nflow-quality.result }}
+          UNIT_TESTS_RESULT: ${{ needs.unit-tests.result }}
+          RACE_TESTS_RESULT: ${{ needs.race-tests.result }}
+          BENCHMARKS_RESULT: ${{ needs.benchmarks.result }}
+        run: |
+          set -Eeuo pipefail
+          failed=0
+          check_result() {
+            local check_id="$1"
+            local result="$2"
+            if [[ "$result" != "success" ]]; then
+              printf '::error::Required check %s result: %s\n' "$check_id" "${result:-unknown}"
+              failed=1
+            fi
+          }
+          check_result go-quality "$GO_QUALITY_RESULT"
+          check_result nflow-quality "$NFLOW_QUALITY_RESULT"
+          check_result unit-tests "$UNIT_TESTS_RESULT"
+          check_result race-tests "$RACE_TESTS_RESULT"
+          check_result benchmarks "$BENCHMARKS_RESULT"
+          exit "$failed"

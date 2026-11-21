@@ -43,7 +43,8 @@
   :request-schema=UpdateTargetItem
   update_item.pipeline.update_item
   ? on_error {
-    else -> { update_success: false, update_error: .error.message }
+    else
+    -> { update_success: false, update_error: .error.message }
   }
   -> {
     target: input.target,
@@ -71,14 +72,14 @@
   -> {
     ...,
     joined_rows: map(.results.Items, (
-      {
-        target: #.OK ? #.Result.target : "(unknown)",
-        file: #.OK ? #.Result.file : "",
-        status: #.OK ? #.Result.status : "",
-        result_present: #.OK,
-        ok: #.OK ? #.Result.ok : false,
-        error: #.OK ? (#.Result.error ?? "") : (#.Error ?? "")
-      }
+        {
+          target: #.OK ? #.Result.target : "(unknown)",
+          file: #.OK ? #.Result.file : "",
+          status: #.OK ? #.Result.status : "",
+          result_present: #.OK,
+          ok: #.OK ? #.Result.ok : false,
+          error: #.OK ? (#.Result.error ?? "") : (#.Error ?? "")
+        }
     ))
   }
   -> update_policy.@update_outcomes()
