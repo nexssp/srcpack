@@ -7,6 +7,8 @@
   file: "file"
 }
 
+@require github.com/nexssp/srcpack
+
 @pipeline output_policy
   {
     path: (.io.stdout ?? false) ? "-" : .io.output_path,
@@ -21,17 +23,17 @@
     trailing_newline: .io.explicit_pack && !.io.check,
     mode: match {
       (.io.stdout ?? false)
-      ->   output_mode.stdout,
+      -> output_mode.stdout ,
       (.io.copy || (!(.io.copy_explicit ?? false) && !(.io.stdout ?? false) && !.io.check && .io.output_path == "")) && .io.explicit_output == ""
-      ->   output_mode.clipboard,
+      -> output_mode.clipboard ,
       .io.explicit_pack && !.io.check && .io.explicit_output == "" && .io.config_path == ""
-      ->   output_mode.stdout,
+      -> output_mode.stdout ,
       .io.output_path == "" || .io.output_path == "-"
-      ->   output_mode.stdout,
+      -> output_mode.stdout ,
       .io.check
-      ->   output_mode.check,
+      -> output_mode.check ,
       _
-      ->   output_mode.file
+      -> output_mode.file
     }
   }
 @end
@@ -40,9 +42,9 @@
   match {
     .policy.quiet -> { ..., report_prefix: "", report_suffix: "" },
     _ -> match(.policy.mode) {
-      output_mode.check -> { ..., report_prefix: "✓ Checked in ", report_suffix: " (no changes written)" + "\n" },
-      output_mode.clipboard -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\n" + "Output: full rendered context copied to clipboard (no file written)" + "\n" },
-      output_mode.stdout -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\n" + "Output: rendered context written to stdout" + "\n" },
+      output_mode.check -> { ..., report_prefix: "✓ Checked in ", report_suffix: " (no changes written)\n" },
+      output_mode.clipboard -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: full rendered context copied to clipboard (no file written)\n" },
+      output_mode.stdout -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: rendered context written to stdout\n" },
       _ -> { ..., report_prefix: "✓ Completed in ", report_suffix: "\nOutput: wrote context to " + .policy.path + "\n" }
     }
   }

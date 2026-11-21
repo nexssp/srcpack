@@ -51,9 +51,9 @@
   {
     ...,
     command: match((.input._command ?? "pack") != "" ? (.input._command ?? "pack") : (.context_command != "" ? .context_command : "pack")) {
-      route.pack ->   route.pack,
-      route.tree ->   route.tree,
-      _ ->   route.pack
+      route.pack -> route.pack ,
+      route.tree -> route.tree ,
+      _ -> route.pack
     }
   }
   -> {
@@ -63,8 +63,8 @@
       explicit_pack: .input._explicit_pack ?? .context_explicit,
       output: (.input.output ?? "") != "" ? .input.output :
         match(command) {
-          route.tree ->   .tree_output,
-          _ ->   ""
+          route.tree -> .tree_output ,
+          _ -> ""
         },
       comments: .cli_bool_flags.comments ?? .input.comments ?? true,
       depth: (.input.depth ?? 0) == 0 ? .default_depth : .input.depth
@@ -75,8 +75,8 @@
       no_examples: .cli_bool_flags.examples != nil ? !.cli_bool_flags.examples :
         (.input.examples == nil ? .input.no_examples : !.input.examples),
       tree_only: .input.tree_only ?? match(command) {
-        route.tree ->   true,
-        _ ->  null
+        route.tree -> true ,
+        _ -> null
       },
       tree_depth: .input.tree_depth ?? .input.depth
     })))

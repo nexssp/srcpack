@@ -48,23 +48,23 @@
       profile: .stats.profile ?? "default",
       targets: .pack.targets ?? [],
       explicit_files: .pack.files ?? [],
-      target_profiles: .target_profiles ?? toPairs(.pack.target_profiles ?? {}),
-      target_excludes: .target_excludes ?? toPairs(.pack.target_excludes ?? {}),
+      target_profiles: .pack.target_profiles ?? {},
+      target_excludes: .pack.target_excludes ?? {},
       editor: .render.editor ?? "markdown",
       prompt_source: .render.prompt_name ?? "(none)",
       normal_output_mode: match {
         (.io.stdout ?? false)
-        ->   output_mode.stdout,
+        -> output_mode.stdout ,
         (.io.copy ?? false) && (.io.explicit_output ?? "") == ""
-        ->   output_mode.clipboard,
+        -> output_mode.clipboard ,
         (.io.explicit_pack ?? false) && !(.io.check ?? false) && (.io.explicit_output ?? "") == "" && (.io.config_path ?? "") == ""
-        ->   output_mode.stdout,
+        -> output_mode.stdout ,
         (.io.output_path ?? "") == "" || .io.output_path == "-"
-        ->   output_mode.stdout,
+        -> output_mode.stdout ,
         (.io.check ?? false)
-        ->   output_mode.check,
+        -> output_mode.check ,
         _
-        ->   output_mode.file
+        -> output_mode.file
       },
       output_path: .io.output_path ?? "",
       plan_output: string(plan_output_stream.stdout),
@@ -116,7 +116,7 @@
     json: .io.json ?? false
   }
   -> {
-    content: (.json ?? false) ? toJSON(fromPairs(concat(toPairs(.report), [["target_profiles", fromPairs(.report.target_profiles)], ["target_excludes", fromPairs(.report.target_excludes)]]))) + "\n" :
+    content: .json ? toJSON(.report) + "\n" :
     "srcpack plan (schema v" + string(.report.schema_version) + ")\n" +
     "Command: " + .report.command + "\n" +
     "Workspace: " + .report.workspace + "\n" +
@@ -133,8 +133,8 @@
     ", only-signatures=" + string(.report.filters.only_signatures) + ", dense=" + string(.report.filters.dense) +
     ", comments=" + string(.report.filters.comments) + ", mask=" + string(.report.filters.mask_secrets) +
     ", max-lines=" + string(.report.filters.max_lines) + "\n" +
-    "Per-target profiles:\n" + (len(.report.target_profiles) == 0 ? "  (none)\n" : join(map(sortBy(.report.target_profiles, #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
-    "Per-target excludes:\n" + (len(.report.target_excludes) == 0 ? "  (none)\n" : join(map(sortBy(.report.target_excludes, #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+    "Per-target profiles:\n" + (len(toPairs(.report.target_profiles)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_profiles), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
+    "Per-target excludes:\n" + (len(toPairs(.report.target_excludes)) == 0 ? "  (none)\n" : join(map(sortBy(toPairs(.report.target_excludes), #[0], "asc"), "  - " + string(#[0]) + ": " + string(#[1]) + "\n"), "")) +
     "Phases:\n" + join(map(.report.phases, "  - " + #.name + ": " + #.status + " — " + #.detail + "\n"), "") +
     "No candidate-file list is produced by plan mode.\n",
     stream: plan_output_stream.stdout

@@ -6,37 +6,27 @@
 }
 
 @macro update_target_plan() {
-  {
-    let explicit_profile = string(.profile ?? "");
-    let positional_profile = string(.profile_arg ?? "");
-    ...,
-    profile: explicit_profile != "" ? explicit_profile : positional_profile,
-    output_profile: explicit_profile != "" ? explicit_profile : (positional_profile != "" ? positional_profile : "default"),
-    check: (.check ?? false) == true,
-    quiet: (.quiet ?? false) == true,
-    target_names: map(.target_names, string(#)),
-    output_prefix: string(.output_prefix ?? "")
-  }
+  { ..., profile: .profile != "" ? .profile : .profile_arg }
+  -> { ..., output_profile: .profile != "" ? .profile : "default" }
   -> {
     ...,
-    items: let root = .; map(len(root.target_names) > 0 ? sortBy(root.target_names, #, "asc") : [""],
-      let target = #;
-      let output_name = target == "" ? root.output_profile + ".md" : target + "_" + root.output_profile + ".md";
+    items: map(len(.target_names) > 0 ? sortBy(.target_names, #, "asc") : [""], (
       {
-        request: {
-          selectors: target == "" ? ["."] : [target],
-          profile: root.profile,
-          check: root.check,
-          quiet: root.quiet,
-          _output_path: root.output_prefix + output_name,
+      request: {
+        selectors: # == "" ? ["."] : [#],
+        profile,
+        check,
+        quiet,
+        _output_path: .output_prefix + (# == "" ? .output_profile + ".md" : # + "_" + .output_profile + ".md"),
           _command: "pack",
           _explicit_pack: false,
           _derived_request: true
         },
-        target: target == "" ? "(default)" : target,
-        file: root.output_prefix + output_name,
-        status: root.check ? update_policy.update_status.checked : update_policy.update_status.wrote
-      })
+        target: # == "" ? "(default)" : #,
+        file: .output_prefix + (# == "" ? .output_profile + ".md" : # + "_" + .output_profile + ".md"),
+          status: .check ? update_policy.update_status.checked : update_policy.update_status.wrote
+        }
+        ))
   }
 }
 

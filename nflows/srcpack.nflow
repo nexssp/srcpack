@@ -1,6 +1,6 @@
 @description "srcpack — context engineering and code packaging for AI"
 @nflow_version ">=0.89.0"
-@require github.com/nexssp/transport/tcli@v0.10.0
+@require github.com/nexssp/transport/tcli@v0.19.1
 @include "cli_invocation.nflow" AS cli_invocation
 
 # Command modules own their schemas, CLI routes, and implementation pipelines.

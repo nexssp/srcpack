@@ -1,6 +1,7 @@
 @description "Inspect, display, and validate srcpack workspace configuration"
 @require github.com/nexssp/srcpack/bundles/config_cli
 @require github.com/nexssp/srcpack/bundles/cliinput
+@require github.com/nexssp/srcpack
 
 @schema ConfigInput struct {
   sub  string  `cli:"positional" default:"show" usage:"Configuration operation: path, show, or validate"`
@@ -34,13 +35,13 @@
   cli.restore
   -> { ..., sub: match(.sub ?? "") {
       ""
-      ->   config_subcommand.show,
+      -> config_subcommand.show ,
       config_subcommand.path
-      ->   config_subcommand.path,
+      -> config_subcommand.path ,
       config_subcommand.show
-      ->   config_subcommand.show,
+      -> config_subcommand.show ,
       config_subcommand.validate
-      ->   config_subcommand.validate,
+      -> config_subcommand.validate ,
       _
       -> pick ( field: "sub" )
   } }

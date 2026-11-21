@@ -1,16 +1,23 @@
-@description "Shared production pack statistics fold stage"
+@description "Shared NFlow-owned pack statistics fold configuration"
 
 @macro pack_stats_fold() {
-  stream.fold (
-    initial: {files: [], fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0},
-    expression: `let included = !item.omitted && (len(item.content) > 0 || len(item.snippets) > 0);
-    let packed = len(item.content) > 0 ? len(item.content) : sum(map(item.snippets, len(#)));
+  initial: {files: [], fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0},
+  expression: `let totals = reduce(item,
+    let included = !#.omitted && (len(#.content) > 0 || len(#.snippets) > 0);
+    let packed = len(#.content) > 0 ? len(#.content) : sum(map(#.snippets, len(#)));
     {
-      files: concat(acc.files, [item.file]),
-      fileCount: acc.fileCount + (included ? 1 : 0),
-      funcCount: acc.funcCount + (included ? item.funcCount : 0),
-      packedBytes: acc.packedBytes + (included ? packed : 0),
-      rawBytes: acc.rawBytes + (included ? item.size : 0)
-    }`
-  )
+      fileCount: #acc.fileCount + (included ? 1 : 0),
+      funcCount: #acc.funcCount + (included ? #.funcCount : 0),
+      packedBytes: #acc.packedBytes + (included ? packed : 0),
+      rawBytes: #acc.rawBytes + (included ? #.size : 0)
+    },
+    {fileCount: 0, funcCount: 0, packedBytes: 0, rawBytes: 0}
+  );
+  {
+    files: map(item, #.file),
+    fileCount: totals.fileCount,
+    funcCount: totals.funcCount,
+    packedBytes: totals.packedBytes,
+    rawBytes: totals.rawBytes
+  }`
 }

@@ -14,7 +14,7 @@ This is deliberately **not** a replacement for the full `srcpack` CLI: output-fi
 
 ## Running it
 
-The Flow source is embedded in `nflows.FS`. A host loads the srcpack operator bundle and the `transport/tcli/nexssflow` bundle, then runs the file from the workspace to package. The schema-request bridge is included in the published `github.com/nexssp/transport` `v0.5.0` dependency already pinned by this module.
+The Flow source is embedded in `nflows.FS`. A host loads the srcpack operator bundle and the `transport/tcli/nexssflow` bundle, then runs the file from the workspace to package. The schema-request bridge is included in the published `github.com/nexssp/transport` `v0.19.1` dependency already pinned by this module.
 
 Example arguments:
 

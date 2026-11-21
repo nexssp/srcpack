@@ -39,10 +39,10 @@
     -> ast.parse
     -> workspace.save_state:enabled=$save_state
     -> pack.stats_input
-    -> pack_fold.@pack_stats_fold()
+    -> pack.batch
+    -> stream.fold ( pack_fold.@pack_stats_fold() )
     -> collect
 }
-
 @pipeline pack_scan
   @pack_collect(true)
 @end

@@ -1,4 +1,5 @@
 @include "../../../nflows/pack_fold.nflow"
+@require github.com/nexssp/srcpack/bundles/pack
 
 parallel {
   populated: srcpack_test.records ( items: [
@@ -6,8 +7,8 @@ parallel {
       {file: {name: "second"}, omitted: false, content: "", snippets: ["e", "xy"], funcCount: 3, size: 11},
       {file: {name: "omitted"}, omitted: true, content: "not counted", snippets: [], funcCount: 99, size: 90},
       {file: {name: "empty"}, omitted: false, content: "", snippets: [], funcCount: 7, size: 20}
-  ] ) -> pack_fold.@pack_stats_fold() -> collect,
-  empty: srcpack_test.records ( items: [] ) -> pack_fold.@pack_stats_fold() -> collect,
+  ] ) -> pack.batch -> stream.fold ( pack_fold.@pack_stats_fold() ) -> collect,
+  empty: srcpack_test.records ( items: [] ) -> pack.batch -> stream.fold ( pack_fold.@pack_stats_fold() ) -> collect,
   materialized: srcpack_test.records ( items: [{name: "first"}, {name: "second"}] )
   -> pack.batch
   -> collect

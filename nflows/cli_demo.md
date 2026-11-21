@@ -29,7 +29,7 @@ pack --file go.mod --file README.md --no-tests
 
 ## Lokalny test integracyjny
 
-Adapter pochodzi ze zwykłej zależności `github.com/nexssp/transport v0.7.0`.
+Adapter pochodzi ze zwykłej zależności `github.com/nexssp/transport v0.19.1`.
 Nie wymaga lokalnych zmian transportu ani osobnego checkoutu. Testy CLI:
 
 ```sh

@@ -23,14 +23,14 @@
 @macro manage_normalize() {
   { ..., sub: (.sub ?? ""), args: (.args ?? []) }
   -> { ..., sub: match(.sub) {
-    "" ->   manage_subcommand.list,
-    manage_alias.list ->   manage_subcommand.list,
-    manage_alias.delete ->   manage_subcommand.delete,
-    manage_subcommand.list ->   manage_subcommand.list,
-    manage_subcommand.show ->   manage_subcommand.show,
-    manage_subcommand.add ->   manage_subcommand.add,
-    manage_subcommand.delete ->   manage_subcommand.delete,
-    _ ->   .sub
+    "" -> manage_subcommand.list ,
+    manage_alias.list -> manage_subcommand.list ,
+    manage_alias.delete -> manage_subcommand.delete ,
+    manage_subcommand.list -> manage_subcommand.list ,
+    manage_subcommand.show -> manage_subcommand.show ,
+    manage_subcommand.add -> manage_subcommand.add ,
+    manage_subcommand.delete -> manage_subcommand.delete ,
+    _ -> .sub
   } }
 }
 

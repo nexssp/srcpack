@@ -17,6 +17,9 @@ func TestUpdateFailurePrintsReportBeforeReturningError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "1 target(s) failed") {
 		t.Fatalf("Flow failure = %v", err)
 	}
+	if !strings.Contains(stdout, "broken") {
+		t.Fatalf("update report omitted the target name: %s", stdout)
+	}
 	if stdout == "" {
 		t.Fatal("update returned the target error before printing its report")
 	}

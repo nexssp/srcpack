@@ -72,7 +72,8 @@
     -> ast.parse
     -> workspace.save_state:enabled=$save_state
     -> pack.stats_input
-    -> pack_fold.@pack_stats_fold()
+    -> pack.batch
+    -> stream.fold ( pack_fold.@pack_stats_fold() )
     -> stats.collect (
       tree_only: @config.stats_tree_only,
       full_tree: @config.stats_full_tree,

@@ -33,27 +33,29 @@
       SAVED_PERCENT: terminal.printf("%.1f", .stats.raw_bytes > 0 ? float(.stats.raw_bytes - .stats.packed_bytes) / float(.stats.raw_bytes) * 100 : 0.0),
       TOTAL_SIZE_TOKENS: string(.stats.estimated_tokens)
     },
-    files: map(.files, fromPairs([
-          ["prefix", ""],
-          ["content", #.content],
-          ["snippets", #.snippets ?? []],
-          ["omitted", #.omitted],
-          ["source_start_line", #.source_start_line ?? 0],
-          ["source_end_line", #.source_end_line ?? 0],
-          ["source_range", #.source_range ?? ""],
-          ["source_url", #.source_url ?? ""],
-          ["line_spans", #.line_spans ?? []],
-          ["symbol_spans", #.symbol_spans ?? []],
-          ["values", fromPairs([
-                ["REL_PATH", #.rel_path],
-                ["ABS_PATH", #.abs_path],
-                ["LANG", #.lang],
-                ["LINES", string(#.lines)],
-                ["SIZE_KB", terminal.printf("%.1f", float(#.size) / 1024)],
-                ["SOURCE_RANGE", #.source_range ?? ""],
-                ["SOURCE_URL", #.source_url ?? ""]
-          ])]
-    ]))
+    files: map(.files, (
+        {
+          prefix: "",
+          content: #.content,
+          snippets: #.snippets ?? [],
+          omitted: #.omitted,
+          source_start_line: #.source_start_line ?? 0,
+          source_end_line: #.source_end_line ?? 0,
+          source_range: #.source_range ?? "",
+          source_url: #.source_url ?? "",
+          line_spans: #.line_spans ?? [],
+          symbol_spans: #.symbol_spans ?? [],
+          values: {
+            REL_PATH: #.rel_path,
+            ABS_PATH: #.abs_path,
+            LANG: #.lang,
+            LINES: string(#.lines),
+            SIZE_KB: terminal.printf("%.1f", float(#.size) / 1024),
+            SOURCE_RANGE: #.source_range ?? "",
+            SOURCE_URL: #.source_url ?? ""
+          }
+        }
+    ))
   }
 }
 
@@ -63,7 +65,7 @@
 
 @macro render_document() {
   { records: . }
-  -> srcpack.document_input ( records, config: {
+  -> srcpack.document_input ( config: {
       # The destination key and @config suffix intentionally stay in sync.
       @render_config_field(editor),
       @render_config_field(prompt),
