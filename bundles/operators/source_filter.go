@@ -124,51 +124,20 @@ func (f sourceFileFilter) Decide(
 	return info, true, true
 }
 
-// buildChangeFilter uses the shared provider for bounded tracked diffs when its
-// HEAD/index modes cover the request. Arbitrary --since refs and incomplete
-// provider patches retain srcpack's existing git.changed_paths fallback.
+// buildChangeFilter consumes the Repo-selected handoff from NFlow. Direct Go
+// callers use the same Repo provider; state-cache filtering remains separate.
 func buildChangeFilter(ctx context.Context, root string, cfg PackConfig) (*changeFilter, error) {
 	gitFilter := GitFilter{Since: cfg.Since, Modified: cfg.Modified, Staged: cfg.Staged}
 	if gitFilter.Active() {
-		// The shared diff API currently supports HEAD and staged diffs, but not
-		// arbitrary --since refs. Keep srcpack's established since behavior exact.
-		if cfg.Since == "" {
-			diff, diffErr := repository.New().Diff(ctx, repository.DiffRequest{Root: root, Staged: !cfg.Modified && cfg.Staged})
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
+		paths := cfg.ChangedPaths
+		if !cfg.ChangedPathsProvided {
+			result, err := repository.New().ChangedPaths(ctx, repository.ChangedPathsRequest{
+				Root: root, Since: gitFilter.Since, Modified: gitFilter.Modified, Staged: gitFilter.Staged,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("srcpack.source: %w", err)
 			}
-			if diffErr == nil && !diff.Truncated {
-				paths, ok := changedPathsFromRepositoryDiff(diff.Root, diff.Patch)
-				if ok {
-					set := make(map[string]bool, len(paths))
-					for _, path := range paths {
-						set[sourcePathKey(path)] = true
-					}
-					if cfg.Modified {
-						value, listErr := GitLSFilesAction().DoAny(ctx, GitLSFilesRequest{Root: root})
-						if listErr != nil && ctx.Err() != nil {
-							return nil, ctx.Err()
-						}
-						if untracked, valid := value.([]string); valid {
-							for _, path := range untracked {
-								set[sourcePathKey(path)] = true
-							}
-						}
-					}
-					return &changeFilter{gitPaths: set}, nil
-				}
-			}
-		}
-
-		// Fall back for --since, oversized diffs, and repositories where the
-		// shared provider cannot produce a complete patch.
-		value, err := GitChangedPathsAction().DoAny(ctx, GitChangedPathsRequest{Root: root, Filter: gitFilter})
-		if err != nil {
-			return nil, fmt.Errorf("srcpack.source: %w", err)
-		}
-		paths, ok := value.([]string)
-		if !ok {
-			return nil, fmt.Errorf("srcpack.source: git.changed_paths returned %T, want []string", value)
+			paths = result.Paths
 		}
 		set := make(map[string]bool, len(paths))
 		for _, path := range paths {

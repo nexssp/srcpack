@@ -5,10 +5,10 @@ go 1.27.4
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/expr-lang/expr v1.17.8
-	github.com/nexssp/flow v0.95.0
+	github.com/nexssp/flow v0.96.0
 	github.com/nexssp/kernel v0.40.3
 	github.com/nexssp/lang v0.2.1
-	github.com/nexssp/repo v0.7.0
+	github.com/nexssp/repo v0.8.0
 	github.com/nexssp/transport v0.19.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	gopkg.in/yaml.v3 v3.0.1

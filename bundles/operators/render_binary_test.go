@@ -45,8 +45,11 @@ func TestNFlowBinarySafePassthrough(t *testing.T) {
 					return nil, fmt.Errorf("projected file has type %T, want map[string]any", files[0])
 				}
 				raw, err := projectedContentBytes(file["content"])
-				if err != nil || !bytes.Equal(raw, original) {
-					return nil, fmt.Errorf("projection corrupted raw bytes: %T %x (%v); want %x", file["content"], raw, err, original)
+				if err != nil {
+					return nil, fmt.Errorf("projection corrupted raw bytes: %T %x (%w); want %x", file["content"], raw, err, original)
+				}
+				if !bytes.Equal(raw, original) {
+					return nil, fmt.Errorf("projection corrupted raw bytes: %T %x; want %x", file["content"], raw, original)
 				}
 				calls++
 				// The sole representation change permitted in production is Go's lossless

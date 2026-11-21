@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/nexssp/kernel/action"
@@ -49,58 +48,13 @@ func GitLSFilesAction() action.AnyAction {
 // GitChangedPathsAction exposes the changed-path set used by incremental source scans.
 func GitChangedPathsAction() action.AnyAction {
 	return action.New("git.changed_paths", func(ctx context.Context, req GitChangedPathsRequest) ([]string, error) {
-		paths := make(map[string]bool)
-		add := func(values []string) {
-			for _, path := range values {
-				paths[filepath.Clean(path)] = true
-			}
+		result, err := repository.New().ChangedPaths(ctx, repository.ChangedPathsRequest{
+			Root: req.Root, Since: req.Filter.Since, Modified: req.Filter.Modified, Staged: req.Filter.Staged,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("repo.changed_paths: %w", err)
 		}
-
-		switch {
-		case req.Filter.Since != "":
-			out, err := runGit(ctx, req.Root, "diff", "--name-only", "-z", req.Filter.Since)
-			if err != nil {
-				return nil, fmt.Errorf("git diff %s: %w", req.Filter.Since, err)
-			}
-			add(gitPaths(req.Root, out))
-		case req.Filter.Modified:
-			out, err := runGit(ctx, req.Root, "diff", "--name-only", "-z", "HEAD")
-			if err != nil {
-				out, err = runGit(ctx, req.Root, "diff", "--name-only", "-z")
-				if err != nil {
-					return nil, fmt.Errorf("git diff: %w", err)
-				}
-			}
-			add(gitPaths(req.Root, out))
-		}
-
-		if req.Filter.Staged {
-			out, err := runGit(ctx, req.Root, "diff", "--name-only", "-z", "--cached")
-			if err != nil {
-				return nil, fmt.Errorf("git diff --cached: %w", err)
-			}
-			add(gitPaths(req.Root, out))
-		}
-
-		if req.Filter.Since == "" && req.Filter.Modified {
-			// Preserve the historical behavior of tolerating a failed untracked
-			// listing, but never hide cancellation from the caller.
-			untracked, err := GitLSFilesAction().DoAny(ctx, GitLSFilesRequest{Root: req.Root})
-			if err != nil {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-			} else if values, ok := untracked.([]string); ok {
-				add(values)
-			}
-		}
-
-		result := make([]string, 0, len(paths))
-		for path := range paths {
-			result = append(result, path)
-		}
-		slices.Sort(result)
-		return result, nil
+		return result.Paths, nil
 	}).Description("List paths selected by a Git since, modified, and staged filter").Build()
 }
 

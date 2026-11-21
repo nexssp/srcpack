@@ -37,8 +37,12 @@ func TestTreeFileRoleIcons(t *testing.T) {
 		{"test", "🧪"}, {"config", "⚙️"}, {"doc", "📝"}, {"gen", "🧬"}, {"entry", "🚀"}, {"unknown", "📄"},
 	} {
 		t.Run(tc.role, func(t *testing.T) {
+			t.Parallel()
 			input := treeFacts()
-			rows := input["rows"].([]map[string]any)
+			rows, ok := input["rows"].([]map[string]any)
+			if !ok {
+				t.Fatalf("tree rows have type %T, want []map[string]any", input["rows"])
+			}
 			rows[0]["dir"], rows[0]["role"] = false, tc.role
 			text, err := Tree(context.Background(), input)
 			ktest.RequireNoError(t, err)

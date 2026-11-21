@@ -109,10 +109,11 @@ func ResolveInput(ctx context.Context, fields map[string]any) (map[string]any, e
 		return nil, fmt.Errorf("decode resolved pack config: %w", err)
 	}
 	var cfg operators.PackConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	if err = json.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("decode resolved pack config: %w", err)
 	}
-	if err := cfg.DecodeFlowTargetMetadata(); err != nil {
+	err = cfg.DecodeFlowTargetMetadata()
+	if err != nil {
 		return nil, err
 	}
 	pack, err := jsonObject(cfg)
@@ -140,9 +141,6 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.SaveView = stringField(in, "save_view", "")
 	cli.Check = boolField(in, "check")
 	cli.FailOnChange = boolField(in, "fail_on_change")
-	if cli.FailOnChange && !cli.Check {
-		return nil, ErrFailOnChangeRequiresCheck
-	}
 	cli.Plan = boolField(in, "plan")
 	cli.JSON = boolField(in, "json")
 	cli.DirPrefix = boolField(in, "dir_prefix")
@@ -152,8 +150,8 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.Output = stringField(normalized, "output", "")
 	cli.Stdout = boolField(in, "stdout")
 	cli.OutputExplicit = cliinput.HasFlag(ctx, "output", "o")
-	if cli.Stdout && cli.OutputExplicit && cli.Config.Output != "" && cli.Config.Output != "-" {
-		return nil, errors.New("--stdout conflicts with -o FILE; use either --stdout or -o - for stdout, or -o FILE to save")
+	if err := validateCLIOutput(cli); err != nil {
+		return nil, err
 	}
 	cli.Config.Copy = boolField(in, "copy")
 	cli.CopyExplicit = boolField(in, "copy_explicit")
@@ -283,6 +281,16 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	return map[string]any{"host": string(host), "facts": plan.Facts, "requested_output": requestedOutput}, nil
 }
 
+func validateCLIOutput(cli cliOptions) error {
+	if cli.FailOnChange && !cli.Check {
+		return ErrFailOnChangeRequiresCheck
+	}
+	if cli.Stdout && cli.OutputExplicit && cli.Config.Output != "" && cli.Config.Output != "-" {
+		return errors.New("--stdout conflicts with -o FILE; use either --stdout or -o - for stdout, or -o FILE to save")
+	}
+	return nil
+}
+
 // resolveMaskOverride merges the positive and negative mask flags by argv
 // order. Explicit values are respected, including --no-mask=false.
 func resolveMaskOverride(ctx context.Context, command string, input map[string]any) (*bool, error) {
@@ -368,9 +376,12 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 		return nil, err
 	}
 	flowPack := run.Pack
+	// NFlow owns Git path selection and hands the Repo result through this boundary.
+	flowPack.ChangedPaths = stringSliceField(envelope["changed_paths"])
+	flowPack.ChangedPathsProvided = boolField(envelope, "changed_paths_provided")
 	targetProfiles := stringMapPairs(flowPack.TargetProfiles)
 	targetExcludes := stringMapPairs(flowPack.TargetExcludes)
-	if err := flowPack.EncodeFlowTargetMetadata(); err != nil {
+	if err = flowPack.EncodeFlowTargetMetadata(); err != nil {
 		return nil, fmt.Errorf("encode pack target metadata: %w", err)
 	}
 	packMap, err := jsonObject(flowPack)
@@ -461,6 +472,7 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 	}
 	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "value": normalized, "replace": true, "legacy": true}, nil
 }
+
 func jsonObject(v any) (map[string]any, error) {
 	b, e := json.Marshal(v)
 	if e != nil {

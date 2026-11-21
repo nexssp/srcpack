@@ -56,16 +56,20 @@ type PackConfig struct {
 	Since              string            `json:"since" cli:"since"`
 	Modified           bool              `json:"modified"`
 	Staged             bool              `json:"staged"`
-	DiffOnly           bool              `json:"diff_only"`
-	DiffContent        string            `json:"diff_content"`
-	Quiet              bool              `json:"quiet" cli:"quiet,q"`
-	Color              string            `json:"color" cli:"color"`
-	CostROI            bool              `json:"cost"`
-	DirPrefix          bool              `json:"dir_prefix"`
-	NoHeader           bool              `json:"no_header"`
-	NoPrompt           bool              `json:"no_prompt"`
-	NoStart            bool              `json:"no_start"`
-	NoEnd              bool              `json:"no_end"`
+	// ChangedPaths is the Repo-selected path set handed off by NFlow.
+	// ChangedPathsProvided distinguishes an empty result from no handoff.
+	ChangedPaths         []string `json:"changed_paths,omitempty"`
+	ChangedPathsProvided bool     `json:"changed_paths_provided,omitempty"`
+	DiffOnly             bool     `json:"diff_only"`
+	DiffContent          string   `json:"diff_content"`
+	Quiet                bool     `json:"quiet" cli:"quiet,q"`
+	Color                string   `json:"color" cli:"color"`
+	CostROI              bool     `json:"cost"`
+	DirPrefix            bool     `json:"dir_prefix"`
+	NoHeader             bool     `json:"no_header"`
+	NoPrompt             bool     `json:"no_prompt"`
+	NoStart              bool     `json:"no_start"`
+	NoEnd                bool     `json:"no_end"`
 
 	MaxFileSize  int64 `json:"max_file_size"`
 	MaxFilesScan int64 `json:"max_files_scan"`

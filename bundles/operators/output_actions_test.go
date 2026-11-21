@@ -150,14 +150,13 @@ func TestPrintOutputWritesExactlyOnceWithoutNewline(t *testing.T) {
 
 func TestReportOutputDoesNotPrintClipboardPreview(t *testing.T) {
 	stderr := captureOutput(t, &os.Stderr, func() {
-		_, err := reportOutputAction(context.Background(), OutputEnvelope{
+		reportOutputAction(context.Background(), OutputEnvelope{
 			Policy:        OutputPolicy{Copy: true, Color: "never"},
 			Content:       "package secret\nfunc Sensitive() {}\n",
 			RenderedItems: 1,
 			ReportPrefix:  "✓ Completed in ",
 			ReportSuffix:  "\nOutput: full context copied to clipboard\n",
 		})
-		ktest.RequireNoError(t, err)
 	})
 	ktest.RequireStringContains(t, stderr, "Output: full context copied to clipboard")
 	if strings.Contains(stderr, "Preview:") || strings.Contains(stderr, "func Sensitive()") {
@@ -167,13 +166,12 @@ func TestReportOutputDoesNotPrintClipboardPreview(t *testing.T) {
 
 func TestReportOutputShowsPreviewWhenRequested(t *testing.T) {
 	stderr := captureOutput(t, &os.Stderr, func() {
-		_, err := reportOutputAction(context.Background(), OutputEnvelope{
+		reportOutputAction(context.Background(), OutputEnvelope{
 			Policy:        OutputPolicy{Copy: true, Preview: true, Color: "never"},
 			Content:       "preview sentinel\n",
 			RenderedItems: 1,
 			ReportPrefix:  "done ",
 		})
-		ktest.RequireNoError(t, err)
 	})
 	ktest.RequireStringContains(t, stderr, "Preview:")
 	ktest.RequireStringContains(t, stderr, "preview sentinel")

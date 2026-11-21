@@ -12,6 +12,8 @@ const (
 	documentFieldContent     = "content"
 	documentFieldPackedBytes = "packed_bytes"
 	documentFieldRawBytes    = "raw_bytes"
+	parsedFileSnippetsField  = "snippets"
+	parsedFileOmittedField   = "omitted"
 )
 
 // DocumentInputAction exposes typed domain facts. Placeholder names, aliases,
@@ -61,7 +63,7 @@ func documentInput(ctx context.Context, cfg RenderConfig, files []ParsedFile, st
 	for i := range files {
 		file := &files[i]
 		facts = append(facts, map[string]any{
-			documentFieldContent: string(file.Content), "snippets": file.Snippets, "omitted": file.Omitted,
+			documentFieldContent: string(file.Content), parsedFileSnippetsField: file.Snippets, parsedFileOmittedField: file.Omitted,
 			"rel_path": file.RelPath, "abs_path": file.Path, "lang": file.Lang,
 			"lines": file.Lines, "size": file.Size,
 			"source_start_line": file.SourceStartLine, "source_end_line": file.SourceEndLine,

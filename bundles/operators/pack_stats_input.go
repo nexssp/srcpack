@@ -25,12 +25,12 @@ func packStatsInput() action.StreamOp[ParsedFile, map[string]any] {
 					snippets[i] = []byte(snippet)
 				}
 				record := map[string]any{
-					"file":      file,
-					"omitted":   file.Omitted,
-					"content":   file.Content,
-					"snippets":  snippets,
-					"funcCount": file.FuncCount,
-					"size":      file.Size,
+					"file":                  file,
+					parsedFileOmittedField:  file.Omitted,
+					"content":               file.Content,
+					parsedFileSnippetsField: snippets,
+					"funcCount":             file.FuncCount,
+					"size":                  file.Size,
 				}
 				if !yield(record, nil) {
 					return

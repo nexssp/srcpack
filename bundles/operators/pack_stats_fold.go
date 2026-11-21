@@ -33,11 +33,11 @@ func foldPackStats(files []ParsedFile) (PackStats, error) {
 				snippets[i] = []byte(snippet)
 			}
 			record := map[string]any{
-				"omitted":             file.Omitted,
-				packStatsContentField: file.Content,
-				"snippets":            snippets,
-				"funcCount":           file.FuncCount,
-				"size":                file.Size,
+				parsedFileOmittedField:  file.Omitted,
+				packStatsContentField:   file.Content,
+				parsedFileSnippetsField: snippets,
+				"funcCount":             file.FuncCount,
+				"size":                  file.Size,
 			}
 			if !yield(record, nil) {
 				return

@@ -6,12 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-
-	repository "github.com/nexssp/repo"
 )
 
 func TestReadRepositorySourceFilePreservesBytes(t *testing.T) {
@@ -75,43 +72,6 @@ func TestPathWithinRootIsCaseInsensitiveOnWindows(t *testing.T) {
 	}
 	if pathWithinRoot(strings.ToUpper(root), strings.ToLower(root+"-outside")) {
 		t.Fatal("a path outside the repository must not match by prefix")
-	}
-}
-
-func TestRepositoryDiffPathsDecodeGitQuotedNames(t *testing.T) {
-	root := newRepositoryTestGitRoot(t)
-	path := "space name.go"
-	writeRepositoryTestFile(t, root, path, []byte("package x\n"))
-	runRepositoryTestGit(t, root, "add", "-A")
-	runRepositoryTestGit(t, root, "commit", "-qm", "base")
-	writeRepositoryTestFile(t, root, path, []byte("package x\n// changed\n"))
-
-	diff, err := repository.New().Diff(context.Background(), repository.DiffRequest{Root: root})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff.Truncated {
-		t.Fatal("small test diff was unexpectedly truncated")
-	}
-	got, ok := changedPathsFromRepositoryDiff(diff.Root, diff.Patch)
-	if !ok {
-		t.Fatalf("could not decode provider patch:\n%s", diff.Patch)
-	}
-	if want := []string{filepath.Join(root, path)}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("changed paths = %#v, want %#v", got, want)
-	}
-
-	// Windows forbids control characters and double quotes in filesystem names,
-	// but the parser must still decode Git's C-quoted patch headers on every OS.
-	quotedPatch := "diff --git \"a/line\\nbreak.go\" \"b/line\\nbreak.go\"\n" +
-		"diff --git \"a/quote\\\"name.go\" \"b/quote\\\"name.go\"\n"
-	got, ok = changedPathsFromRepositoryDiff(root, quotedPatch)
-	if !ok {
-		t.Fatalf("could not decode quoted Git patch:\n%s", quotedPatch)
-	}
-	want := []string{filepath.Join(root, "line\nbreak.go"), filepath.Join(root, "quote\"name.go")}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("decoded quoted paths = %#v, want %#v", got, want)
 	}
 }
 

@@ -215,15 +215,13 @@ func reportOutputMapAction(ctx context.Context, input map[string]any) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	if _, err := reportOutputAction(ctx, envelope); err != nil {
-		return nil, err
-	}
+	reportOutputAction(ctx, envelope)
 	return input, nil
 }
 
-func reportOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvelope, error) {
+func reportOutputAction(_ context.Context, envelope OutputEnvelope) {
 	if envelope.ReportPrefix == "" {
-		return envelope, nil
+		return
 	}
 	duration := time.Since(time.Unix(0, envelope.Policy.StartedAt)).Round(time.Millisecond).String()
 	status := envelope.ReportPrefix + duration
@@ -248,5 +246,4 @@ func reportOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvel
 			fmt.Fprintln(os.Stderr, "… preview truncated; only the preview is shortened, not the full destination output.")
 		}
 	}
-	return envelope, nil
 }

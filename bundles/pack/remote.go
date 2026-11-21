@@ -94,36 +94,10 @@ func materializeInput(ctx context.Context, in map[string]any) (map[string]any, e
 		cfg.TargetLabels = make(map[string]string)
 	}
 	var provenance []any
-	materialize := func(items []string) error {
-		for i, raw := range items {
-			if !remote.IsRemote(raw) {
-				continue
-			}
-			result, err := session.get(ctx, raw)
-			if err != nil {
-				return fmt.Errorf("source %q: %w", raw, err)
-			}
-			spec, err := remote.Parse(raw)
-			if err != nil {
-				return err
-			}
-			items[i] = result.Path
-			cfg.TargetRoots[result.Path] = result.Root
-			cfg.TargetLabels[result.Path] = "github/" + spec.Repo + "@" + result.Commit
-			for _, values := range []map[string]string{cfg.TargetProfiles, cfg.TargetExcludes, cfg.TargetPrompts} {
-				if value, ok := values[raw]; ok {
-					values[result.Path] = value
-					delete(values, raw)
-				}
-			}
-			provenance = append(provenance, map[string]any{"source": raw, "repository": result.Repository, "commit": result.Commit})
-		}
-		return nil
-	}
-	if err := materialize(cfg.Targets); err != nil {
+	if err := materializeRemoteGroup(ctx, session, cfg.Targets, &cfg, &provenance); err != nil {
 		return nil, err
 	}
-	if err := materialize(cfg.Files); err != nil {
+	if err := materializeRemoteGroup(ctx, session, cfg.Files, &cfg, &provenance); err != nil {
 		return nil, err
 	}
 	if flowTransport {
@@ -140,6 +114,33 @@ func materializeInput(ctx context.Context, in map[string]any) (map[string]any, e
 	out["pack"] = pack
 	out["remote_sources"] = provenance
 	return out, nil
+}
+
+func materializeRemoteGroup(ctx context.Context, session *remoteSession, items []string, cfg *operators.PackConfig, provenance *[]any) error {
+	for i, raw := range items {
+		if !remote.IsRemote(raw) {
+			continue
+		}
+		result, err := session.get(ctx, raw)
+		if err != nil {
+			return fmt.Errorf("source %q: %w", raw, err)
+		}
+		spec, err := remote.Parse(raw)
+		if err != nil {
+			return err
+		}
+		items[i] = result.Path
+		cfg.TargetRoots[result.Path] = result.Root
+		cfg.TargetLabels[result.Path] = "github/" + spec.Repo + "@" + result.Commit
+		for _, values := range []map[string]string{cfg.TargetProfiles, cfg.TargetExcludes, cfg.TargetPrompts} {
+			if value, ok := values[raw]; ok {
+				values[result.Path] = value
+				delete(values, raw)
+			}
+		}
+		*provenance = append(*provenance, map[string]any{"source": raw, "repository": result.Repository, "commit": result.Commit})
+	}
+	return nil
 }
 
 func hasRemoteTargets(groups ...[]string) bool {
