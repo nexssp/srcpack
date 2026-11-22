@@ -2,7 +2,6 @@ package operators_test
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -180,29 +179,10 @@ func TestGitActionsAreRegisteredAndReusable(t *testing.T) {
 	for _, action := range operators.Library().Actions {
 		registered[action.Describe().Name] = true
 	}
-	for _, name := range []string{"git.ls_files", "git.changed_paths"} {
+	for _, name := range []string{"git.ls_files"} {
 		if !registered[name] {
 			t.Errorf("source or aggregate library does not register %s", name)
 		}
-	}
-}
-
-func TestGitActionsErrorsAndCancellation(t *testing.T) {
-	nonRepo := t.TempDir()
-	_, err := operators.GitChangedPathsAction().DoAny(context.Background(), operators.GitChangedPathsRequest{
-		Root: nonRepo, Filter: operators.GitFilter{Modified: true},
-	})
-	if err == nil {
-		t.Fatal("expected Repo to reject a non-repository path")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err = operators.GitChangedPathsAction().DoAny(ctx, operators.GitChangedPathsRequest{
-		Root: nonRepo, Filter: operators.GitFilter{Since: "HEAD"},
-	})
-	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("canceled action error = %v, want context.Canceled", err)
 	}
 }
 

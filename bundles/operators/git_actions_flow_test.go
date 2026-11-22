@@ -2,9 +2,7 @@ package operators_test
 
 import (
 	"context"
-	"path/filepath"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/nexssp/flow/compiler"
@@ -15,13 +13,13 @@ import (
 	"github.com/nexssp/srcpack/bundles/operators"
 )
 
-func TestReusableGitActionsThroughNFlow(t *testing.T) {
+func TestGitLSFilesActionThroughNFlow(t *testing.T) {
 	repo := newGitSourceFixture(t)
 	newFile := gitSourceFilename("a\nnew.go")
 	writeFile(t, repo, "ignored-tracked.go", "package x\n// tracked change\n")
 	writeFile(t, repo, "z-untracked.go", "package x\n")
 	writeFile(t, repo, newFile, "package x\n")
-	// Mount the Git actions alone: no srcpack source, profiles or exclusions.
+	// Mount the remaining Git action alone: no srcpack source or exclusions.
 	bundles := append(native.Bundles(), compiler.Bundle{
 		ID:        "git-actions-test",
 		Libraries: []action.Library{{Name: "git", Actions: operators.GitActions()}},
@@ -31,19 +29,6 @@ func TestReusableGitActionsThroughNFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	input := map[string]any{"root": repo}
-	for range 3 {
-		result, err := runner.Execute(context.Background(), cfg,
-			`{ root: string(.root), filter: { modified: true } } -> git.changed_paths`, "git-action.nflow", input)
-		if err != nil {
-			t.Fatal(err)
-		}
-		paths, ok := result.Output.([]string)
-		want := []string{filepath.Join(repo, newFile), filepath.Join(repo, "ignored-tracked.go"), filepath.Join(repo, "z-untracked.go")}
-		slices.Sort(want)
-		if !ok || !reflect.DeepEqual(paths, want) {
-			t.Fatalf("Git action must preserve NUL-delimited paths, stable ordering, and no domain filters: %#v, want %#v", result.Output, want)
-		}
-	}
 	result, err := runner.Execute(context.Background(), cfg, `git.ls_files`, "git-ls-files.nflow", input)
 	if err != nil {
 		t.Fatal(err)

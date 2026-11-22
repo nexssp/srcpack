@@ -28,12 +28,6 @@ type GitLSFilesRequest struct {
 	Root string `json:"root"`
 }
 
-// GitChangedPathsRequest selects changed paths using a Git change filter.
-type GitChangedPathsRequest struct {
-	Root   string    `json:"root"`
-	Filter GitFilter `json:"filter"`
-}
-
 // GitLSFilesAction exposes Git's reusable untracked-file query.
 func GitLSFilesAction() action.AnyAction {
 	return action.New("git.ls_files", func(ctx context.Context, req GitLSFilesRequest) ([]string, error) {
@@ -45,22 +39,9 @@ func GitLSFilesAction() action.AnyAction {
 	}).Description("List untracked non-ignored Git paths").Build()
 }
 
-// GitChangedPathsAction exposes the changed-path set used by incremental source scans.
-func GitChangedPathsAction() action.AnyAction {
-	return action.New("git.changed_paths", func(ctx context.Context, req GitChangedPathsRequest) ([]string, error) {
-		result, err := repository.New().ChangedPaths(ctx, repository.ChangedPathsRequest{
-			Root: req.Root, Since: req.Filter.Since, Modified: req.Filter.Modified, Staged: req.Filter.Staged,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("repo.changed_paths: %w", err)
-		}
-		return result.Paths, nil
-	}).Description("List paths selected by a Git since, modified, and staged filter").Build()
-}
-
-// GitActions returns the Git actions used by source scans and available to NFlow.
+// GitActions returns the remaining standalone Git action exposed by srcpack.
 func GitActions() []action.AnyAction {
-	return []action.AnyAction{GitLSFilesAction(), GitChangedPathsAction()}
+	return []action.AnyAction{GitLSFilesAction()}
 }
 
 func gitPaths(root string, data []byte) []string {
