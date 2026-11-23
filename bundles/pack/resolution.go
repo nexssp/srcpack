@@ -67,7 +67,7 @@ func resolutionFacts(cli cliOptions, cfg config.Config, chain []config.Profile, 
 		output := profile.GetOutputFile()
 		profiles = append(profiles, map[string]any{
 			"options":         layer,
-			"prompt":          profile.Prompt,
+			promptField:       profile.Prompt,
 			"output_path":     output,
 			"output_prefixed": prefixOutput(output, root, true),
 			"start":           profile.Start,

@@ -54,10 +54,10 @@ func inputFacts(ctx context.Context, in map[string]any) (map[string]any, error) 
 	if len(selectors) == 0 {
 		selectors = stringSliceField(in["positional"])
 	}
-	ordered := cliinput.OrderedFieldValues(ctx, "PackInput", "targets", "selectors")
+	ordered := cliinput.OrderedFieldValues(ctx, "PackInput", targetsField, "selectors")
 	if len(ordered) == 0 {
-		for _, v := range stringSliceField(in["targets"]) {
-			ordered = append(ordered, cliinput.FieldValue{Field: "targets", Value: v})
+		for _, v := range stringSliceField(in[targetsField]) {
+			ordered = append(ordered, cliinput.FieldValue{Field: targetsField, Value: v})
 		}
 		for _, v := range selectors {
 			ordered = append(ordered, cliinput.FieldValue{Field: "selectors", Value: v})
@@ -72,12 +72,12 @@ func inputFacts(ctx context.Context, in map[string]any) (map[string]any, error) 
 		for _, raw := range values {
 			view = append(view, map[string]any{"selector_text": raw, "forced": false, "view_root": root})
 		}
-		facts = append(facts, map[string]any{"selector_text": item.Value, "forced": item.Field == "targets", "path_exists": statErr == nil, "has_view": hasView, "view": view})
+		facts = append(facts, map[string]any{"selector_text": item.Value, "forced": item.Field == targetsField, "path_exists": statErr == nil, "has_view": hasView, "view": view})
 	}
 	inv, _ := ctx.Value(invocationKey{}).(invocation)
 	return map[string]any{
 		"input": in, "cli_bool_flags": boolOverrides, "ordered": facts,
-		"profile": stringField(in, "profile", ""), "profile_aliases": builtinProfileAliases(),
+		profileField: stringField(in, profileField, ""), "profile_aliases": builtinProfileAliases(),
 		"valid_profiles": builtinProfileNames(), "context_command": inv.command,
 		"context_explicit": inv.explicitPack, "tree_output": filepath.Join("_srcpack", "tree.md"),
 		"default_depth": config.DefaultTreeDepth,
@@ -97,7 +97,7 @@ func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error)
 			return nil, fmt.Errorf("selector fact has type %T", value)
 		}
 		raw := stringField(item, "raw", "")
-		targets := stringSliceField(item["targets"])
+		targets := stringSliceField(item[targetsField])
 		if len(targets) > 0 && remote.IsRemote(targets[0]) {
 			for i := 1; i < len(targets); i++ {
 				if !remote.IsRemote(targets[i]) {
@@ -117,8 +117,8 @@ func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error)
 			}
 		}
 		_, statErr := os.Stat(raw)
-		profile := stringField(item, "profile", "")
-		prompt := stringField(item, "prompt", "")
+		profile := stringField(item, profileField, "")
+		prompt := stringField(item, promptField, "")
 		if prompt != "" {
 			prompt = resolvePromptFile(prompt, cwd)
 		}
@@ -126,13 +126,13 @@ func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error)
 		bindings := make([]any, 0, len(targets))
 		for _, target := range targets {
 			key := selectorTargetKey(target, cwd)
-			bindings = append(bindings, map[string]any{"key": key, "profile": profile, "has_prompt": stringField(item, "prompt", "") != "", "prompt": prompt, "excludes": excludes})
+			bindings = append(bindings, map[string]any{"key": key, profileField: profile, "has_prompt": stringField(item, promptField, "") != "", promptField: prompt, "excludes": excludes})
 		}
 		facts = append(facts, map[string]any{
-			"bindings": bindings, "targets": targets, "excludes": excludes, "prompt": stringField(item, "prompt", ""),
+			"bindings": bindings, targetsField: targets, "excludes": excludes, promptField: stringField(item, promptField, ""),
 			"raw": raw, "forced": boolField(item, "forced"), "path_exists": statErr == nil,
 			"bare_profile": boolField(item, "bare_profile"), "canonical": stringField(item, "canonical", ""),
-			"profile": profile,
+			profileField: profile,
 		})
 	}
 	in["candidates"] = facts
@@ -141,7 +141,8 @@ func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error)
 
 func builtinProfileAliases() []any {
 	aliases := make([]any, 0)
-	for _, profile := range config.BuiltinProfiles {
+	for i := range config.BuiltinProfiles {
+		profile := &config.BuiltinProfiles[i]
 		canonical := strings.ToLower(strings.TrimSpace(profile.Name))
 		aliases = append(aliases, []any{canonical, canonical})
 		for _, alias := range profile.Aliases {

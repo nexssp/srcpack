@@ -43,7 +43,7 @@ func finishResolution(ctx context.Context, cli cliOptions, startedAt time.Time, 
 		return out, err
 	}
 
-	out.PromptText = stringField(policy, "prompt", "")
+	out.PromptText = stringField(policy, promptField, "")
 	out.OutputPath = stringField(policy, "output", "")
 	displayOutput := stringField(policy, "display_output", out.OutputPath)
 

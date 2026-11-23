@@ -27,6 +27,9 @@ const (
 	ID               = "srcpack_pack"
 	editorMarkdown   = "markdown"
 	profileWithTests = "with-tests"
+	targetsField     = "targets"
+	profileField     = "profile"
+	promptField      = "prompt"
 )
 
 // ErrFailOnChangeRequiresCheck reports the --fail-on-change/--check
@@ -161,7 +164,7 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.MaxLinesHead = intField(in, "max_lines_head")
 	cli.Config.MaxLinesTail = intField(in, "max_lines_tail")
 	cli.Config.Exclude = stringField(in, "exclude", "")
-	cli.Config.Prompt = stringField(in, "prompt", "")
+	cli.Config.Prompt = stringField(in, promptField, "")
 	cli.Config.Editor = stringField(in, "editor", editorMarkdown)
 	maskOverride, err := resolveMaskOverride(ctx, cli.Command, in)
 	if err != nil {
@@ -191,7 +194,7 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	cli.Config.NoPrompt = boolField(in, "no_prompt")
 	cli.Config.NoStart = boolField(in, "no_start")
 	cli.Config.NoEnd = boolField(in, "no_end")
-	cli.Profile = stringField(in, "profile", "")
+	cli.Profile = stringField(in, profileField, "")
 
 	// Pointer overrides are set on key presence, not truthiness, so an explicit false defeats profile/config defaults.
 	setBool := func(key string, dst **bool) {
@@ -252,7 +255,7 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 	for _, value := range selected {
 		item, _ := value.(map[string]any)
 		cli.RawSelectors = append(cli.RawSelectors, stringField(item, "raw", ""))
-		cli.Config.Targets = append(cli.Config.Targets, stringSliceField(item["targets"])...)
+		cli.Config.Targets = append(cli.Config.Targets, stringSliceField(item[targetsField])...)
 	}
 	cli.Config.TargetProfiles = stringMapField(envelope["target_profiles"])
 	cli.Config.TargetPrompts = stringMapField(envelope["target_prompts"])
@@ -452,7 +455,7 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 		if !ok {
 			return nil, fmt.Errorf("save-view selector has type %T", value)
 		}
-		targets := stringSliceField(sel["targets"])
+		targets := stringSliceField(sel[targetsField])
 		for i, target := range targets {
 			if remote.IsRemote(target) {
 				continue
@@ -468,8 +471,8 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 			targets[i] = filepath.ToSlash(rel)
 		}
 		normalized = append(normalized, map[string]any{
-			"targets": targets, "excludes": stringSliceField(sel["excludes"]),
-			"profile": stringField(sel, "profile", ""), "prompt": stringField(sel, "prompt", ""),
+			targetsField: targets, "excludes": stringSliceField(sel["excludes"]),
+			profileField: stringField(sel, profileField, ""), promptField: stringField(sel, promptField, ""),
 		})
 	}
 	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "selectors": normalized, "replace": true, "legacy": true}, nil
