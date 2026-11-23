@@ -441,6 +441,11 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 	if len(selectors) == 0 {
 		return nil, errors.New("--save-view requires at least one selector")
 	}
+	name := stringField(in, "save_view", "")
+	if name == "" {
+		input, _ := in["input"].(map[string]any)
+		name = stringField(input, "save_view", "")
+	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -475,7 +480,7 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 			profileField: stringField(sel, profileField, ""), promptField: stringField(sel, promptField, ""),
 		})
 	}
-	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "selectors": normalized, "replace": true, "legacy": true}, nil
+	return map[string]any{"operation": "save", "path": path, "name": name, "selectors": normalized, "replace": true, "legacy": true}, nil
 }
 
 func jsonObject(v any) (map[string]any, error) {

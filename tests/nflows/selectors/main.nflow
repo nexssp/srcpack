@@ -89,7 +89,7 @@ parallel {
 @test: result.first_bare_profile.profile == "api" && result.first_bare_profile.selectors == ["compact"]
 @test: result.bare_profile_alias.profile == "source" && result.bare_profile_alias.selectors == ["src"]
 @test: result.grammar.raw == "src,tests~vendor,generated#sources@explain, please@twice" && result.grammar.targets == ["src", "tests"] && result.grammar.excludes == ["vendor", "generated"] && result.grammar.profile == "source" && result.grammar.prompt == "explain, please@twice"
-@test: result.metadata.profiles[keys(result.metadata.excludes)[0]] == "arch" && result.metadata.excludes[keys(result.metadata.excludes)[0]] == "one,two" && result.metadata.prompts[keys(result.metadata.excludes)[0]] == "prompt.txt"
+@test: result.metadata.profiles[keys(result.metadata.excludes)[0]] == "arch" && result.metadata.excludes[keys(result.metadata.excludes)[0]] == "one,two" && result.metadata.prompts[keys(result.metadata.excludes)[0]] == "file prompt"
 @test: result.metadata.profiles["github:nexssp/flow"] == "source" && len(result.explicit_metadata_profile) == 0
 @test: result.flag_policy.normalized.output == "_srcpack/" + selectors.route.tree + ".md" && result.flag_policy.normalized.comments == false && result.flag_policy.overrides.strip_comments == true && result.flag_policy.overrides.no_tests == false && result.flag_policy.overrides.no_examples == true && result.flag_policy.overrides.tree_only == false && result.flag_policy.overrides.tree_depth == 7
 @test: result.omitted_flags.strip_comments == nil && result.omitted_flags.no_tests == nil && result.omitted_flags.tree_depth == nil
