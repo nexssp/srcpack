@@ -1,11 +1,22 @@
 @include "../../../bundles/pack/selectors.nflow"
 
 parallel {
-  saved_view: { ordered: [{ raw: "saved", forced: false, path_exists: false, has_view: true, view: [{ raw: "src#arch", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
-  real_path: { ordered: [{ raw: "existing", forced: false, path_exists: true, has_view: true, view: [{ raw: "elsewhere", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
-  forced_target: { ordered: [{ raw: "dense", forced: true, path_exists: false, has_view: true, view: [{ raw: "expanded", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
-  config_view: { selectors: ["saved"] }
-  -> selectors.pipeline.pack_selector_plan,
+  saved_view: { ordered: [{ selector_text: "saved", forced: false, path_exists: false, has_view: true, view: [{ selector_text: "src#arch", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  real_path: { ordered: [{ selector_text: "existing", forced: false, path_exists: true, has_view: true, view: [{ selector_text: "elsewhere", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  forced_target: { ordered: [{ selector_text: "dense", forced: true, path_exists: false, has_view: true, view: [{ selector_text: "expanded", forced: false }] }] } -> selectors.@pack_expand_selector_views(),
+  config_view: {
+    input: {},
+    cli_bool_flags: {},
+    profile: "",
+    profile_aliases: [["arch", "arch"], ["source", "source"]],
+    valid_profiles: ["arch", "source"],
+    context_command: "",
+    context_explicit: false,
+    tree_output: "",
+    default_depth: 1,
+    ordered: [{ selector_text: "saved", forced: false, path_exists: false, has_view: true, view: [{ selector_text: "src#arch", forced: false, view_root: "" }] }]
+  }
+  -> selectors.@pack_choose_selectors(),
   path_wins: { selectors: ["existing"] }
   -> selectors.pipeline.pack_selector_plan,
   literal_target: { targets: ["saved"] }
@@ -18,7 +29,9 @@ parallel {
   -> selectors.pipeline.pack_selector_plan,
   first_bare_profile: { selectors: ["api", "compact"] }
   -> selectors.pipeline.pack_selector_plan,
-  existing_profile_path: { selectors: ["dense"] }
+  bare_profile_alias: { selectors: ["sources", "src"] }
+  -> selectors.pipeline.pack_selector_plan,
+  grammar: { selectors: ["src,tests~vendor,generated#sources@explain, please@twice"] }
   -> selectors.pipeline.pack_selector_plan,
   metadata: { selectors: ["src~one#source@first", "src~two#arch@prompt.txt", "github:nexssp/flow#source@remote"] }
   -> selectors.pipeline.pack_selector_plan,
@@ -30,6 +43,11 @@ parallel {
   -> selectors.pipeline.pack_selector_plan,
   explicit_output: { output: "out.md", _explicit_pack: true }
   -> selectors.pipeline.pack_selector_plan,
+  saved_view_request: {
+    selectors: ["github:nexssp/flow,github:nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0~*_test.go#sources@explain, please", "folder#arch"],
+    save_view: "demo"
+  }
+  -> selectors.pipeline.pack_save_view_request,
   unknown_profile: { profile: "unknown" }
   -> selectors.pipeline.pack_selector_plan ? on_error {
     else
@@ -37,9 +55,9 @@ parallel {
   },
 }
 -> {
-  expanded_view: .saved_view.selected[0].raw,
-  path_selected: .real_path.selected[0].raw,
-  forced_selected: .forced_target.selected[0].raw,
+  expanded_view: .saved_view.selected[0].selector_text,
+  path_selected: .real_path.selected[0].selector_text,
+  forced_selected: .forced_target.selected[0].selector_text,
   config_view: .config_view.selection.selectors[0].raw,
   path_wins: .path_wins.selection.selectors[0].raw,
   literal_target: .literal_target.selection.selectors[0].raw,
@@ -47,12 +65,20 @@ parallel {
   first_profile: {profile: .first_profile.selection.profile, selectors: map(.first_profile.selection.selectors, #.raw)},
   first_selector_profile: {profile: .first_selector_profile.selection.profile, selectors: map(.first_selector_profile.selection.selectors, #.raw)},
   first_bare_profile: {profile: .first_bare_profile.selection.profile, selectors: map(.first_bare_profile.selection.selectors, #.raw)},
-  existing_profile_path: {profile: .existing_profile_path.selection.profile, selectors: map(.existing_profile_path.selection.selectors, #.raw)},
+  bare_profile_alias: {profile: .bare_profile_alias.selection.profile, selectors: map(.bare_profile_alias.selection.selectors, #.raw)},
+  grammar: {
+    raw: .grammar.selection.selectors[0].raw,
+    targets: .grammar.selection.selectors[0].targets,
+    excludes: .grammar.selection.selectors[0].excludes,
+    profile: .grammar.selection.selectors[0].profile,
+    prompt: .grammar.selection.selectors[0].prompt
+  },
   metadata: {profiles: .metadata.target_profiles, excludes: .metadata.target_excludes, prompts: .metadata.target_prompts},
   explicit_metadata_profile: .explicit_metadata_profile.target_profiles,
   flag_policy: {normalized: .flag_policy.normalized, overrides: .flag_policy.overrides},
   omitted_flags: .omitted_flags.overrides,
   explicit_output: .explicit_output.normalized,
+  saved_view: .saved_view_request.value,
   unknown_profile: .unknown_profile.error
 }
 
@@ -61,10 +87,12 @@ parallel {
 @test: result.first_profile.profile == "arch" && result.first_profile.selectors == ["src"]
 @test: result.first_selector_profile.profile == "source" && result.first_selector_profile.selectors == ["src#source", "dense"]
 @test: result.first_bare_profile.profile == "api" && result.first_bare_profile.selectors == ["compact"]
-@test: result.existing_profile_path.profile == "" && result.existing_profile_path.selectors == ["dense"]
-@test: result.metadata.profiles[keys(result.metadata.excludes)[0]] == "arch" && result.metadata.excludes[keys(result.metadata.excludes)[0]] == "one,two" && result.metadata.prompts[keys(result.metadata.excludes)[0]] == "file prompt"
+@test: result.bare_profile_alias.profile == "source" && result.bare_profile_alias.selectors == ["src"]
+@test: result.grammar.raw == "src,tests~vendor,generated#sources@explain, please@twice" && result.grammar.targets == ["src", "tests"] && result.grammar.excludes == ["vendor", "generated"] && result.grammar.profile == "source" && result.grammar.prompt == "explain, please@twice"
+@test: result.metadata.profiles[keys(result.metadata.excludes)[0]] == "arch" && result.metadata.excludes[keys(result.metadata.excludes)[0]] == "one,two" && result.metadata.prompts[keys(result.metadata.excludes)[0]] == "prompt.txt"
 @test: result.metadata.profiles["github:nexssp/flow"] == "source" && len(result.explicit_metadata_profile) == 0
 @test: result.flag_policy.normalized.output == "_srcpack/" + selectors.route.tree + ".md" && result.flag_policy.normalized.comments == false && result.flag_policy.overrides.strip_comments == true && result.flag_policy.overrides.no_tests == false && result.flag_policy.overrides.no_examples == true && result.flag_policy.overrides.tree_only == false && result.flag_policy.overrides.tree_depth == 7
 @test: result.omitted_flags.strip_comments == nil && result.omitted_flags.no_tests == nil && result.omitted_flags.tree_depth == nil
 @test: result.explicit_output.output == "out.md" && result.explicit_output.explicit_pack == true
+@test: result.saved_view[0] == "github:nexssp/flow,github:nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0~*_test.go#source@explain, please" && result.saved_view[1] contains "folder#arch"
 @test: result.unknown_profile contains "unknown profile"

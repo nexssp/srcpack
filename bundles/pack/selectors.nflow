@@ -1,4 +1,4 @@
-@description "Selector decisions: explicit targets, path/view precedence and profile selection"
+@description "Selector parsing and decisions: path/view precedence, profile selection and metadata"
 @require github.com/nexssp/srcpack/bundles/pack
 @require github.com/nexssp/repo@v0.8.0
 @include "resolution.nflow"
@@ -7,31 +7,92 @@
   pack: "pack"
   tree: "tree"
 }
+
 @macro pack_expand_selector_views() {
   {
     ...,
     selected: flatten(map(.ordered,
-      !#.forced && !#.path_exists && #.has_view ? #.view : [{raw: #.raw, forced: #.forced}]))
+      !#.forced && !#.path_exists && #.has_view ? #.view : [{selector_text: #.selector_text, forced: #.forced, view_root: ""}]))
   }
+}
+
+@macro pack_parse_selector(raw: Expr, forced: Expr, view_root: Expr, profile_aliases: Expr, valid_profiles: Expr) {
+  let raw_value = trim($raw);
+  let prompt_parts = split(raw_value, "@", 2);
+  let without_prompt = trim(prompt_parts[0]);
+  let prompt = len(prompt_parts) > 1 ? trim(prompt_parts[1]) : "";
+  let hash_parts = split(without_prompt, "#", 2);
+  let left = trim(hash_parts[0]);
+  let right = len(hash_parts) > 1 ? trim(hash_parts[1]) : "";
+  let aliases = fromPairs($profile_aliases);
+  let valid_profiles = $valid_profiles;
+  let canonical_left = aliases[lower(left)] ?? lower(left);
+  let canonical_right = aliases[lower(right)] ?? lower(right);
+  let left_is_profile = canonical_left in valid_profiles;
+  let right_is_profile = canonical_right in valid_profiles;
+  let profile_on_left = len(hash_parts) > 1 && left_is_profile && !right_is_profile;
+  let profile = len(hash_parts) > 1 ? (profile_on_left ? canonical_left : canonical_right) : "";
+  let target_source = len(hash_parts) > 1 ? (profile_on_left ? right : left) : without_prompt;
+  let exclude_parts = split(target_source, "~", 2);
+  let target_text = trim(exclude_parts[0]);
+  let excludes = len(exclude_parts) > 1 ? filter(map(split(exclude_parts[1], ","), trim(#)), # != "") : [];
+  let targets = filter(map(split(target_text, ","), trim(#)), # != "");
+  let canonical_raw = aliases[lower(trim(raw_value))] ?? lower(trim(raw_value));
+  raw: raw_value,
+  forced: $forced,
+  view_root: $view_root,
+  targets,
+  profile,
+  prompt,
+  excludes,
+  bare_profile: !(raw_value contains ",") && !(raw_value contains "#") && !(raw_value contains "~") && !(raw_value contains "@") && canonical_raw in valid_profiles,
+  canonical: canonical_raw
+}
+
+@macro pack_parse_selected() {
+  { ... } as selector_context
+  -> { selected: selector_context.selected }
+  -> pick (field: "selected")
+  -> each {
+    { ..., view_root: .view_root ?? "" }
+    -> { @pack_parse_selector(.selector_text, .forced, .view_root, selector_context.profile_aliases, selector_context.valid_profiles) }
+  }
+  -> {
+    input: selector_context.input,
+    cli_bool_flags: selector_context.cli_bool_flags,
+    ordered: selector_context.ordered,
+    profile: selector_context.profile,
+    profile_aliases: selector_context.profile_aliases,
+    valid_profiles: selector_context.valid_profiles,
+    context_command: selector_context.context_command,
+    context_explicit: selector_context.context_explicit,
+    tree_output: selector_context.tree_output,
+    default_depth: selector_context.default_depth,
+    selected: .
+  }
+  -> packcmd.selector_facts
 }
 
 @macro pack_select_candidate_facts() {
   {
     ...,
-    selection: let initial = .profile; reduce(.candidates,
-      let item = #;
-      let take_profile = !item.forced && item.bare_profile && !item.path_exists && #acc.profile == "";
-      {
-        profile: take_profile ? item.canonical : (#acc.profile == "" && item.profile != "" ? item.profile : #acc.profile),
-        selectors: take_profile ? #acc.selectors : concat(#acc.selectors, [item])
-      },
-      {profile: initial, selectors: []})
+    selection: let aliases = fromPairs(.profile_aliases);
+      let raw_profile = lower(trim(.profile));
+      let initial = aliases[raw_profile] ?? raw_profile;
+      reduce(.candidates,
+        let item = #;
+        let take_profile = !item.forced && item.bare_profile && !item.path_exists && #acc.profile == "";
+        {
+          profile: take_profile ? item.canonical : (#acc.profile == "" && item.profile != "" ? item.profile : #acc.profile),
+          selectors: take_profile ? #acc.selectors : concat(#acc.selectors, [item])
+        },
+        {profile: initial, selectors: []})
   }
 }
 
 @macro pack_choose_selectors() {
   @pack_expand_selector_views()
-  -> packcmd.selector_facts
+  -> @pack_parse_selected()
   -> @pack_select_candidate_facts()
 }
 
@@ -100,6 +161,23 @@
   -> { ..., profile_ref: .selection.profile != "" ? .selection.profile : "default" }
 @end
 
+@pipeline pack_save_view_request
+  packcmd.input_facts
+  -> { ..., selected: .ordered }
+  -> @pack_parse_selected()
+  -> { ..., selectors: .candidates }
+  -> packcmd.view_request
+  -> {
+    ...,
+    value: map(.selectors,
+      join(#.targets, ",") +
+      (len(#.excludes) > 0 ? "~" + join(#.excludes, ",") : "") +
+      (#.profile != "" ? "#" + #.profile : "") +
+      (#.prompt != "" ? "@" + #.prompt : "")
+    )
+  }
+@end
+
 @pipeline pack_resolve
   pipeline.pack_selector_plan
   -> packcmd.typed_input
@@ -142,6 +220,8 @@
     io: fromPairs(concat(toPairs(.io), [["output_path", .requested_output != "" ? .requested_output : .io.output_path]])),
     save_view,
     selectors,
+    profile_aliases,
+    valid_profiles,
     command
   }
   -> packcmd.request_maps

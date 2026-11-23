@@ -13,25 +13,6 @@ import (
 	"github.com/nexssp/srcpack/bundles/operators"
 )
 
-func TestRemoteSelectorGroup(t *testing.T) {
-	got := parseSelector("github:nexssp/flow,nexssp/kernel#sources")
-	want := selector{Targets: []string{"github:nexssp/flow", "github:nexssp/kernel"}, Profile: "source"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
-	}
-	got = parseSelector("github:nexssp/flow//compiler?ref=feature%2Fbranch~*_test.go#arch@explain, please")
-	want = selector{Targets: []string{"github:nexssp/flow//compiler?ref=feature%2Fbranch"}, Excludes: []string{"*_test.go"}, Profile: "arch", Prompt: "explain, please"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
-	}
-	if key := selectorTargetKey(got.Targets[0], "/workspace"); key != got.Targets[0] {
-		t.Fatalf("locator became local path: %s", key)
-	}
-	if got := config.CanonicalProfileName("sources"); got != "source" {
-		t.Fatalf("alias: %s", got)
-	}
-}
-
 func TestRemoteResolveMixedTargetsWithoutNetwork(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := os.Mkdir("folder", 0o700); err != nil {
@@ -55,27 +36,39 @@ func TestRemoteResolveMixedTargetsWithoutNetwork(t *testing.T) {
 	}
 }
 
-func TestRemoteViewRoundTrip(t *testing.T) {
+func TestViewRequestNormalizesStructuredTargets(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)
-	raw := "github:nexssp/flow,nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0~*_test.go#sources@explain, please"
-	got, err := viewRequestAction(context.Background(), map[string]any{"selectors": []string{raw, "folder#arch"}, "save_view": "remote"})
+	selectors := []any{
+		map[string]any{
+			"targets":  []string{"github:nexssp/flow", "github:nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0"},
+			"excludes": []string{"*_test.go"}, "profile": "source", "prompt": "explain, please",
+		},
+		map[string]any{"targets": []string{"folder"}, "excludes": []string{}, "profile": "arch", "prompt": ""},
+	}
+	got, err := viewRequestAction(context.Background(), map[string]any{"selectors": selectors, "save_view": "remote"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	saved, ok := got["value"].([]string)
+	saved, ok := got["selectors"].([]any)
 	if !ok || len(saved) != 2 {
-		t.Fatalf("saved value has type %T, want two strings", got["value"])
+		t.Fatalf("saved selectors have type %T, want two selectors", got["selectors"])
 	}
-	wantRemote := "github:nexssp/flow,github:nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0~*_test.go#source@explain, please"
-	if saved[0] != wantRemote {
-		t.Fatalf("saved remote: %s", saved[0])
+	remoteSelector, ok := saved[0].(map[string]any)
+	if !ok {
+		t.Fatalf("remote selector has type %T", saved[0])
 	}
-	if restored := resolveViewSelector(saved[0], root); restored != wantRemote {
-		t.Fatalf("replayed remote: %s", restored)
+	wantRemote := []string{"github:nexssp/flow", "github:nexssp/kernel//action?ref=refs%2Ftags%2Fv0.35.0"}
+	if got := stringSliceField(remoteSelector["targets"]); !reflect.DeepEqual(got, wantRemote) {
+		t.Fatalf("remote targets: %#v", got)
 	}
-	if restored := resolveViewSelector(saved[1], root); !strings.HasPrefix(restored, filepath.Join(root, "folder")) {
-		t.Fatalf("local replay: %s", restored)
+	localSelector, ok := saved[1].(map[string]any)
+	if !ok {
+		t.Fatalf("local selector has type %T", saved[1])
+	}
+	localTargets := stringSliceField(localSelector["targets"])
+	if len(localTargets) != 1 || filepath.IsAbs(localTargets[0]) || !strings.HasSuffix(localTargets[0], "folder") {
+		t.Fatalf("local path was not made project-relative: %#v", localTargets)
 	}
 }
 

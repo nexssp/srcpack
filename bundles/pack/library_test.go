@@ -86,32 +86,6 @@ func TestSelectorTargetKeyRemovesSupportedLineRanges(t *testing.T) {
 	}
 }
 
-func TestProfileLookupUsesBuiltinProfilesAndAliases(t *testing.T) {
-	t.Parallel()
-	for _, profile := range config.BuiltinProfiles {
-		if !isProfile(profile.Name) || canonicalProfile(profile.Name) != profile.Name {
-			t.Errorf("built-in profile %q did not resolve to itself", profile.Name)
-		}
-		for _, alias := range profile.Aliases {
-			if !isProfile(alias) || canonicalProfile(alias) != profile.Name {
-				t.Errorf("alias %q did not resolve consistently to %q", alias, profile.Name)
-			}
-		}
-		if !containsProfileName(builtinProfileNames(), profile.Name) {
-			t.Errorf("built-in profile %q missing from NFlow validation names", profile.Name)
-		}
-	}
-}
-
-func containsProfileName(values []any, want string) bool {
-	for _, value := range values {
-		if value == want {
-			return true
-		}
-	}
-	return false
-}
-
 func TestResolveMaskOverridePreservesDefaultAndFollowsExplicitFlagOrder(t *testing.T) {
 	t.Parallel()
 	if !(config.ConfigOptions{}).ToOptions().MaskSecrets {

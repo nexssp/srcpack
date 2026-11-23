@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/nexssp/flow/compiler"
@@ -90,12 +89,6 @@ type cliOptions struct {
 	CopyExplicit   bool
 	Stdout         bool
 	OutputExplicit bool
-}
-type selector struct {
-	Targets  []string
-	Profile  string
-	Prompt   string
-	Excludes []string
 }
 
 // ResolveInput accepts only typed fields produced by tcli (or a test adapter); it never interprets raw argv.
@@ -274,6 +267,8 @@ func typedInput(ctx context.Context, envelope map[string]any) (map[string]any, e
 		plan.Facts = make(map[string]any)
 	}
 	plan.Facts["requested_output"] = requestedOutput
+	plan.Facts["profile_aliases"] = envelope["profile_aliases"]
+	plan.Facts["valid_profiles"] = envelope["valid_profiles"]
 	host, err := json.Marshal(packRequestHost{CLI: cli, Started: time.Now(), Plan: plan})
 	if err != nil {
 		return nil, fmt.Errorf("packcmd.typed_input: encode host facts: %w", err)
@@ -402,7 +397,7 @@ func buildRequest(ctx context.Context, envelope map[string]any) (map[string]any,
 		outputPath = "-"
 	}
 	io := map[string]any{"explicit_pack": cli.ExplicitPack, "check": check, "fail_on_change": cli.FailOnChange, "plan": cli.Plan, "json": cli.JSON, "copy": boolField(policy, "copy"), "copy_explicit": cli.CopyExplicit, "preview": cli.Config.Preview, "explicit_copy": cli.Config.Copy && cli.CopyExplicit, "quiet": cli.Config.Quiet, "started_at": started.UnixNano(), "output_path": outputPath, "explicit_output": cli.Config.Output, "output_explicit": cli.OutputExplicit, "config_path": cli.ConfigPath, "stdout": cli.Stdout, "color": cli.Config.Color}
-	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", ""), "target_profiles": targetProfiles, "target_excludes": targetExcludes}, nil
+	return map[string]any{"pack": packMap, "stats": statsMap, "render": renderMap, "io": io, "save_view": cli.SaveView, "selectors": cli.RawSelectors, "command": cli.Command, "requested_output": stringField(envelope, "requested_output", ""), "target_profiles": targetProfiles, "target_excludes": targetExcludes, "profile_aliases": host.Plan.Facts["profile_aliases"], "valid_profiles": host.Plan.Facts["valid_profiles"]}, nil
 }
 
 func statisticsAction(ctx context.Context, in map[string]any) (map[string]any, error) {
@@ -439,7 +434,7 @@ func statisticsAction(ctx context.Context, in map[string]any) (map[string]any, e
 }
 
 func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, error) {
-	selectors := stringSliceField(in["selectors"])
+	selectors, _ := in["selectors"].([]any)
 	if len(selectors) == 0 {
 		return nil, errors.New("--save-view requires at least one selector")
 	}
@@ -451,10 +446,14 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 	if path == "" {
 		path = filepath.Join(root, config.ConfigFileName)
 	}
-	normalized := make([]string, 0, len(selectors))
-	for _, raw := range selectors {
-		sel := parseSelector(raw)
-		for i, target := range sel.Targets {
+	normalized := make([]any, 0, len(selectors))
+	for _, value := range selectors {
+		sel, ok := value.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("save-view selector has type %T", value)
+		}
+		targets := stringSliceField(sel["targets"])
+		for i, target := range targets {
 			if remote.IsRemote(target) {
 				continue
 			}
@@ -466,11 +465,14 @@ func viewRequestAction(_ context.Context, in map[string]any) (map[string]any, er
 			if err != nil {
 				return nil, err
 			}
-			sel.Targets[i] = filepath.ToSlash(rel)
+			targets[i] = filepath.ToSlash(rel)
 		}
-		normalized = append(normalized, rebuildSelector(sel, sel.Targets))
+		normalized = append(normalized, map[string]any{
+			"targets": targets, "excludes": stringSliceField(sel["excludes"]),
+			"profile": stringField(sel, "profile", ""), "prompt": stringField(sel, "prompt", ""),
+		})
 	}
-	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "value": normalized, "replace": true, "legacy": true}, nil
+	return map[string]any{"operation": "save", "path": path, "name": stringField(in, "save_view", ""), "selectors": normalized, "replace": true, "legacy": true}, nil
 }
 
 func jsonObject(v any) (map[string]any, error) {
@@ -584,99 +586,12 @@ func resolvePromptFile(value, cwd string) string {
 	return value
 }
 
-func parseSelector(raw string) selector {
-	r := selector{}
-	v := strings.TrimSpace(raw)
-	if at := strings.Index(v, "@"); at >= 0 {
-		r.Prompt = strings.TrimSpace(v[at+1:])
-		v = strings.TrimSpace(v[:at])
-	}
-	if h := strings.Index(v, "#"); h >= 0 {
-		l, rr := strings.TrimSpace(v[:h]), strings.TrimSpace(v[h+1:])
-		var value string
-		if isProfile(canonicalProfile(l)) && !isProfile(canonicalProfile(rr)) {
-			r.Profile, value = canonicalProfile(l), rr
-		} else {
-			r.Profile, value = canonicalProfile(rr), l
-		}
-		v = value
-	}
-	if m := strings.Index(v, "~"); m >= 0 {
-		for x := range strings.SplitSeq(v[m+1:], ",") {
-			if x = strings.TrimSpace(x); x != "" {
-				r.Excludes = append(r.Excludes, x)
-			}
-		}
-		v = v[:m]
-	}
-	provider := ""
-	if remote.IsRemote(v) {
-		provider = "github:"
-	}
-	for x := range strings.SplitSeq(v, ",") {
-		if x = strings.TrimSpace(x); x != "" {
-			if provider != "" && !remote.IsRemote(x) {
-				x = provider + x
-			}
-			r.Targets = append(r.Targets, x)
-		}
-	}
-	return r
-}
-
-func isBareProfile(v string) bool {
-	return !strings.ContainsAny(v, ",#~@") && isProfile(canonicalProfile(v))
-}
-
-func canonicalProfile(name string) string {
-	return strings.ToLower(config.CanonicalProfileName(name))
-}
-
-func isProfile(name string) bool {
-	_, ok := config.FindBuiltinProfile(name)
-	return ok
-}
-
 func builtinProfileNames() []any {
 	names := make([]any, 0, len(config.BuiltinProfiles))
 	for i := range config.BuiltinProfiles {
 		names = append(names, config.BuiltinProfiles[i].Name)
 	}
 	return names
-}
-
-func resolveViewSelector(raw, root string) string {
-	if root == "" {
-		return raw
-	}
-	sel := parseSelector(raw)
-	if len(sel.Targets) == 0 {
-		return raw
-	}
-	for i, t := range sel.Targets {
-		if !remote.IsRemote(t) && !filepath.IsAbs(t) {
-			sel.Targets[i] = filepath.Join(root, t)
-		}
-	}
-	return rebuildSelector(sel, sel.Targets)
-}
-
-func rebuildSelector(sel selector, targets []string) string {
-	var b strings.Builder
-	b.WriteString(strings.Join(targets, ","))
-	if len(sel.Excludes) > 0 {
-		b.WriteString("~")
-		b.WriteString(strings.Join(sel.Excludes, ","))
-	}
-	if sel.Profile != "" {
-		b.WriteString("#")
-		b.WriteString(sel.Profile)
-	}
-	if sel.Prompt != "" {
-		b.WriteString("@")
-		b.WriteString(sel.Prompt)
-	}
-	return b.String()
 }
 
 // stringMapField bridges expression maps to typed configuration, preserving nil

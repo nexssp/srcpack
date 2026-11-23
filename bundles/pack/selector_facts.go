@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/nexssp/srcpack/bundles/cliinput"
 	"github.com/nexssp/srcpack/bundles/config"
 	remote "github.com/nexssp/srcpack/bundles/github_source"
 )
 
-// inputFacts performs effects and reports syntax/provenance facts only. View
-// expansion and path/profile precedence are chosen in selectors.nflow.
+// inputFacts performs filesystem checks and reports selector/profile metadata.
+// Selector grammar and precedence decisions are implemented in selectors.nflow.
 func inputFacts(ctx context.Context, in map[string]any) (map[string]any, error) {
 	if boolField(in, "_derived_request") {
 		ctx = cliinput.WithRawArguments(ctx, nil)
@@ -66,49 +67,86 @@ func inputFacts(ctx context.Context, in map[string]any) (map[string]any, error) 
 	for _, item := range ordered {
 		_, statErr := os.Stat(item.Value)
 		values, hasView := cfg.Views[item.Value]
+		// Flow's projection runtime reserves the top-level "raw" key for its source body.
 		view := make([]any, 0, len(values))
 		for _, raw := range values {
-			view = append(view, map[string]any{"raw": resolveViewSelector(raw, root), "forced": false})
+			view = append(view, map[string]any{"selector_text": raw, "forced": false, "view_root": root})
 		}
-		facts = append(facts, map[string]any{"raw": item.Value, "forced": item.Field == "targets", "path_exists": statErr == nil, "has_view": hasView, "view": view})
+		facts = append(facts, map[string]any{"selector_text": item.Value, "forced": item.Field == "targets", "path_exists": statErr == nil, "has_view": hasView, "view": view})
 	}
 	inv, _ := ctx.Value(invocationKey{}).(invocation)
-	return map[string]any{"input": in, "cli_bool_flags": boolOverrides, "ordered": facts, "profile": canonicalProfile(stringField(in, "profile", "")), "valid_profiles": builtinProfileNames(), "context_command": inv.command, "context_explicit": inv.explicitPack, "tree_output": filepath.Join("_srcpack", "tree.md"), "default_depth": config.DefaultTreeDepth}, nil
+	return map[string]any{
+		"input": in, "cli_bool_flags": boolOverrides, "ordered": facts,
+		"profile": stringField(in, "profile", ""), "profile_aliases": builtinProfileAliases(),
+		"valid_profiles": builtinProfileNames(), "context_command": inv.command,
+		"context_explicit": inv.explicitPack, "tree_output": filepath.Join("_srcpack", "tree.md"),
+		"default_depth": config.DefaultTreeDepth,
+	}, nil
 }
 
-// selectorFacts parses srcpack's grammar and reports filesystem facts. It does
-// not choose whether a token is a profile, a literal path or a saved view.
+// selectorFacts accepts selectors already parsed by selectors.nflow. Go owns
+// only filesystem checks, local path normalization, and remote-source validation.
 func selectorFacts(_ context.Context, in map[string]any) (map[string]any, error) {
 	selected, _ := in["selected"].([]any)
 	facts := make([]any, 0, len(selected))
+	input, _ := in["input"].(map[string]any)
+	cwd := stringField(input, "cwd", "")
 	for _, value := range selected {
 		item, ok := value.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("selector fact has type %T", value)
 		}
 		raw := stringField(item, "raw", "")
-		parsed := parseSelector(raw)
-		for _, target := range parsed.Targets {
-			if remote.IsRemote(target) {
-				if _, err := remote.Parse(target); err != nil {
+		targets := stringSliceField(item["targets"])
+		if len(targets) > 0 && remote.IsRemote(targets[0]) {
+			for i := 1; i < len(targets); i++ {
+				if !remote.IsRemote(targets[i]) {
+					targets[i] = "github:" + targets[i]
+				}
+			}
+		}
+		viewRoot := stringField(item, "view_root", "")
+		for i, target := range targets {
+			if viewRoot != "" && !remote.IsRemote(target) && !filepath.IsAbs(target) {
+				targets[i] = filepath.Join(viewRoot, target)
+			}
+			if remote.IsRemote(targets[i]) {
+				if _, err := remote.Parse(targets[i]); err != nil {
 					return nil, err
 				}
 			}
 		}
 		_, statErr := os.Stat(raw)
-		bindings := make([]any, 0, len(parsed.Targets))
-		input, _ := in["input"].(map[string]any)
-		cwd := stringField(input, "cwd", "")
-		prompt := parsed.Prompt
+		profile := stringField(item, "profile", "")
+		prompt := stringField(item, "prompt", "")
 		if prompt != "" {
 			prompt = resolvePromptFile(prompt, cwd)
 		}
-		for _, target := range parsed.Targets {
+		excludes := stringSliceField(item["excludes"])
+		bindings := make([]any, 0, len(targets))
+		for _, target := range targets {
 			key := selectorTargetKey(target, cwd)
-			bindings = append(bindings, map[string]any{"key": key, "profile": parsed.Profile, "has_prompt": parsed.Prompt != "", "prompt": prompt, "excludes": parsed.Excludes})
+			bindings = append(bindings, map[string]any{"key": key, "profile": profile, "has_prompt": stringField(item, "prompt", "") != "", "prompt": prompt, "excludes": excludes})
 		}
-		facts = append(facts, map[string]any{"bindings": bindings, "targets": parsed.Targets, "raw": raw, "forced": boolField(item, "forced"), "path_exists": statErr == nil, "bare_profile": isBareProfile(raw), "canonical": canonicalProfile(raw), "profile": parsed.Profile})
+		facts = append(facts, map[string]any{
+			"bindings": bindings, "targets": targets, "excludes": excludes, "prompt": stringField(item, "prompt", ""),
+			"raw": raw, "forced": boolField(item, "forced"), "path_exists": statErr == nil,
+			"bare_profile": boolField(item, "bare_profile"), "canonical": stringField(item, "canonical", ""),
+			"profile": profile,
+		})
 	}
 	in["candidates"] = facts
 	return in, nil
+}
+
+func builtinProfileAliases() []any {
+	aliases := make([]any, 0)
+	for _, profile := range config.BuiltinProfiles {
+		canonical := strings.ToLower(strings.TrimSpace(profile.Name))
+		aliases = append(aliases, []any{canonical, canonical})
+		for _, alias := range profile.Aliases {
+			aliases = append(aliases, []any{strings.ToLower(strings.TrimSpace(alias)), canonical})
+		}
+	}
+	return aliases
 }

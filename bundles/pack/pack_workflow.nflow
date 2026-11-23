@@ -28,7 +28,7 @@
     _
     -> noop
   }
-  -> { report: { name: .save_view, count: len(.selectors) }, result: match { _ -> packcmd.view_request -> config_views.pipeline.config_views } }
+  -> { report: { name: .save_view, count: len(.selectors) }, result: match { _ -> selectors.pipeline.pack_save_view_request -> config_views.pipeline.config_views } }
   -> { content: "✓ Saved view " + toJSON(.report.name) + " (" + string(.report.count) + " selector(s))\n" }
   -> cli.print
   -> cli.finish
