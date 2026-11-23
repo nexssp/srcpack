@@ -42,6 +42,84 @@ func captureFlowCLIStreams(t *testing.T, run func() error) (string, string, erro
 	return <-stdoutResult, <-stderrResult, runErr
 }
 
+func TestParseFlowDiagnosticArgs(t *testing.T) {
+	commandArgs, options, err := parseFlowDiagnosticArgs([]string{
+		"pack", "--profile-actions", "--file", "main.go", "--cpu-profile", "scan.pprof", "--quiet",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantArgs := []string{"pack", "--file", "main.go", "--quiet"}
+	if !reflect.DeepEqual(commandArgs, wantArgs) || !options.profileActions || options.cpuProfilePath != "scan.pprof" {
+		t.Fatalf("parsed args = %v, %+v; want %v, action profiling and CPU profile scan.pprof", commandArgs, options, wantArgs)
+	}
+	commandArgs, options, err = parseFlowDiagnosticArgs([]string{"pack", "--", "--profile-actions", "--cpu-profile", "ignored.pprof"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(commandArgs, []string{"pack", "--", "--profile-actions", "--cpu-profile", "ignored.pprof"}) || options.profileActions || options.cpuProfilePath != "" {
+		t.Fatalf("args following -- must remain command arguments: %v, %+v", commandArgs, options)
+	}
+	for _, args := range [][]string{
+		{"--cpu-profile"}, {"--cpu-profile="}, {"--cpu-profile", "--profile-actions"},
+		{"--cpu-profile", "one.pprof", "--cpu-profile=two.pprof"},
+	} {
+		if _, _, err := parseFlowDiagnosticArgs(args); err == nil {
+			t.Errorf("invalid profiling args accepted: %v", args)
+		}
+	}
+}
+
+func TestFlowCLIProfileActionsKeepsJSONCleanAndOriginalCommand(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
+	t.Chdir(root)
+	args := []string{"pack", "--file", "main.go", "--json", "--output", "-", "--profile-actions"}
+	stdout, stderr, err := captureFlowCLIStreams(t, func() error { return execute(context.Background(), args) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Command   string `json:"command"`
+		Operation string `json:"operation"`
+		Content   string `json:"content"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("profiled --json output is invalid: %v\n%s", err, stdout)
+	}
+	if result.Command != "srcpack pack --file main.go --json --output - --profile-actions" || result.Operation != "pack" || !strings.Contains(result.Content, "func Main()") {
+		t.Fatalf("unexpected profiled JSON result: %+v", result)
+	}
+	if !strings.Contains(stderr, "ACTION TREE") {
+		t.Fatalf("action tree diagnostics missing from stderr: %s", stderr)
+	}
+	if strings.Contains(stdout, "ACTION TREE") {
+		t.Fatal("action diagnostics corrupted JSON stdout")
+	}
+}
+
+func TestFlowCLICPUProfileWritesArtifactWithoutActionTree(t *testing.T) {
+	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
+	t.Chdir(root)
+	args := []string{"pack", "--file", "main.go", "--stdout", "--quiet", "--cpu-profile=scan.pprof"}
+	stdout, stderr, err := captureFlowCLIStreams(t, func() error { return execute(context.Background(), args) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, "func Main()") {
+		t.Fatalf("normal pack output missing: %s", stdout)
+	}
+	info, err := os.Stat("scan.pprof")
+	if err != nil {
+		t.Fatalf("CPU profile was not created: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatal("CPU profile file is empty")
+	}
+	if strings.Contains(stderr, "ACTION TREE") || !strings.Contains(stderr, "CPU PROFILE") {
+		t.Fatalf("profiling diagnostics missing from stderr: %s", stderr)
+	}
+}
+
 func TestFlowCLIPackSummaryStartsWithOriginalCommand(t *testing.T) {
 	root := materializeWorkspace(t, map[string]string{"main.go": "package main\nfunc Main() {}\n"})
 	t.Chdir(root)

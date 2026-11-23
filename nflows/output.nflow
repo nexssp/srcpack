@@ -55,7 +55,9 @@
 @end
 
 @pipeline emit_output
-  match(.policy.mode) {
+  noop
+  -> srcpack.sanitize_output
+  -> match(.policy.mode) {
     output_mode.file
     -> srcpack.write_output,
     output_mode.check

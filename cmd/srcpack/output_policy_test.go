@@ -239,18 +239,18 @@ func TestNFlowSelectsOutputEffects(t *testing.T) {
 		copy, fail bool
 		want       []string
 	}{
-		{name: "file", mode: "file", want: []string{"write_output", "report_output"}},
-		{name: "file and clipboard", mode: "file", copy: true, want: []string{"write_output", "copy_output", "report_output"}},
-		{name: "check and clipboard compatibility", mode: "check", copy: true, want: []string{"check_output", "copy_output", "report_output"}},
-		{name: "clipboard only", mode: "clipboard", copy: true, want: []string{"copy_output", "report_output"}},
-		{name: "stdout", mode: "stdout", want: []string{"print_output", "report_output"}},
-		{name: "failed file stops clipboard and success", mode: "file", copy: true, fail: true, want: []string{"write_output"}},
+		{name: "file", mode: "file", want: []string{"sanitize_output", "write_output", "report_output"}},
+		{name: "file and clipboard", mode: "file", copy: true, want: []string{"sanitize_output", "write_output", "copy_output", "report_output"}},
+		{name: "check and clipboard compatibility", mode: "check", copy: true, want: []string{"sanitize_output", "check_output", "copy_output", "report_output"}},
+		{name: "clipboard only", mode: "clipboard", copy: true, want: []string{"sanitize_output", "copy_output", "report_output"}},
+		{name: "stdout", mode: "stdout", want: []string{"sanitize_output", "print_output", "report_output"}},
+		{name: "failed file stops clipboard and success", mode: "file", copy: true, fail: true, want: []string{"sanitize_output", "write_output"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var called []string
 			var actions []action.AnyAction
-			for _, name := range []string{"write_output", "check_output", "print_output", "copy_output", "report_output"} {
+			for _, name := range []string{"sanitize_output", "write_output", "check_output", "print_output", "copy_output", "report_output"} {
 				actions = append(actions, action.New("srcpack."+name, func(_ context.Context, in map[string]any) (map[string]any, error) {
 					called = append(called, name)
 					if tc.fail && name == "write_output" {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nexssp/flow/extensions/fs"
+	"github.com/nexssp/flow/runner"
 	"github.com/nexssp/kernel/action"
 
 	"github.com/nexssp/srcpack/bundles/terminal"
@@ -127,6 +128,7 @@ func OutputActions() []action.AnyAction {
 func outputActionsWithClipboardWriter(writeClipboard func(string) error) []action.AnyAction {
 	return []action.AnyAction{
 		action.New("srcpack.join_output", joinOutputAction).Build(),
+		outputEffect("srcpack.sanitize_output", sanitizeOutputAction),
 		outputEffect("srcpack.write_output", writeOutputAction),
 		outputEffect("srcpack.check_output", checkOutputAction),
 		outputEffect("srcpack.print_output", printOutputAction),
@@ -135,6 +137,11 @@ func outputActionsWithClipboardWriter(writeClipboard func(string) error) []actio
 		}),
 		action.New("srcpack.report_output", reportOutputMapAction).Build(),
 	}
+}
+
+func sanitizeOutputAction(ctx context.Context, envelope OutputEnvelope) (OutputEnvelope, error) {
+	envelope.Content = runner.SanitizeOutputText(ctx, envelope.Content)
+	return envelope, nil
 }
 
 func writeOutputAction(_ context.Context, envelope OutputEnvelope) (OutputEnvelope, error) {

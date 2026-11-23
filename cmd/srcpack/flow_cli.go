@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	flowselfbench "github.com/nexssp/flow/cli/selfbench"
 	"github.com/nexssp/flow/compiler"
 	"github.com/nexssp/flow/extensions/require"
 	"github.com/nexssp/flow/native"
@@ -81,7 +82,11 @@ func execute(ctx context.Context, args []string) error {
 }
 
 func runCommandEntrypoint(ctx context.Context, args []string) (bool, error) {
-	normalized, command, explicitPack, err := commandInvocation(ctx, args)
+	commandArgs, diagnostics, err := parseFlowDiagnosticArgs(args)
+	if err != nil {
+		return true, err
+	}
+	normalized, command, explicitPack, err := commandInvocation(ctx, commandArgs)
 	if err != nil {
 		return true, err
 	}
@@ -109,12 +114,104 @@ func runCommandEntrypoint(ctx context.Context, args []string) (bool, error) {
 	if err != nil {
 		return true, fmt.Errorf("build CLI runner: %w", err)
 	}
-	_, err = runner.Execute(ctx, cfg, string(source), "srcpack.nflow", nil)
+	err = executeFlowWithDiagnostics(ctx, cfg, string(source), diagnostics)
 	if err != nil {
-		err = withSelectorOrderHint(args, err)
+		err = withSelectorOrderHint(commandArgs, err)
 	}
 	flushTransportDiagnostics(os.Stderr, transportDiagnostics.String(), err)
 	return true, err
+}
+
+type flowDiagnosticOptions struct {
+	profileActions bool
+	cpuProfilePath string
+}
+
+// parseFlowDiagnosticArgs removes host-only profiling flags before srcpack's
+// NFlow CLI normalizer sees them. The original argv is retained separately for
+// command metadata and human-readable summaries.
+func parseFlowDiagnosticArgs(args []string) ([]string, flowDiagnosticOptions, error) {
+	commandArgs := make([]string, 0, len(args))
+	var options flowDiagnosticOptions
+	cpuProfileSet := false
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			commandArgs = append(commandArgs, args[i:]...)
+			break
+		}
+		if arg == "--profile-actions" {
+			options.profileActions = true
+			continue
+		}
+		if arg == "--cpu-profile" {
+			if cpuProfileSet {
+				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile may be specified only once")
+			}
+			if i+1 >= len(args) || args[i+1] == "" || strings.HasPrefix(args[i+1], "-") {
+				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile requires a file path")
+			}
+			i++
+			options.cpuProfilePath = args[i]
+			cpuProfileSet = true
+			continue
+		}
+		if strings.HasPrefix(arg, "--cpu-profile=") {
+			if cpuProfileSet {
+				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile may be specified only once")
+			}
+			options.cpuProfilePath = strings.TrimPrefix(arg, "--cpu-profile=")
+			if options.cpuProfilePath == "" {
+				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile requires a file path")
+			}
+			cpuProfileSet = true
+			continue
+		}
+		commandArgs = append(commandArgs, arg)
+	}
+	return commandArgs, options, nil
+}
+
+func executeFlowWithDiagnostics(ctx context.Context, cfg runner.Config, source string, options flowDiagnosticOptions) (runErr error) {
+	var profiler *flowselfbench.ActionProfiler
+	if options.profileActions {
+		profiler = flowselfbench.NewActionProfiler()
+		cfg.Hooks = append(cfg.Hooks[:len(cfg.Hooks):len(cfg.Hooks)], profiler.Hook())
+	}
+	var cpuProfile *flowselfbench.CPUProfile
+	if options.cpuProfilePath != "" {
+		var err error
+		cpuProfile, err = flowselfbench.StartCPUProfile(options.cpuProfilePath)
+		if err != nil {
+			return fmt.Errorf("start CPU profile: %w", err)
+		}
+	}
+	if profiler != nil {
+		profiler.Start()
+	}
+	var cpuSummary *flowselfbench.CPUProfileSummary
+	defer func() {
+		if cpuProfile != nil {
+			summary, err := cpuProfile.Stop()
+			cpuSummary = &summary
+			if err != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("stop CPU profile: %w", err))
+			}
+		}
+		if profiler != nil {
+			profiler.Stop()
+			if err := flowselfbench.RenderActionTree(os.Stderr, profiler.Snapshot()); err != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("write action profile: %w", err))
+			}
+		}
+		if cpuSummary != nil {
+			if err := flowselfbench.RenderCPUProfileSummary(os.Stderr, *cpuSummary); err != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("write CPU profile summary: %w", err))
+			}
+		}
+	}()
+	_, runErr = runner.Execute(ctx, cfg, source, "srcpack.nflow", nil)
+	return runErr
 }
 
 const selectorOrderHint = "Selector parts are ordered path~exclude#profile; move '~exclude' before '#profile' (for example: ../flow~*.nflow#arch)."

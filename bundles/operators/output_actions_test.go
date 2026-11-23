@@ -3,6 +3,7 @@ package operators
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/nexssp/flow/compiler"
+	"github.com/nexssp/flow/compiler/secret"
 	"github.com/nexssp/flow/native"
 	"github.com/nexssp/flow/runner"
 	"github.com/nexssp/kernel/action"
@@ -217,5 +219,96 @@ func TestOutputActionsComposeThroughFlow(t *testing.T) {
 		data, err := os.ReadFile(path)
 		ktest.RequireNoError(t, err)
 		ktest.RequireEqual(t, string(data), tc.content)
+	}
+}
+
+func TestOutputEffectsSanitizeDeclaredSecretBeforeEmission(t *testing.T) {
+	const token = "srcpack-output-secret-canary"
+	path := filepath.Join(t.TempDir(), "out.txt")
+	var clipboardText string
+	writeClipboard := func(value string) error {
+		clipboardText = value
+		return nil
+	}
+	makeOutput := action.New("test.make_output", func(_ context.Context, input map[string]any) (map[string]any, error) {
+		value, ok := input["api_key"].(secret.Value)
+		if !ok {
+			return nil, fmt.Errorf("api_key type = %T, want secret.Value", input["api_key"])
+		}
+		var raw string
+		if err := secret.WithValue(value, func(bytes []byte) error {
+			raw = string(bytes)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		mode, _ := input["mode"].(string)
+		return map[string]any{
+			"content":        "generated from " + raw,
+			"rendered_items": 1,
+			"policy": map[string]any{
+				"mode": mode, "path": path, "copy": mode == "clipboard", "preview": mode == "clipboard",
+				"quiet": mode != "clipboard", "color": "never", "started_at": int64(0),
+			},
+		}, nil
+	}).Build()
+	bundle := compiler.Bundle{
+		ID:        "srcpack-final-output-secret-test",
+		Libraries: []action.Library{{Name: "test", Actions: []action.AnyAction{makeOutput}}},
+		ArgSchemas: map[string][]compiler.ArgFieldSpec{
+			"test.make_output": {
+				{Name: "api_key", Kind: compiler.ArgSecret},
+				{Name: "mode", Kind: compiler.ArgString},
+			},
+		},
+	}
+	cfg, err := runner.BuildConfig(append(native.Bundles(), compiler.Bundle{
+		ID:        "srcpack-final-output-test",
+		Libraries: []action.Library{ioLibraryWithClipboardWriter(writeClipboard)},
+	}, bundle))
+	ktest.RequireNoError(t, err)
+	source := `@include "output.nflow"
+@schema Request {
+  APIKey secret ` + "`json:\"api_key\"`" + `
+  Mode string ` + "`json:\"mode\"`" + `
+}
+@pipeline emit_output
+  :request-schema=Request
+  test.make_output(api_key: .api_key, mode: .mode)
+  -> output.pipeline.emit_output
+@end
+pipeline.emit_output
+`
+	ctx := compiler.WithSourceLoader(t.Context(), nflows.Loader())
+	for _, mode := range []string{"file", "stdout", "clipboard"} {
+		payload := map[string]any{"api_key": token, "mode": mode}
+		var stderr string
+		var runErr error
+		if mode == "stdout" {
+			stdout := captureOutput(t, &os.Stdout, func() {
+				_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
+			})
+			if strings.Contains(stdout, token) || !strings.Contains(stdout, secret.Redacted) {
+				t.Fatalf("stdout emission = %q, want Secret redacted", stdout)
+			}
+		} else if mode == "clipboard" {
+			stderr = captureOutput(t, &os.Stderr, func() {
+				_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
+			})
+			if strings.Contains(clipboardText, token) || !strings.Contains(clipboardText, secret.Redacted) {
+				t.Fatalf("clipboard emission = %q, want Secret redacted", clipboardText)
+			}
+			if strings.Contains(stderr, token) || !strings.Contains(stderr, secret.Redacted) {
+				t.Fatalf("preview emission = %q, want Secret redacted", stderr)
+			}
+		} else {
+			_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
+			data, readErr := os.ReadFile(path)
+			ktest.RequireNoError(t, readErr)
+			if strings.Contains(string(data), token) || !strings.Contains(string(data), secret.Redacted) {
+				t.Fatalf("file emission = %q, want Secret redacted", data)
+			}
+		}
+		ktest.RequireNoError(t, runErr)
 	}
 }

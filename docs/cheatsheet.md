@@ -201,7 +201,18 @@ srcpack clean --dry-run          # preview cleanup
     --config PATH
 -C, --cwd DIR
     --save-view NAME
+
+# Diagnostics (host-side; diagnostics go to stderr)
+    --profile-actions      nested action tree with inclusive/self wall time
+    --cpu-profile FILE     Go CPU pprof for the Flow runner execution; does not attach the action hook
 ```
+
+The profiling flags are removed before srcpack's NFlow CLI normalization, but
+the original invocation remains in command metadata. `--cpu-profile` profiles
+the Flow runner in the same srcpack process without attaching the action-tree
+hook; use `--profile-actions` separately when that tree is needed. CPU profiling
+does not include earlier argv normalization or runner configuration setup, and
+an existing CPU-profile file is replaced.
 
 Genuinely sliced file headers inline their inclusive 1-based source range, such as `## internal/auth/service.go:80-140`; whole-file headers keep the plain path, and one-line slices collapse to `:N`. The `${SOURCE_RANGE}` placeholder is available to custom `file_start` templates; raw, none, and text presets remain empty. Structured source records retain complete `line_spans`, `symbol_spans`, and commit-pinned `source_url` provenance, and custom templates can use `${SOURCE_URL}` for a clickable citation. Coordinates are per-file and never refer to positions in the concatenated pack. Blank, synthetic, ambiguous, or unmatched lines may be unmapped. GitHub links retain their required `#Lx-Ly` anchors. Go signature profiles also include per-symbol original line spans; symbol selection is not yet supported.
 

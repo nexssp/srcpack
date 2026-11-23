@@ -53,6 +53,9 @@ Options:
       --no-examples        Exclude example directories
       --prompt TEXT        Add inline prompt text or load it from a file
       --save-view NAME     Save the current selectors as a reusable view
+  Profiling (host-side options; diagnostics go to stderr):
+      --profile-actions    Print a nested action call tree with inclusive/self wall time
+      --cpu-profile FILE   Save a Go CPU profile and print top functions (no action hook)
   -e, --editor NAME        Format: markdown, raw, none, text, zed, claude, fold
   -o, --output PATH        Save to a file instead of stdout; use - for standard output
       --stdout             Print full result to stdout (same as -o -); cannot combine with -o FILE
