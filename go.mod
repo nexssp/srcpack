@@ -5,8 +5,8 @@ go 1.27.4
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/expr-lang/expr v1.17.8
-	github.com/nexssp/flow v0.100.5
-	github.com/nexssp/kernel v0.40.3
+	github.com/nexssp/flow v0.102.0
+	github.com/nexssp/kernel v1.0.0
 	github.com/nexssp/lang v0.2.1
 	github.com/nexssp/repo v0.8.0
 	github.com/nexssp/transport v0.19.1
