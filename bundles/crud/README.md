@@ -6,7 +6,7 @@ danych serializowalnych do YAML. Nie importuje srcpack, nie zna konfiguracji,
 historii rewizji. Wartości są danymi, nigdy kodem do wykonania.
 
 Skopiuj **cały katalog**, włącznie z `crud.nflow`, do własnego modułu. Zależności:
-Go `1.26.9`, Flow i kernel `v0.35.0`, `gopkg.in/yaml.v3 v3.0.1`. Nie trzeba zmieniać
+Go `1.26.9`, Flow `v0.64.0`, kernel `v0.36.0` oraz `gopkg.in/yaml.v3 v3.0.1`. Nie trzeba zmieniać
 wewnętrznych importów CRUD; konsument importuje moduł pod swoją ścieżką.
 
 ## Użycie

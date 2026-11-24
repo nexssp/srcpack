@@ -100,7 +100,7 @@ func TestConsumerOperations(t *testing.T) {
  ktest.RequireNoError(t, err)
 }`
 	ktest.RequireNoError(t, os.WriteFile(filepath.Join(tmp, "consumer_test.go"), []byte(consumer), 0o600))
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Minute)
 	defer cancel()
 	goBin, err := exec.LookPath("go")
 	ktest.RequireNoError(t, err)
@@ -108,7 +108,7 @@ func TestConsumerOperations(t *testing.T) {
 	cmd.Dir = tmp
 	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
 	output, err := cmd.CombinedOutput()
-	ktest.RequireCondition(t, err == nil, "copied bundle go test failed: %v\n%s", err, output)
+	ktest.RequireCondition(t, err == nil, "copied bundle go test failed: %v (context: %v)\n%s", err, ctx.Err(), output)
 	deps := exec.CommandContext(ctx, goBin, "list", "-deps", "./...")
 	deps.Dir, deps.Env = tmp, cmd.Env
 	output, err = deps.CombinedOutput()

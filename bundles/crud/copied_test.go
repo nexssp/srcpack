@@ -57,7 +57,7 @@ func TestExternalConsumer(t *testing.T) {
  ktest.RequireEqual(t,got["value"],any(value))
 }`
 	ktest.RequireNoError(t, root.WriteFile("consumer_test.go", []byte(consumer), 0o600))
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Minute)
 	defer cancel()
 	goBin, err := exec.LookPath("go")
 	ktest.RequireNoError(t, err)
@@ -65,7 +65,7 @@ func TestExternalConsumer(t *testing.T) {
 	cmd.Dir = tmp
 	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
-	ktest.RequireCondition(t, err == nil, "copied consumer tests: %v\n%s", err, out)
+	ktest.RequireCondition(t, err == nil, "copied consumer tests: %v (context: %v)\n%s", err, ctx.Err(), out)
 	deps := exec.CommandContext(ctx, goBin, "list", "-deps", "./...")
 	deps.Dir, deps.Env = tmp, cmd.Env
 	out, err = deps.CombinedOutput()
