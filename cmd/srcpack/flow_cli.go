@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	flowselfbench "github.com/nexssp/flow/cli/selfbench"
@@ -134,10 +135,13 @@ func parseFlowDiagnosticArgs(args []string) ([]string, flowDiagnosticOptions, er
 	commandArgs := make([]string, 0, len(args))
 	var options flowDiagnosticOptions
 	cpuProfileSet := false
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
+	remaining := args
+	for len(remaining) > 0 {
+		arg := remaining[0]
+		remaining = remaining[1:]
 		if arg == "--" {
-			commandArgs = append(commandArgs, args[i:]...)
+			commandArgs = append(commandArgs, arg)
+			commandArgs = append(commandArgs, remaining...)
 			break
 		}
 		if arg == "--profile-actions" {
@@ -148,11 +152,15 @@ func parseFlowDiagnosticArgs(args []string) ([]string, flowDiagnosticOptions, er
 			if cpuProfileSet {
 				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile may be specified only once")
 			}
-			if i+1 >= len(args) || args[i+1] == "" || strings.HasPrefix(args[i+1], "-") {
+			if len(remaining) == 0 {
 				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile requires a file path")
 			}
-			i++
-			options.cpuProfilePath = args[i]
+			profilePath := remaining[0]
+			remaining = remaining[1:]
+			if profilePath == "" || strings.HasPrefix(profilePath, "-") {
+				return nil, flowDiagnosticOptions{}, errors.New("--cpu-profile requires a file path")
+			}
+			options.cpuProfilePath = profilePath
 			cpuProfileSet = true
 			continue
 		}
@@ -176,7 +184,7 @@ func executeFlowWithDiagnostics(ctx context.Context, cfg runner.Config, source s
 	var profiler *flowselfbench.ActionProfiler
 	if options.profileActions {
 		profiler = flowselfbench.NewActionProfiler()
-		cfg.Hooks = append(cfg.Hooks[:len(cfg.Hooks):len(cfg.Hooks)], profiler.Hook())
+		cfg.Hooks = append(slices.Clip(cfg.Hooks), profiler.Hook())
 	}
 	var cpuProfile *flowselfbench.CPUProfile
 	if options.cpuProfilePath != "" {

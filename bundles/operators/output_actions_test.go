@@ -223,7 +223,7 @@ func TestOutputActionsComposeThroughFlow(t *testing.T) {
 }
 
 func TestOutputEffectsSanitizeDeclaredSecretBeforeEmission(t *testing.T) {
-	const token = "srcpack-output-secret-canary"
+	const marker = "srcpack-output-redaction-marker"
 	path := filepath.Join(t.TempDir(), "out.txt")
 	var clipboardText string
 	writeClipboard := func(value string) error {
@@ -281,31 +281,32 @@ pipeline.emit_output
 `
 	ctx := compiler.WithSourceLoader(t.Context(), nflows.Loader())
 	for _, mode := range []string{"file", "stdout", "clipboard"} {
-		payload := map[string]any{"api_key": token, "mode": mode}
+		payload := map[string]any{"api_key": marker, "mode": mode}
 		var stderr string
 		var runErr error
-		if mode == "stdout" {
+		switch mode {
+		case "stdout":
 			stdout := captureOutput(t, &os.Stdout, func() {
 				_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
 			})
-			if strings.Contains(stdout, token) || !strings.Contains(stdout, secret.Redacted) {
+			if strings.Contains(stdout, marker) || !strings.Contains(stdout, secret.Redacted) {
 				t.Fatalf("stdout emission = %q, want Secret redacted", stdout)
 			}
-		} else if mode == "clipboard" {
+		case "clipboard":
 			stderr = captureOutput(t, &os.Stderr, func() {
 				_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
 			})
-			if strings.Contains(clipboardText, token) || !strings.Contains(clipboardText, secret.Redacted) {
+			if strings.Contains(clipboardText, marker) || !strings.Contains(clipboardText, secret.Redacted) {
 				t.Fatalf("clipboard emission = %q, want Secret redacted", clipboardText)
 			}
-			if strings.Contains(stderr, token) || !strings.Contains(stderr, secret.Redacted) {
+			if strings.Contains(stderr, marker) || !strings.Contains(stderr, secret.Redacted) {
 				t.Fatalf("preview emission = %q, want Secret redacted", stderr)
 			}
-		} else {
+		default:
 			_, runErr = runner.Execute(ctx, cfg, source, "final_output_secret.nflow", payload)
 			data, readErr := os.ReadFile(path)
 			ktest.RequireNoError(t, readErr)
-			if strings.Contains(string(data), token) || !strings.Contains(string(data), secret.Redacted) {
+			if strings.Contains(string(data), marker) || !strings.Contains(string(data), secret.Redacted) {
 				t.Fatalf("file emission = %q, want Secret redacted", data)
 			}
 		}

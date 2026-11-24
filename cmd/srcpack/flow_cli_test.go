@@ -61,7 +61,9 @@ func TestParseFlowDiagnosticArgs(t *testing.T) {
 		t.Fatalf("args following -- must remain command arguments: %v, %+v", commandArgs, options)
 	}
 	for _, args := range [][]string{
-		{"--cpu-profile"}, {"--cpu-profile="}, {"--cpu-profile", "--profile-actions"},
+		{"--cpu-profile"},
+		{"--cpu-profile="},
+		{"--cpu-profile", "--profile-actions"},
 		{"--cpu-profile", "one.pprof", "--cpu-profile=two.pprof"},
 	} {
 		if _, _, err := parseFlowDiagnosticArgs(args); err == nil {
